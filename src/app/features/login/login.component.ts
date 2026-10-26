@@ -4,7 +4,6 @@ import { Router, RouterLink } from '@angular/router';
 import { AlertComponent } from '../../shared/ui/alert/alert.component';
 import { ButtonComponent } from '../../shared/ui/button/button.component';
 import { ListComponent, ListItem } from '../../shared/ui/list/list.component';
-import { MessageBoxComponent } from '../../shared/ui/message-box/message-box.component';
 import { TabItem, TabsComponent } from '../../shared/ui/tabs/tabs.component';
 import { TextFieldComponent } from '../../shared/ui/text-field/text-field.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -13,10 +12,21 @@ import { CONTRASENA_DEMO, USUARIOS_DEMO } from '../../mock/usuarios-demo';
 
 type LoginTab = 'entidades' | 'proveedores';
 
+/** Último DNI que entró (taller: simula la sesión que recuerda el navegador). */
+const CLAVE_ULTIMO_USUARIO = 'taller-siaf-rp:ultimo-usuario';
+
+function leerUltimoUsuario(): string | null {
+  try { return localStorage.getItem(CLAVE_ULTIMO_USUARIO); } catch { return null; }
+}
+
+function guardarUltimoUsuario(dni: string): void {
+  try { localStorage.setItem(CLAVE_ULTIMO_USUARIO, dni); } catch { /* sin almacenamiento: no se recuerda */ }
+}
+
 @Component({
   selector: 'siaf-login',
   standalone: true,
-  imports: [AlertComponent, ButtonComponent, ListComponent, MessageBoxComponent, RouterLink, TabsComponent, TextFieldComponent],
+  imports: [AlertComponent, ButtonComponent, ListComponent, RouterLink, TabsComponent, TextFieldComponent],
   template: `
     <main class="flex min-h-screen bg-[var(--sys-color-bg-surfaces-surface)] text-text lg:h-screen lg:overflow-hidden">
       <section class="hidden h-screen flex-[0_0_50%] overflow-hidden lg:block" aria-hidden="true">
@@ -55,9 +65,15 @@ type LoginTab = 'entidades' | 'proveedores';
 
             <!-- Formulario: Entidades del Estado -->
             @if (activeTab() === 'entidades') {
-            <form class="flex w-full flex-col items-center gap-5" aria-label="Inicio de sesión">
+            <form class="flex w-full flex-col items-center gap-5" aria-label="Inicio de sesión" (submit)="$event.preventDefault(); onSubmit()">
 
-              <!-- Input DNI -->
+              <!-- Input DNI, con las cuentas guardadas (taller: simula el autocompletar del navegador) -->
+              <div
+                class="relative w-full"
+                (focusin)="cuentasAbiertas.set(true)"
+                (focusout)="alSalirDelDni($event)"
+                (keydown.escape)="cuentasAbiertas.set(false)"
+              >
               <siaf-input
                 class="block w-full"
                 label="DNI"
@@ -68,6 +84,24 @@ type LoginTab = 'entidades' | 'proveedores';
                 [value]="usuario()"
                 (valueChange)="usuario.set(textFieldValue($event))"
               />
+              @if (cuentasAbiertas()) {
+                <div
+                  class="absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-siaf-sm bg-surface shadow-siaf-elevation-1"
+                  role="group"
+                  aria-label="Cuentas guardadas en este navegador"
+                >
+                  <p class="siaf-text-overline-medium m-0 px-siaf-md pt-siaf-xs text-[var(--sys-color-text-neutral-low)]">Cuentas guardadas</p>
+                  <siaf-list
+                    ariaLabel="Cuentas guardadas"
+                    [items]="usuariosDemo"
+                    [selectable]="true"
+                    [dividers]="true"
+                    [selectedId]="usuarioElegido()"
+                    (selectedIdChange)="elegirUsuario($event)"
+                  />
+                </div>
+              }
+              </div>
 
               <!-- Input Contraseña -->
               <siaf-input
@@ -94,9 +128,8 @@ type LoginTab = 'entidades' | 'proveedores';
               <siaf-button
                 class="block w-full"
                 variant="primary"
-                type="button"
+                type="submit"
                 [disabled]="authService.isLoading()"
-                (click)="onSubmit()"
               >
                 {{ authService.isLoading() ? 'Ingresando...' : 'Iniciar sesión' }}
               </siaf-button>
@@ -119,31 +152,19 @@ type LoginTab = 'entidades' | 'proveedores';
               </div>
             </form>
 
-            <!-- Taller: usuarios de demostración -->
-            <section class="flex w-full flex-col gap-siaf-xs" aria-labelledby="usuarios-demo-titulo">
-              <div class="flex items-center justify-between gap-siaf-xs">
-                <h2 id="usuarios-demo-titulo" class="siaf-text-heading-6-bold m-0 text-[var(--sys-color-text-neutral-high)]">Usuarios de demostración</h2>
-                <siaf-button variant="text" size="sm" icon="restart_alt" (click)="reiniciarDatos()">Reiniciar datos</siaf-button>
-              </div>
-              <siaf-list
-                ariaLabel="Usuarios de demostración"
-                [items]="usuariosDemo"
-                [selectable]="true"
-                [wrapDescription]="true"
-                [dividers]="true"
-                [selectedId]="usuarioElegido()"
-                (selectedIdChange)="elegirUsuario($event)"
-              />
-              <message-box [text]="'Elija un usuario para llenar el DNI. La contraseña de todos es ' + contrasenaDemo + '.'" />
+            <!-- Taller: volver a los datos iniciales de la demo -->
+            <div class="flex w-full flex-col items-center gap-siaf-xs">
+              <siaf-button variant="text" size="sm" icon="restart_alt" (click)="reiniciarDatos()">Reiniciar datos de la demo</siaf-button>
               @if (datosReiniciados()) {
                 <siaf-alert
+                  class="w-full"
                   tone="success"
                   description="Se restauraron las solicitudes, las cuentas y las notificaciones iniciales."
                   [showClose]="true"
                   (closed)="datosReiniciados.set(false)"
                 />
               }
-            </section>
+            </div>
             } <!-- fin @if entidades -->
 
             <!-- Formulario: Proveedores y Externos -->
@@ -234,25 +255,46 @@ export class LoginComponent {
   readonly showPassword = signal(false);
   readonly jnePopover = signal(false);
 
-  // ── Taller: usuarios de demostración (src/app/mock/usuarios-demo.ts) ──
-  readonly contrasenaDemo = CONTRASENA_DEMO;
+  // ── Taller: cuentas «guardadas en el navegador» (src/app/mock/usuarios-demo.ts) ──
+  // Una página no puede escribir en el gestor de contraseñas del navegador: se simula su autocompletar.
   readonly usuariosDemo: ListItem[] = USUARIOS_DEMO.map((u) => ({
     id: u.dni,
     title: `${u.nombres} ${u.apellidoPaterno} ${u.apellidoMaterno}`,
-    description: `DNI ${u.dni} · ${u.descripcion}`,
+    description: `${u.rol} · DNI ${u.dni} · ••••••••`,
     leading: { type: 'avatar', initials: `${u.nombres[0]}${u.apellidoPaterno[0]}` },
   }));
   readonly usuarioElegido = signal<string | null>(null);
   readonly datosReiniciados = signal(false);
+  readonly cuentasAbiertas = signal(false);
+
+  constructor() {
+    // Recordar el último usuario: como un navegador que ya tiene la sesión guardada.
+    const ultimo = leerUltimoUsuario();
+    if (ultimo && USUARIOS_DEMO.some((u) => u.dni === ultimo)) this.llenar(ultimo);
+  }
 
   onSubmit(): void {
     if (!this.usuario() || !this.contrasena()) return;
     this.authService.login(this.usuario().trim(), this.contrasena()).subscribe({
-      next: () => void this.router.navigate(['/panel']),
+      next: () => {
+        guardarUltimoUsuario(this.usuario().trim());
+        void this.router.navigate(['/panel']);
+      },
     });
   }
 
   elegirUsuario(dni: string): void {
+    this.llenar(dni);
+    this.cuentasAbiertas.set(false);
+  }
+
+  /** Cierra las cuentas guardadas cuando el foco sale del DNI y de su lista. */
+  alSalirDelDni(evento: FocusEvent): void {
+    const destino = evento.relatedTarget as Node | null;
+    if (!destino || !(evento.currentTarget as HTMLElement).contains(destino)) this.cuentasAbiertas.set(false);
+  }
+
+  private llenar(dni: string): void {
     this.usuarioElegido.set(dni);
     this.usuario.set(dni);
     this.contrasena.set(CONTRASENA_DEMO);

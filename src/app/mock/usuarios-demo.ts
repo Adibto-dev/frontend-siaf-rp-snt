@@ -20,6 +20,8 @@ export interface UsuarioDemo {
   apellidoMaterno: string;
   /** Qué muestra en el panel de usuarios del login. */
   descripcion: string;
+  /** Rol que se ve en las cuentas guardadas del login. */
+  rol: string;
   perfiles: PerfilItem[];
 }
 
@@ -48,31 +50,34 @@ function perfil(id: string, rolCodigo: 'CREADOR' | 'APROBADOR', rol: string, per
 export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-ana',
-    dni: '11111111',
+    dni: '45872163',
     email: 'ana.torres@taller.pe',
     nombres: 'Ana',
     apellidoPaterno: 'Torres',
     apellidoMaterno: 'Díaz',
+    rol: 'Creador',
     descripcion: 'Creador: registra y verifica solicitudes',
     perfiles: [perfil('perfil-ana-creador', 'CREADOR', 'Creador', 'Operador de cuentas bancarias')],
   },
   {
     id: 'usr-luis',
-    dni: '22222222',
+    dni: '70318246',
     email: 'luis.ramirez@taller.pe',
     nombres: 'Luis',
     apellidoPaterno: 'Ramírez',
     apellidoMaterno: 'Soto',
+    rol: 'Aprobador',
     descripcion: 'Aprobador: aprueba, observa o rechaza',
     perfiles: [perfil('perfil-luis-aprobador', 'APROBADOR', 'Aprobador', 'Aprobador de cuentas bancarias')],
   },
   {
     id: 'usr-carla',
-    dni: '33333333',
+    dni: '41269587',
     email: 'carla.mendoza@taller.pe',
     nombres: 'Carla',
     apellidoPaterno: 'Mendoza',
     apellidoMaterno: 'Ríos',
+    rol: 'Creador y aprobador',
     descripcion: 'Dos perfiles: creador y aprobador (cambia de perfil)',
     perfiles: [
       perfil('perfil-carla-creador', 'CREADOR', 'Creador', 'Operador de cuentas bancarias'),

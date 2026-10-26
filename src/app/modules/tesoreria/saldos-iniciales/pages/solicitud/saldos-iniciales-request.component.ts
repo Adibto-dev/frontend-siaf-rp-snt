@@ -33,6 +33,8 @@ import { MessageBoxComponent } from '../../../../../shared/ui/message-box/messag
 import { ModalComponent } from '../../../../../shared/ui/modal/modal.component';
 import { SnackbarVariant } from '../../../../../shared/ui/snackbar/snackbar.component';
 import { SummaryCardComponent, SummaryCardField } from '../../../../../shared/ui/summary-card/summary-card.component';
+import { SidePanelComponent } from '../../../../../shared/ui/side-panel/side-panel.component';
+import { ExpansionPanelComponent } from '../../../../../shared/ui/expansion-panel/expansion-panel.component';
 import { TextFieldComponent } from '../../../../../shared/ui/text-field/text-field.component';
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { UploadSideNavComponent } from '../../../../../shared/ui/upload-side-nav/upload-side-nav.component';
@@ -117,6 +119,8 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
     SolicitudeInfoCardComponent,
     SolicitudePageLayoutComponent,
     SummaryCardComponent,
+    SidePanelComponent,
+    ExpansionPanelComponent,
     TableControlsComponent,
     TextFieldComponent,
     TooltipDirective,
@@ -238,6 +242,19 @@ export class SaldosInicialesRequestComponent implements OnInit {
   readonly seleccionSaldos = signal<string[]>([]);
   /** Saldo cuyas cuentas de registro se ven desplegadas en la tabla. */
   readonly saldoDesplegado = signal<string | null>(null);
+
+  // ── Saldos iniciales libretas (panel de detalle de un saldo) ──────
+  readonly saldoVisto = signal<SaldoInicial | null>(null);
+  readonly busquedaVista = signal('');
+  readonly paginaVista = signal(1);
+  readonly tamanoVista = signal(25);
+  private readonly libretasVistaFiltradas = computed(() => {
+    const s = this.saldoVisto();
+    const q = this.busquedaVista();
+    return s ? this.libretasDe(s).filter((l) => !q || [l.idCorrelativo, l.numero, l.descripcion].some((v) => contiene(v, q))) : [];
+  });
+  readonly tablaVista = computed(() => paginar(this.libretasVistaFiltradas(), this.paginaVista(), this.tamanoVista()));
+  readonly totalVista = computed(() => this.libretasVistaFiltradas().length);
 
   private readonly saldosFiltrados = computed(() => {
     const q = this.busquedaSaldos();
@@ -420,6 +437,21 @@ export class SaldosInicialesRequestComponent implements OnInit {
     this.saldos.update((lista) => lista.filter((s) => !quitar.has(s.id)));
     this.seleccionSaldos.set([]);
     if (this.saldoEditado() && quitar.has(this.saldoEditado()!)) this.cerrarEditor();
+  }
+
+  verLibretas(saldo: SaldoInicial): void {
+    this.busquedaVista.set('');
+    this.paginaVista.set(1);
+    this.saldoVisto.set(saldo);
+  }
+
+  camposCuentaDe(saldo: SaldoInicial): SummaryCardField[] {
+    const c = cuentaPorNumero(saldo.cuentaBancaria);
+    return [
+      { label: 'Número de cuenta', value: saldo.cuentaBancaria },
+      { label: 'Denominación', value: c?.denominacion ?? '' },
+      { label: 'Moneda', value: saldo.moneda },
+    ];
   }
 
   alternarDespliegue(id: string): void {

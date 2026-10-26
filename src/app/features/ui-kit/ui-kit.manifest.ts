@@ -5547,7 +5547,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       "siaf-icon",
       "siaf-icon-dropdown-menu"
     ],
-    "sinUso": true
+    "sinUso": false
   },
   {
     "selector": "siaf-filter-pill",
@@ -11220,7 +11220,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       "siaf-icon",
       "siaf-side-nav"
     ],
-    "sinUso": true
+    "sinUso": false
   },
   {
     "selector": "siaf-sidebar",

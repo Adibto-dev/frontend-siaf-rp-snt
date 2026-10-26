@@ -256,14 +256,14 @@ export class CreateDocumentComponent {
             placeholder: 'Documento',
             type: 'select',
             required: true,
-            value: this.internalValues.get('Documento') || '',
+            value: this.unicoSiFalta('Documento', this.defaultProcessDocuments),
             options: this.defaultProcessDocuments
           },
           {
             placeholder: 'Tipo de acci\u00f3n',
             type: 'select',
             required: true,
-            value: this.internalValues.get('Tipo de acci\u00f3n') || '',
+            value: this.unicoSiFalta('Tipo de acci\u00f3n', this.defaultProcessActionTypes),
             options: this.defaultProcessActionTypes,
             disabled: this.defaultProcessActionTypes.length === 0
           }
@@ -279,7 +279,7 @@ export class CreateDocumentComponent {
             placeholder: 'Documento',
             type: 'select',
             required: true,
-            value: this.internalValues.get('Documento') || '',
+            value: this.unicoSiFalta('Documento', this.selectedProcessDocuments),
             options: this.selectedProcessDocuments,
             disabled: !this.selectedProcessDocuments.length
           },
@@ -287,7 +287,7 @@ export class CreateDocumentComponent {
             placeholder: 'Tipo de acci\u00f3n',
             type: 'select',
             required: true,
-            value: this.internalValues.get('Tipo de acci\u00f3n') || '',
+            value: this.unicoSiFalta('Tipo de acci\u00f3n', this.selectedProcessActionTypes),
             options: this.selectedProcessActionTypes,
             disabled: !this.selectedProcessActionTypes.length
           }
@@ -460,14 +460,14 @@ export class CreateDocumentComponent {
 
   accept(): void {
     const selectedProcess = this.selectedProcess || this.defaultProcess;
-    const document = this.internalValues.get('Documento') || this.externalFieldValue('Documento');
+    const document = this.internalValues.get('Documento') || this.externalFieldValue('Documento') || this.unicoSiFalta('Documento', this.documentLabels(selectedProcess));
     const documentOption = this.findDocumentOption(selectedProcess, document);
 
     this.accepted.emit({
       processId: selectedProcess?.id,
       processLabel: this.internalValues.get('Buscar proceso o procedimiento') || selectedProcess?.label,
       document,
-      actionType: this.internalValues.get('Tipo de acci\u00f3n') || this.externalFieldValue('Tipo de acción'),
+      actionType: this.internalValues.get('Tipo de acci\u00f3n') || this.externalFieldValue('Tipo de acción') || this.unicoSiFalta('Tipo de acci\u00f3n', this.actionTypesForProcess(selectedProcess)),
       route: documentOption?.route || selectedProcess?.route
     });
   }
@@ -523,6 +523,11 @@ export class CreateDocumentComponent {
     return this.fields.length === 0 && field.placeholder === 'Buscar proceso o procedimiento';
   }
 
+  /** Valor elegido; si no hay y la lista tiene una sola opción, esa viene marcada. */
+  private unicoSiFalta(campo: string, opciones: string[]): string {
+    return this.internalValues.get(campo) || (opciones.length === 1 ? opciones[0] : '');
+  }
+
   private get defaultProcess(): CreateDocumentProcessOption | null {
     return this.processOptions.find((process) => this.documentLabels(process).length > 0 && this.actionTypesForProcess(process).length > 0) || this.processOptions[0] || null;
   }
@@ -556,7 +561,7 @@ export class CreateDocumentComponent {
       return [];
     }
 
-    const selectedDocument = this.internalValues.get('Documento') || this.externalFieldValue('Documento');
+    const selectedDocument = this.internalValues.get('Documento') || this.externalFieldValue('Documento') || this.unicoSiFalta('Documento', this.documentLabels(process));
 
     if (process.documentOptions?.length && !selectedDocument) {
       return [];

@@ -717,26 +717,38 @@ export class DocumentsRecordsPageComponent implements OnChanges {
         placeholder: 'Documento',
         type: 'select',
         required: true,
-        value: this.createDocumentDocument,
+        value: this.documentoParaCrear,
         options: this.effectiveConfig.createDocumentOptions[0]?.documents ?? []
       },
       {
         placeholder: 'Tipo de acción',
         type: 'select',
         required: true,
-        value: this.createDocumentActionType,
+        value: this.accionParaCrear,
         options: this.createDocumentActionTypeOptions,
-        disabled: !this.createDocumentDocument
+        disabled: !this.documentoParaCrear
       }
     ];
   }
 
   get createDocumentActionTypeOptions(): string[] {
-    return this.effectiveConfig.createDocumentOptions[0]?.documentOptions?.find((document) => document.label === this.createDocumentDocument)?.actionTypes || this.effectiveConfig.createDocumentOptions[0]?.actionTypes || [];
+    return this.effectiveConfig.createDocumentOptions[0]?.documentOptions?.find((document) => document.label === this.documentoParaCrear)?.actionTypes || this.effectiveConfig.createDocumentOptions[0]?.actionTypes || [];
   }
 
   get createDocumentAcceptDisabled(): boolean {
-    return !this.createDocumentDocument || !this.createDocumentActionType;
+    return !this.documentoParaCrear || !this.accionParaCrear;
+  }
+
+  /** Documento elegido; si el proceso tiene uno solo, viene marcado. */
+  get documentoParaCrear(): string {
+    const opciones = this.effectiveConfig.createDocumentOptions[0]?.documents ?? [];
+    return this.createDocumentDocument || (opciones.length === 1 ? opciones[0] : '');
+  }
+
+  /** Tipo de acción elegido; si el documento admite uno solo, viene marcado. */
+  get accionParaCrear(): string {
+    const opciones = this.createDocumentActionTypeOptions;
+    return this.createDocumentActionType || (opciones.length === 1 ? opciones[0] : '');
   }
 
   private get currentHiddenColumns(): Set<string> {
@@ -974,7 +986,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
 
     // Buscar la ruta en el config local por el documento seleccionado
     // (por si create-document no resuelve el documentOption correctamente)
-    const selectedDocument = selection?.document || this.createDocumentDocument;
+    const selectedDocument = selection?.document || this.documentoParaCrear;
     const localDocOption = this.effectiveConfig.createDocumentOptions
       .flatMap(p => p.documentOptions ?? [])
       .find(d => d.label === selectedDocument);

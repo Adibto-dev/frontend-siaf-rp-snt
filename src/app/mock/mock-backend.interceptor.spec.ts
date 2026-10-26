@@ -64,14 +64,14 @@ describe('mockBackendInterceptor', () => {
   afterAll(() => reiniciarDatosDemo());
 
   it('rechaza una contraseña incorrecta con el mensaje que muestra el login', fakeAsync(() => {
-    const { error } = esperar(http.post(`${API}/auth/login`, { dni: '11111111', password: 'otra' }));
+    const { error } = esperar(http.post(`${API}/auth/login`, { dni: '45872163', password: 'otra' }));
 
     expect(error?.status).toBe(401);
     expect(error?.error.message).toContain('DNI o contraseña incorrectos');
   }));
 
   it('entrega los perfiles del usuario y cambia al que se elige', fakeAsync(() => {
-    const { valor } = esperar(http.post<LoginResponse>(`${API}/auth/login`, { dni: '33333333', password: CONTRASENA_DEMO }));
+    const { valor } = esperar(http.post<LoginResponse>(`${API}/auth/login`, { dni: '41269587', password: CONTRASENA_DEMO }));
     expect(valor?.perfilesDisponibles.map((p) => p.rolCodigo)).toEqual(['CREADOR', 'APROBADOR']);
 
     const headers = new HttpHeaders({ Authorization: `Bearer ${valor!.accessToken}` });
@@ -81,7 +81,7 @@ describe('mockBackendInterceptor', () => {
   }));
 
   it('la bandeja no muestra solicitudes en NUEVO y pagina si se pide', fakeAsync(() => {
-    const headers = entrar('11111111');
+    const headers = entrar('45872163');
     esperar(http.post(`${API}/solicitudes`, { tipoAccion: 'creacion', organoLinea: 'OGA', justificacion: 'Borrador' }, { headers }));
 
     const { valor } = esperar(http.get<{ data: SolicitudResponse[]; total: number }>(`${API}/solicitudes/bandeja-creador?tipos=RTCR&page=1&limit=5`, { headers }));
@@ -91,7 +91,7 @@ describe('mockBackendInterceptor', () => {
   }));
 
   it('recorre el flujo completo: elaborar, verificar y aprobar crea la cuenta y avisa a cada rol', fakeAsync(() => {
-    const ana = entrar('11111111');
+    const ana = entrar('45872163');
     const creada = esperar(http.post<SolicitudResponse>(`${API}/solicitudes`, { tipoAccion: 'creacion', organoLinea: 'OGA', justificacion: 'Cuenta nueva' }, { headers: ana }));
     const id = creada.valor!.id;
 
@@ -107,7 +107,7 @@ describe('mockBackendInterceptor', () => {
     expect(esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'APROBADO' }, { headers: ana })).error?.status).toBe(409);
     esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'VERIFICADO' }, { headers: ana }));
 
-    const luis = entrar('22222222');
+    const luis = entrar('70318246');
     const avisos = esperar(http.get<{ titulo: string; documento: { id: string } }[]>(`${API}/notificaciones`, { headers: luis }));
     expect(avisos.valor?.some((n) => n.documento.id === id && n.titulo === 'Solicitud por aprobar')).toBeTrue();
 
@@ -126,14 +126,14 @@ describe('mockBackendInterceptor', () => {
   }));
 
   it('observar pide comentario y una solicitud observada ya no se puede eliminar', fakeAsync(() => {
-    const luis = entrar('22222222');
+    const luis = entrar('70318246');
     const bandeja = esperar(http.get<SolicitudResponse[]>(`${API}/solicitudes/bandeja-aprobador?tipos=RTCR`, { headers: luis }));
     const verificada = bandeja.valor!.find((s) => s.estado === 'VERIFICADO')!;
 
     expect(esperar(http.patch(`${API}/solicitudes/${verificada.id}/estado`, { estadoNuevo: 'OBSERVADO' }, { headers: luis })).error?.status).toBe(400);
     esperar(http.patch(`${API}/solicitudes/${verificada.id}/estado`, { estadoNuevo: 'OBSERVADO', comentario: 'Falta la constancia.' }, { headers: luis }));
 
-    const ana = entrar('11111111');
+    const ana = entrar('45872163');
     esperar(http.patch(`${API}/solicitudes/${verificada.id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
     const eliminar = esperar(http.patch(`${API}/solicitudes/${verificada.id}/estado`, { estadoNuevo: 'ELIMINADO' }, { headers: ana }));
 
@@ -164,7 +164,7 @@ describe('mockBackendInterceptor', () => {
     }
 
     it('recalcula los importes, se elabora sin sustento y numera con su propio código', fakeAsync(() => {
-      const ana = entrar('11111111');
+      const ana = entrar('45872163');
       const id = crearRsin(ana);
       esperar(http.post(`${API}/solicitudes/${id}/saldos-iniciales`, SALDOS, { headers: ana }));
       const elaborar = esperar(http.patch<{ numero: string }>(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
@@ -178,7 +178,7 @@ describe('mockBackendInterceptor', () => {
     }));
 
     it('rechaza una cuenta bancaria de otra entidad financiera o repetida', fakeAsync(() => {
-      const ana = entrar('11111111');
+      const ana = entrar('45872163');
       const id = crearRsin(ana);
       const otraEntidad = esperar(http.post(`${API}/solicitudes/${id}/saldos-iniciales`, { ...SALDOS, entidadFinanciera: '0018' }, { headers: ana }));
       const repetida = esperar(http.post(`${API}/solicitudes/${id}/saldos-iniciales`, { ...SALDOS, saldos: [SALDOS.saldos[0], { ...SALDOS.saldos[0], id: 'nuevo-2' }] }, { headers: ana }));
@@ -188,7 +188,7 @@ describe('mockBackendInterceptor', () => {
     }));
 
     it('al aprobar, cada saldo recibe su secuencia y pasa a los registros', fakeAsync(() => {
-      const luis = entrar('22222222');
+      const luis = entrar('70318246');
       const bandeja = esperar(http.get<SolicitudResponse[]>(`${API}/solicitudes/bandeja-aprobador?tipos=RSIN`, { headers: luis }));
       const verificada = bandeja.valor!.find((s) => s.estado === 'VERIFICADO')!;
       const antes = esperar(http.get<SaldoInicialRegistro[]>(`${API}/saldos-iniciales`, { headers: luis })).valor!.length;
