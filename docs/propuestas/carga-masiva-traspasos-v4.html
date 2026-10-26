@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propuesta v4 · Carga masiva guiada</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Icons+Outlined&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#014899;--brand-soft:rgb(1 72 153/.08);--text:rgb(32 32 32/.92);--text-2:rgb(32 32 32/.62);--line:rgb(32 32 32/.12);
+--low:#F5F6F8;--bg:#EEF1F5;--o:#B5452F;--o-bg:#FBE7E1;--d:#20635E;--d-bg:#D6EFEC;--warn:#876727;--warn-bg:#FCEAC6;--xl:#1D6F42}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,sans-serif;color:var(--text);background:var(--bg)}
+.mi{font-family:'Material Icons Outlined';font-size:20px;line-height:1;vertical-align:middle}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+.sub{color:var(--text-2);font-size:13px}
+.btn{font:inherit;font-weight:500;border-radius:8px;padding:8px 14px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.btn.f{background:var(--brand);border-color:var(--brand);color:#fff}.btn.t{border-color:transparent;background:none;color:var(--brand)}
+.btn[disabled]{background:#EDEDED;color:rgb(32 32 32/.4);border-color:#EDEDED;cursor:not-allowed}
+.ico{border:none;background:none;cursor:pointer;color:var(--text-2);padding:4px}
+/* fondo: pantalla v3 atenuada */
+.bgpage{padding:24px;max-width:1100px}
+.bgpage .card{background:#fff;border-radius:12px;border:1px solid var(--line);padding:20px;margin-bottom:16px}
+.ph{height:12px;background:var(--low);border-radius:6px;margin:10px 0}
+.scrim{position:fixed;inset:0;background:rgb(0 0 0/.5)}
+/* sidenav */
+.sn{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:#fff;display:flex;flex-direction:column}
+.sn>header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 4px}.sn>header h2{font-size:17px;text-transform:uppercase;margin:0}
+.body{flex:1;overflow:auto;padding:8px 24px 20px}
+.sn>footer{display:flex;gap:8px;justify-content:flex-end;padding:14px 24px;border-top:1px solid var(--line)}
+.ctx{background:var(--low);border-radius:8px;padding:8px 12px;font-size:13px;display:flex;gap:8px;align-items:center;margin-bottom:16px}
+h3{font-size:15px;margin:0 0 4px}
+/* inicio: dos caminos */
+.path{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.path.main{border:2px solid var(--brand)}
+.path .hd{display:flex;gap:12px;align-items:flex-start}
+.path .ic{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none}
+.drop{border:1.5px dashed rgb(32 32 32/.35);border-radius:10px;padding:22px;text-align:center;cursor:pointer;margin-top:12px;transition:.15s}
+.drop:hover{background:var(--brand-soft);border-color:var(--brand)}.drop .mi{font-size:38px;color:var(--brand)}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 4px}
+.how div{background:var(--low);border-radius:8px;padding:10px;font-size:12.5px}
+.how b{display:flex;gap:6px;align-items:center;color:var(--brand);margin-bottom:2px}
+.how .n{width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:11px;display:grid;place-items:center}
+details{margin-top:10px}summary{cursor:pointer;color:var(--brand);font-weight:500;font-size:13px}
+/* asistente plantilla */
+.q{margin:18px 0 8px;font-weight:600;display:flex;gap:8px;align-items:center}
+.q .n{width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;font-size:12px;display:grid;place-items:center}
+.cases{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.case{border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;text-align:center;font-size:12.5px;background:#fff}
+.case.on{border:2px solid var(--brand);background:var(--brand-soft);padding:9px}
+.case svg{width:100%;height:46px;margin-bottom:4px}.case b{display:block;font-size:13px}
+.accs{border:1px solid var(--line);border-radius:8px;max-height:190px;overflow:auto}
+.acc{display:flex;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:13px}
+.acc:first-child{border-top:none}.acc input{margin:0}.acc .grow{flex:1}.acc .s{color:var(--text-2);font-size:12px}
+.acc.dis{opacity:.4;pointer-events:none}
+.tip{display:flex;gap:8px;background:var(--brand-soft);color:var(--brand);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:14px}
+.xl{border:1px solid var(--line);border-radius:8px;overflow:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}
+th,td{padding:6px 8px;border:1px solid var(--line);text-align:left}
+.xl th{background:var(--xl);color:#fff;font-weight:600}.xl td.lock{background:var(--low);color:var(--text-2)}.xl td.ed{background:#FFFBE6}
+.xl .rn{background:#E9EBEE;color:var(--text-2);text-align:center;width:28px}
+/* revisión */
+.file{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.kpi{border-radius:8px;padding:10px;font-size:12px}.kpi b{display:block;font-size:20px}
+.kpi.ok{background:var(--d-bg);color:var(--d)}.kpi.w{background:var(--warn-bg);color:var(--warn)}.kpi.e{background:var(--o-bg);color:var(--o)}
+.rv td{border-left:none;border-right:none}.rv th{background:var(--low);border-left:none;border-right:none}
+.rv tr.err td{background:#FFF5F3}.rv .msg{white-space:normal;font-size:11.5px;color:var(--o)}
+.rv input,.rv select{font:inherit;font-size:12px;padding:3px 6px;border:1px solid var(--o);border-radius:4px;width:95px}
+.filt{display:flex;gap:6px;margin-bottom:6px}.filt button{font:inherit;font-size:12px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 10px;cursor:pointer}
+.filt button.on{background:var(--text);color:#fff;border-color:var(--text)}
+.notes{position:fixed;left:24px;bottom:24px;max-width:min(520px,calc(100% - 600px));background:#fff;border-radius:12px;padding:16px 20px;border-left:4px solid #D12B4B;font-size:13px}
+.notes li{margin:3px 0}
+.view{display:none}.view.on{display:block}
+@media(max-width:1150px){.notes{display:none}}
+@media(max-width:520px){.how,.cases,.kpis{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="bgpage"><div class="card"><h3>Traspasos entre cuentas de registro</h3><div class="ph" style="width:40%"></div></div>
+<div class="card"><div class="ph"></div><div class="ph" style="width:80%"></div><div class="ph" style="width:60%"></div><div class="ph"></div></div></div>
+<div class="scrim"></div>
+
+<div class="notes">
+  <b>Qué cambia respecto a la versión anterior</b>
+  <ul>
+    <li><b>Subir es lo primero.</b> Quien ya tiene su Excel lleno no pasa por la configuración: arrastra y listo.</li>
+    <li><b>Preguntas en vez de parámetros.</b> «¿Cómo se mueve el dinero?» con 3 casos ilustrados; ya no hay checkboxes Origen/Destino ni formato pares/matriz.</li>
+    <li><b>Explica cómo funciona</b> en 3 pasos y muestra un ejemplo del Excel lleno.</li>
+    <li><b>Revisión antes de importar</b>: las filas con error se corrigen ahí mismo, sin volver a Excel.</li>
+    <li>La plantilla lleva una hoja «Instrucciones» y una «Cuentas» con todas las cuentas de registro de la cuenta bancaria.</li>
+  </ul>
+</div>
+
+<section class="sn" role="dialog" aria-label="Carga masiva">
+  <header><h2 id="tit">Carga masiva</h2><button class="ico"><span class="mi">close</span></button></header>
+  <div class="body">
+    <div class="ctx"><span class="mi" style="color:var(--brand)">account_balance</span><span>Cuenta bancaria <b class="mono">12073303572000000003</b> · MEF – DGTP · PEN</span></div>
+
+    <!-- ===== INICIO ===== -->
+    <div class="view on" id="v-inicio">
+      <div class="path main">
+        <div class="hd"><span class="ic" style="background:var(--brand-soft);color:var(--brand)"><span class="mi">upload_file</span></span>
+          <div><h3>Ya tengo mi Excel lleno</h3><div class="sub">Súbelo y revisaremos cada fila antes de agregarla.</div></div></div>
+        <div class="drop" onclick="ir('revision')"><span class="mi">cloud_upload</span><div>Arrastrar o <b style="color:var(--brand)">elige archivo</b> del computador</div><div class="sub">.XLS, .XLSX · 50 MB como máximo</div></div>
+      </div>
+
+      <div class="path">
+        <div class="hd"><span class="ic" style="background:#E3F1E8;color:var(--xl)"><span class="mi">table_view</span></span>
+          <div style="flex:1"><h3>Aún no tengo la plantilla</h3><div class="sub">Te la preparamos con las cuentas de registro de esta cuenta bancaria ya cargadas.</div></div></div>
+        <div class="how">
+          <div><b><span class="n">1</span>Descarga</b>Responde 2 preguntas y descarga el Excel.</div>
+          <div><b><span class="n">2</span>Completa</b>Solo escribe los importes en las celdas amarillas.</div>
+          <div><b><span class="n">3</span>Sube</b>Vuelve aquí y arrastra el archivo.</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn f" onclick="ir('plantilla')"><span class="mi">auto_awesome</span>Preparar mi plantilla</button>
+          <button class="btn t" title="Plantilla vacía con todas las cuentas de registro"><span class="mi">download</span>Descargar plantilla en blanco</button>
+        </div>
+        <details><summary>Ver un ejemplo del Excel lleno</summary>
+          <div class="xl"><table><tr><th class="rn"></th><th>Cuenta origen</th><th>Cuenta destino</th><th>Importe (S/)</th></tr>
+          <tr><td class="rn">2</td><td class="lock">000002 · MINCETUR 11</td><td class="lock">000003 · FONCOMUN</td><td class="ed">6,000.00</td></tr>
+          <tr><td class="rn">3</td><td class="lock">000002 · MINCETUR 11</td><td class="lock">000008 · Compensación Regional</td><td class="ed">3,000.00</td></tr>
+          <tr><td class="rn">4</td><td class="lock">000002 · MINCETUR 11</td><td class="lock">000011 · Vaso de Leche</td><td class="ed"></td></tr></table></div>
+          <div class="sub" style="margin-top:6px">Las filas sin importe se ignoran al subir.</div>
+        </details>
+      </div>
+    </div>
+
+    <!-- ===== PLANTILLA ===== -->
+    <div class="view" id="v-plantilla">
+      <div class="q"><span class="n">1</span>¿Cómo se mueve el dinero?</div>
+      <div class="cases" id="cases"></div>
+
+      <div class="q"><span class="n">2</span><span id="q2"></span></div>
+      <div class="accs" id="accO"></div>
+      <div class="q" id="q3w"><span class="n">3</span><span id="q3"></span></div>
+      <div class="accs" id="accD"></div>
+
+      <div class="q" style="margin-top:22px"><span class="mi" style="color:var(--xl)">visibility</span>Así se verá tu Excel <span class="sub" id="info" style="font-weight:400"></span></div>
+      <div class="xl" id="xl"></div>
+      <div class="tip"><span class="mi">lightbulb</span><span>Solo completa las celdas <b style="background:#FFFBE6;padding:0 4px">amarillas</b>. Las grises ya vienen llenas y protegidas. El archivo incluye una hoja «Instrucciones».</span></div>
+    </div>
+
+    <!-- ===== REVISIÓN ===== -->
+    <div class="view" id="v-revision">
+      <div class="file"><span class="mi" style="color:var(--xl)">description</span><div style="flex:1"><b>traspasos_octubre.xlsx</b><div class="sub">24 KB · 7 filas con importe</div></div><button class="btn t" onclick="ir('inicio')">Cambiar</button></div>
+      <div class="kpis">
+        <div class="kpi ok"><b id="kOk"></b>listas para agregar</div>
+        <div class="kpi e"><b id="kErr"></b>por corregir</div>
+        <div class="kpi" style="background:var(--low)"><b id="kTot" style="font-size:16px"></b>total a trasladar</div>
+      </div>
+      <div class="filt"><button class="on" onclick="fil='all';rev(this)">Todas</button><button onclick="fil='err';rev(this)">Con error</button></div>
+      <div class="xl rv" id="rv"></div>
+      <div class="tip" id="rvTip"></div>
+    </div>
+  </div>
+  <footer id="foot"></footer>
+</section>
+
+<script>
+const C={'000002':['Recaudación Impuesto Juegos y Apuestas – MINCETUR 11',100000],'000005':['Canon Minero – Gobiernos Locales',30000],'000003':['FONCOMUN',100000],
+'000008':['Fondo de Compensación Regional',25000],'000011':['Programa Vaso de Leche',12000],'000014':['Fondo de Estabilización Fiscal',50000]};
+const fn=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const S={caso:'1n',O:['000002'],D:['000003','000008','000011']};
+const CASOS={
+ '1n':{t:'Una a varias',s:'Repartir desde una cuenta',q2:'¿Desde qué cuenta sale el dinero?',q3:'¿A qué cuentas va?',svg:'<circle cx="20" cy="23" r="7" fill="#B5452F"/><path d="M27 23 L78 8 M27 23 L78 23 M27 23 L78 38" stroke="#999" stroke-width="2"/><circle cx="84" cy="8" r="5" fill="#20635E"/><circle cx="84" cy="23" r="5" fill="#20635E"/><circle cx="84" cy="38" r="5" fill="#20635E"/>'},
+ 'n1':{t:'Varias a una',s:'Juntar en una cuenta',q2:'¿De qué cuentas sale el dinero?',q3:'¿A qué cuenta va?',svg:'<circle cx="16" cy="8" r="5" fill="#B5452F"/><circle cx="16" cy="23" r="5" fill="#B5452F"/><circle cx="16" cy="38" r="5" fill="#B5452F"/><path d="M21 8 L73 23 M21 23 L73 23 M21 38 L73 23" stroke="#999" stroke-width="2"/><circle cx="80" cy="23" r="7" fill="#20635E"/>'},
+ 'nm':{t:'Varias a varias',s:'Combinación libre',q2:'¿De qué cuentas sale el dinero?',q3:'¿A qué cuentas va?',svg:'<circle cx="16" cy="12" r="5" fill="#B5452F"/><circle cx="16" cy="34" r="5" fill="#B5452F"/><path d="M21 12 L79 12 M21 12 L79 34 M21 34 L79 12 M21 34 L79 34" stroke="#999" stroke-width="2"/><circle cx="84" cy="12" r="5" fill="#20635E"/><circle cx="84" cy="34" r="5" fill="#20635E"/>'}};
+function ir(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
+  tit.textContent={inicio:'Carga masiva',plantilla:'Preparar plantilla',revision:'Revisar archivo'}[v];
+  foot.innerHTML={inicio:`<button class="btn">Cancelar</button>`,
+   plantilla:`<button class="btn t" style="margin-right:auto" onclick="ir('inicio')"><span class="mi">arrow_back</span>Volver</button><button class="btn f" id="bD" onclick="desc(this)"><span class="mi">download</span>Descargar plantilla</button>`,
+   revision:`<button class="btn t" style="margin-right:auto" onclick="ir('inicio')"><span class="mi">arrow_back</span>Volver</button><button class="btn">Cancelar</button><button class="btn f" id="bI"></button>`}[v];
+  if(v==='plantilla')plan();if(v==='revision')rev();}
+function plan(){
+  cases.innerHTML=Object.entries(CASOS).map(([k,c])=>`<div class="case${S.caso===k?' on':''}" onclick="setCaso('${k}')"><svg viewBox="0 0 100 46">${c.svg}</svg><b>${c.t}</b>${c.s}</div>`).join('');
+  const c=CASOS[S.caso],uO=S.caso!=='1n',uD=S.caso!=='n1';
+  q2.textContent=c.q2;q3.textContent=c.q3;
+  const lista=(el,sel,multi,otro,lado)=>{el.innerHTML=Object.entries(C).map(([k,[d,s]])=>`<label class="acc${otro.includes(k)?' dis':''}"><input type="${multi?'checkbox':'radio'}" name="${lado}" ${sel.includes(k)?'checked':''} onchange="tog('${lado}','${k}',${multi})"><span class="grow"><b>${k}</b> ${d}</span><span class="s">S/ ${fn(s)}</span></label>`).join('');};
+  lista(accO,S.O,uO,S.D,'O');lista(accD,S.D,uD,S.O,'D');
+  const filas=S.O.flatMap(o=>S.D.map(d=>[o,d]));
+  info.textContent=`· ${filas.length} fila${filas.length===1?'':'s'} prellenada${filas.length===1?'':'s'}`;
+  xl.innerHTML=`<table><tr><th class="rn"></th><th>Cuenta origen</th><th>Saldo origen</th><th>Cuenta destino</th><th>Importe (S/)</th></tr>`+
+    filas.slice(0,6).map(([o,d],i)=>`<tr><td class="rn">${i+2}</td><td class="lock">${o} · ${C[o][0].slice(0,20)}</td><td class="lock">${fn(C[o][1])}</td><td class="lock">${d} · ${C[d][0].slice(0,20)}</td><td class="ed"></td></tr>`).join('')+
+    (filas.length>6?`<tr><td class="rn">…</td><td colspan="4" class="sub">y ${filas.length-6} filas más</td></tr>`:'')+'</table>';
+  if(window.bD)bD.disabled=!filas.length;
+}
+function setCaso(k){S.caso=k;if(k==='1n')S.O=S.O.slice(0,1);if(k==='n1')S.D=S.D.slice(0,1);plan();}
+function tog(l,k,multi){const a=S[l];if(!multi){S[l]=[k];}else{const i=a.indexOf(k);i<0?a.push(k):a.splice(i,1);}plan();}
+function desc(b){b.innerHTML='<span class="mi">check</span>Descargada · ahora complétala y súbela';setTimeout(()=>ir('inicio'),1400);}
+/* revisión */
+let fil='all';
+const R=[{f:2,o:'000002',d:'000003',i:6000},{f:3,o:'000002',d:'000008',i:3000},{f:4,o:'000002',d:'000011',i:1000},{f:6,o:'000005',d:'000003',i:2500},
+ {f:7,o:'000005',d:'000014',i:32000,e:'Supera el saldo de origen (S/ 30,000.00)'},{f:9,o:'000099',d:'000014',i:1500,e:'La cuenta 000099 no pertenece a esta cuenta bancaria'},{f:10,o:'000011',d:'000008',i:800}];
+function err(r){if(!C[r.o])return 'La cuenta '+r.o+' no pertenece a esta cuenta bancaria';if(r.o===r.d)return 'Origen y destino son iguales';
+  const usado=R.filter(x=>x.o===r.o&&C[x.o]).reduce((a,x)=>a+x.i,0);if(usado>C[r.o][1])return 'Supera el saldo de origen (S/ '+fn(C[r.o][1])+')';return '';}
+function rev(btn){if(btn){document.querySelectorAll('.filt button').forEach(b=>b.classList.toggle('on',b===btn));}
+  const E=R.map(err),ok=R.filter((r,i)=>!E[i]);
+  kOk.textContent=ok.length;kErr.textContent=R.length-ok.length;kTot.textContent='S/ '+fn(ok.reduce((a,r)=>a+r.i,0));
+  rv.innerHTML=`<table><tr><th>Fila</th><th>Origen</th><th>Destino</th><th style="text-align:right">Importe</th><th></th></tr>`+
+   R.map((r,i)=>E[i]||fil==='all'?(E[i]?`<tr class="err"><td>${r.f}</td><td>${C[r.o]?r.o:`<select onchange="R[${i}].o=this.value;rev()"><option>${r.o}</option>${Object.keys(C).map(k=>`<option>${k}</option>`).join('')}</select>`}</td><td>${r.d}</td>
+     <td style="text-align:right"><input value="${fn(r.i)}" onchange="R[${i}].i=parseFloat(this.value.replace(/,/g,''))||0;rev()" style="text-align:right"></td><td><span class="mi" style="color:var(--o);font-size:18px">error</span></td></tr>
+     <tr class="err"><td></td><td colspan="4" class="msg">${E[i]}</td></tr>`
+    :`<tr><td>${r.f}</td><td>${r.o}</td><td>${r.d}</td><td style="text-align:right">${fn(r.i)}</td><td><span class="mi" style="color:var(--d);font-size:18px">check_circle</span></td></tr>`):'').join('')+'</table>';
+  const n=R.length-ok.length;
+  rvTip.innerHTML=n?`<span class="mi">edit</span><span>Corrige aquí mismo las ${n} filas marcadas, o agrega solo las ${ok.length} correctas.</span>`:`<span class="mi">check_circle</span><span>Todo listo. Las filas se agregarán al lote de traspasos.</span>`;
+  bI.textContent=n?`Agregar ${ok.length} traspasos (omitir ${n})`:`Agregar ${ok.length} traspasos`;}
+ir('inicio');
+</script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propuesta v3 · Transferencias múltiples</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Icons+Outlined&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#014899;--brand-soft:rgb(1 72 153/.08);--text:rgb(32 32 32/.92);--text-2:rgb(32 32 32/.62);--line:rgb(32 32 32/.12);
+--surface:#fff;--low:#F5F6F8;--bg:#EEF1F5;--o:#B5452F;--o-bg:#FBE7E1;--d:#20635E;--d-bg:#D6EFEC;--warn:#876727;--warn-bg:#FCEAC6}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,sans-serif;color:var(--text);background:var(--bg)}
+.mi{font-family:'Material Icons Outlined';font-size:20px;line-height:1;vertical-align:middle}
+.top{background:var(--brand);color:#fff;padding:12px 24px;font-weight:700}
+.page{max-width:1280px;margin:0 auto;padding:24px;display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+h1{font-size:18px;margin:0}h2{font-size:15px;margin:0 0 4px}.sub{color:var(--text-2);font-size:13px}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--text-2)}
+.btn{font:inherit;font-weight:500;border-radius:8px;padding:7px 12px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.btn.f{background:var(--brand);border-color:var(--brand);color:#fff}.btn.t{border-color:transparent;color:var(--brand);background:none}
+.btn.sm{padding:4px 8px;font-size:13px}.btn[disabled]{background:#EDEDED;color:rgb(32 32 32/.4);border-color:#EDEDED;cursor:not-allowed}
+.ico{border:none;background:none;cursor:pointer;color:var(--text-2);padding:4px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 4px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;border:none;background:#fff;padding:7px 12px;cursor:pointer;color:var(--text-2)}.seg button.on{background:var(--brand-soft);color:var(--brand);font-weight:600}
+/* lote */
+.lote{border:1px solid var(--line);border-radius:12px;margin-top:14px;overflow:hidden}
+.lote>header{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:12px 16px;background:var(--o-bg)}
+.badge{width:30px;height:30px;border-radius:8px;background:var(--o);color:#fff;display:grid;place-items:center;font-weight:700}
+.desc{font-weight:600}
+.meter{height:8px;border-radius:4px;background:rgb(255 255 255/.8);overflow:hidden;margin-top:6px;width:220px}.meter i{display:block;height:100%;background:var(--o)}
+.lines{padding:4px 16px 8px}
+.line{display:grid;grid-template-columns:28px 1fr 90px 140px 32px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.line .arr{color:var(--d)}
+select,input{font:inherit;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;width:100%}
+input.n{text-align:right;font-weight:600}input.bad{border-color:var(--o);background:var(--o-bg)}
+.pct{position:relative}.pct input{padding-right:22px}.pct:after{content:'%';position:absolute;right:8px;top:8px;color:var(--text-2)}
+.lote footer{display:flex;gap:8px;align-items:center;padding:8px 16px 12px;flex-wrap:wrap}
+.lote footer .sp{flex:1}.err{color:var(--o);font-size:12px}
+/* matriz */
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}thead th{background:var(--low);font-weight:600;vertical-align:bottom}
+td.z{color:rgb(32 32 32/.25)}tfoot td{font-weight:700;background:var(--low)}
+.view{display:none}.view.on{display:block}
+/* lateral */
+aside{position:sticky;top:16px}
+.acc{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.acc .grow{flex:1;min-width:0}.acc .grow div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{font-size:11px;font-weight:600;padding:1px 6px;border-radius:999px}.chip.o{background:var(--o-bg);color:var(--o)}.chip.d{background:var(--d-bg);color:var(--d)}
+.res .k{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}.res .big{font-size:20px;font-weight:700}
+.ok{background:var(--d-bg);color:var(--d);border-radius:8px;padding:8px 10px;font-size:13px;margin:10px 0}
+.notes li{margin:4px 0}
+/* sidenav carga masiva */
+.scrim{position:fixed;inset:0;background:rgb(0 0 0/.55);display:none;z-index:20}.scrim.on{display:block}
+.sn{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:#fff;z-index:21;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s}
+.sn.on{transform:none}
+.sn>header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 8px}.sn>header h2{font-size:17px;text-transform:uppercase;margin:0}
+.sn .body{flex:1;overflow:auto;padding:4px 24px 16px}
+.sn>footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 24px;border-top:1px solid var(--line)}
+.steps{display:flex;gap:8px;margin:8px 0 16px}.steps div{flex:1;font-size:12px;color:var(--text-2);border-top:3px solid var(--line);padding-top:6px}
+.steps div.on{color:var(--brand);border-color:var(--brand);font-weight:600}.steps div.done{color:var(--d);border-color:var(--d)}
+.fix{background:var(--low);border-radius:8px;padding:10px 12px;font-size:13px;display:flex;gap:8px;align-items:center}
+.lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-2);margin:18px 0 8px}
+.radio{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.radio label{border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;display:flex;gap:8px}
+.radio label:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}.radio input{width:auto;margin-top:2px}
+.radio small{display:block;color:var(--text-2)}
+.pick{border:1px solid var(--line);border-radius:8px;max-height:230px;overflow:auto}
+.pick .h,.pick .r{display:grid;grid-template-columns:1fr 70px 70px 100px;gap:6px;align-items:center;padding:7px 10px;font-size:13px}
+.pick .h{background:var(--low);font-weight:600;font-size:12px;position:sticky;top:0}.pick .r{border-top:1px solid var(--line)}
+.pick input{width:auto}.pick .c{text-align:center}.pick .s{text-align:right;font-size:12px}
+.checks label{display:flex;gap:8px;font-size:13px;padding:3px 0}.checks input{width:auto}
+.prev{overflow:auto;border:1px solid var(--line);border-radius:8px}.prev table{font-size:11.5px;white-space:nowrap}
+.prev th{background:#1D6F42;color:#fff}.prev td.lock{background:var(--low);color:var(--text-2)}.prev td.ed{background:#FFFBE6}
+.drop{border:1.5px dashed rgb(32 32 32/.35);border-radius:8px;padding:28px;text-align:center;cursor:pointer}.drop .mi{font-size:40px;color:var(--brand)}
+.file{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:12px}
+.val{margin-top:12px;font-size:13px}.val .row{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+@media(max-width:960px){.page{grid-template-columns:1fr}aside{position:static}.line{grid-template-columns:20px 1fr 80px 110px 28px}.lote>header{grid-template-columns:auto 1fr}}
+</style>
+</head>
+<body>
+<div class="top">SIAF·RP</div>
+<div class="page">
+<main>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div><h1>Traspasos entre cuentas de registro</h1>
+      <div class="sub">Cuenta bancaria <span class="mono">12073303572000000003</span> · MEF – DGTP · PEN</div></div>
+      <div style="display:flex;gap:8px"><button class="btn t">Cancelar</button><button class="btn">Grabar</button><button class="btn f" id="ver">Verificar</button></div>
+    </div>
+    <div class="bar">
+      <div class="seg"><button class="on" data-v="lotes"><span class="mi">call_split</span> Por origen</button><button data-v="matriz"><span class="mi">grid_on</span> Matriz</button></div>
+      <span class="sp" style="flex:1"></span>
+      <button class="btn" onclick="abrirCM()"><span class="mi">upload_file</span>Carga masiva</button>
+      <select id="addO" style="width:auto"><option value="">+ Agregar cuenta origen…</option></select>
+    </div>
+
+    <div class="view on" id="lotes"></div>
+    <div class="view" id="matriz"></div>
+  </div>
+
+  <div class="card notes">
+    <h2>Idea de esta versión</h2>
+    <ul>
+      <li><b>Cada traspaso es un par origen → destino con su importe.</b> Se agrupan por cuenta origen: una origen se reparte en N destinos (1→N) y varias origen pueden alimentar el mismo destino (N→M).</li>
+      <li><b>Ya no existe el «descuadre»</b>: como cada línea sale de un origen y entra a un destino, el total de origen siempre es igual al de destino. La única validación es no superar el saldo.</li>
+      <li><b>Reparto rápido</b>: «Partes iguales» o por <b>porcentaje</b> (el importe se calcula solo). El medidor muestra cuánto del saldo se usa.</li>
+      <li><b>Vista matriz</b> (origen × destino) para revisar el lote completo, con totales por fila y columna; es la que se imprimiría en el documento.</li>
+      <li>Panel derecho: <b>efecto neto por cuenta</b> con el saldo resultante; una cuenta puede ser origen en un traspaso y destino en otro.</li>
+    </ul>
+  </div>
+</main>
+
+<aside>
+  <div class="card res">
+    <h2>Resumen del lote</h2>
+    <div class="k"><span>Traspasos</span><b id="nT"></b></div>
+    <div class="k"><span>Cuentas origen / destino</span><b id="nC"></b></div>
+    <div class="k"><span>Total a trasladar</span></div><div class="big" id="tot"></div>
+    <div class="ok" id="st"></div>
+    <h2 style="margin-top:14px">Efecto por cuenta</h2>
+    <div id="neto"></div>
+  </div>
+</aside>
+</div>
+
+<div class="scrim" id="scrim" onclick="cerrarCM()"></div>
+<section class="sn" id="sn" role="dialog" aria-label="Carga masiva">
+  <header><h2>Carga masiva</h2><button class="ico" onclick="cerrarCM()"><span class="mi">close</span></button></header>
+  <div class="body">
+    <div class="steps"><div id="st1" class="on">1 · Generar plantilla</div><div id="st2">2 · Subir archivo</div><div id="st3">3 · Validar</div></div>
+
+    <div id="p1">
+      <div class="fix"><span class="mi" style="color:var(--brand)">account_balance</span><div>La plantilla se arma con las cuentas de registro de la cuenta bancaria<br><b class="mono" style="color:var(--text)">12073303572000000003</b> · MEF – DGTP · PEN</div></div>
+
+      <div class="lbl">Formato de la plantilla</div>
+      <div class="radio">
+        <label><input type="radio" name="fmt" value="pares" checked onchange="prev()"><span><b>Por pares</b><small>Una fila por traspaso: origen, destino, importe.</small></span></label>
+        <label><input type="radio" name="fmt" value="matriz" onchange="prev()"><span><b>Matriz</b><small>Orígenes en filas, destinos en columnas.</small></span></label>
+      </div>
+
+      <div class="lbl" style="display:flex;justify-content:space-between"><span>Cuentas de registro a incluir</span><span id="selCount" style="text-transform:none"></span></div>
+      <input id="q" placeholder="Buscar por código o descripción" oninput="pick()" style="margin-bottom:8px">
+      <div class="pick" id="pick"></div>
+      <div class="sub" style="margin-top:6px">Marca cada cuenta como posible origen, destino o ambos. Se precargan código, número, descripción y saldo.</div>
+
+      <div class="lbl">Precargar</div>
+      <div class="checks">
+        <label><input type="checkbox" id="ckLote" checked onchange="prev()">Traspasos ya registrados en pantalla (para editarlos en Excel)</label>
+        <label><input type="checkbox" id="ckSaldo" checked onchange="prev()">Saldo actual de cada cuenta (solo lectura)</label>
+        <label><input type="checkbox" id="ckLista" checked onchange="prev()">Listas desplegables de cuentas en las columnas origen / destino</label>
+      </div>
+
+      <div class="lbl">Vista previa · <span id="prevInfo" style="text-transform:none"></span></div>
+      <div class="prev" id="prev"></div>
+      <div class="sub" style="margin-top:6px"><span style="background:var(--low);padding:0 6px">gris</span> precargado, bloqueado · <span style="background:#FFFBE6;padding:0 6px">amarillo</span> lo completas tú</div>
+    </div>
+
+    <div id="p2" style="display:none">
+      <p style="margin-top:0">Sube la plantilla completada. Solo se aceptan archivos generados en el paso 1 (llevan el código de la cuenta bancaria).</p>
+      <div class="drop" onclick="subir()"><span class="mi">cloud_upload</span><div>Arrastrar o <b style="color:var(--brand)">elige archivo</b> del computador</div><div class="sub">.XLS, .XLSX · 50 MB como máximo</div></div>
+      <div id="fileBox"></div>
+      <div class="lbl">Al importar</div>
+      <div class="radio">
+        <label><input type="radio" name="modo" checked><span><b>Agregar al lote</b><small>Suma a los traspasos actuales.</small></span></label>
+        <label><input type="radio" name="modo"><span><b>Reemplazar lote</b><small>Descarta lo registrado en pantalla.</small></span></label>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <button class="btn t" id="bAtras" onclick="paso(1)" style="display:none;margin-right:auto"><span class="mi">arrow_back</span>Volver</button>
+    <button class="btn" onclick="cerrarCM()">Cancelar</button>
+    <button class="btn" id="bDesc" onclick="descargar()"><span class="mi">download</span>Descargar plantilla</button>
+    <button class="btn f" id="bSig" onclick="paso(2)">Ya tengo la plantilla</button>
+    <button class="btn f" id="bAcep" style="display:none" disabled onclick="importar()">Importar traspasos</button>
+  </footer>
+</section>
+
+<script>
+/* ---- carga masiva ---- */
+const rol={};
+function abrirCM(){if(!Object.keys(rol).length)Object.keys(C).forEach(k=>{const o=lotes.some(L=>L.o===k);rol[k]={o,d:!o};});paso(1);sn.classList.add('on');scrim.classList.add('on');pick();}
+function cerrarCM(){sn.classList.remove('on');scrim.classList.remove('on');}
+function paso(n){p1.style.display=n===1?'':'none';p2.style.display=n===2?'':'none';
+  st1.className=n===1?'on':'done';st2.className=n===2?'on':'';st3.className='';
+  bDesc.style.display=bSig.style.display=n===1?'':'none';bAcep.style.display=bAtras.style.display=n===2?'':'none';
+  if(n===2){fileBox.innerHTML='';bAcep.disabled=true;}}
+function pick(){const t=q.value.toLowerCase();
+  document.getElementById('pick').innerHTML=`<div class="h"><span>Cuenta de registro</span><span class="c">Origen</span><span class="c">Destino</span><span class="s">Saldo</span></div>`+
+   Object.entries(C).filter(([k,c])=>(k+c.desc).toLowerCase().includes(t)).map(([k,c])=>`<div class="r"><span><b>${k}</b> ${c.desc}</span>
+   <span class="c"><input type="checkbox" ${rol[k].o?'checked':''} onchange="rol['${k}'].o=this.checked;prev()"></span>
+   <span class="c"><input type="checkbox" ${rol[k].d?'checked':''} onchange="rol['${k}'].d=this.checked;prev()"></span><span class="s">${fn(c.saldo)}</span></div>`).join('');prev();}
+function prev(){
+  const O=Object.keys(C).filter(k=>rol[k].o),D=Object.keys(C).filter(k=>rol[k].d),saldo=ckSaldo.checked,fmt=document.querySelector('[name=fmt]:checked').value;
+  selCount.textContent=`${O.length} origen · ${D.length} destino`;
+  let h='';
+  if(fmt==='pares'){
+    const pre=ckLote.checked?lotes.flatMap(L=>L.l.filter(x=>rol[L.o].o&&rol[x.d].d).map(x=>[L.o,x.d,x.imp])):[];
+    const rows=pre.concat([[O[0]||'',' ',null],['','',null]]);
+    h=`<table><thead><tr><th>Cód. origen</th><th>Desc. origen</th>${saldo?'<th>Saldo origen</th>':''}<th>Cód. destino</th><th>Desc. destino</th><th>Importe</th></tr></thead><tbody>`+
+      rows.map(([o,d,v])=>`<tr><td class="ed">${o||'▾'}</td><td class="lock">${o?C[o].desc.slice(0,22)+'…':'(fórmula)'}</td>${saldo?`<td class="lock">${o?fn(C[o].saldo):''}</td>`:''}<td class="ed">${d.trim()||'▾'}</td><td class="lock">${d.trim()?C[d].desc.slice(0,18):'(fórmula)'}</td><td class="ed">${v!=null?fn(v):''}</td></tr>`).join('')+'</tbody></table>';
+    prevInfo.textContent=`${pre.length} traspasos precargados + filas libres${ckLista.checked?' · con listas':''}`;
+  }else{
+    const cell=(o,d)=>ckLote.checked?lotes.filter(L=>L.o===o).flatMap(L=>L.l).filter(x=>x.d===d).reduce((a,x)=>a+x.imp,0):0;
+    h=`<table><thead><tr><th>Origen ＼ Destino</th>${saldo?'<th>Saldo</th>':''}${D.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr></thead><tbody>`+
+      O.map(o=>`<tr><td class="lock">${o} ${C[o].desc.slice(0,16)}…</td>${saldo?`<td class="lock">${fn(C[o].saldo)}</td>`:''}${D.map(d=>{const v=cell(o,d);return `<td class="${o===d?'lock':'ed'}">${o===d?'—':v?fn(v):''}</td>`}).join('')}<td class="lock">=SUMA</td></tr>`).join('')+'</tbody></table>';
+    prevInfo.textContent=`${O.length} × ${D.length} celdas`;
+  }
+  document.getElementById('prev').innerHTML=h;
+  bDesc.disabled=!O.length||!D.length;
+}
+function descargar(){bDesc.innerHTML='<span class="mi">check</span>Plantilla descargada';setTimeout(()=>{bDesc.innerHTML='<span class="mi">download</span>Descargar plantilla';paso(2);},900);}
+function subir(){
+  fileBox.innerHTML=`<div class="file"><span class="mi" style="color:#1D6F42">description</span><div style="flex:1"><b>traspasos_12073303572000000003.xlsx</b><div class="sub">24 KB</div></div><button class="ico" onclick="paso(2)"><span class="mi">close</span></button></div>
+   <div class="val"><div class="lbl" style="margin-top:14px">3 · Resultado de la validación</div>
+   <div class="row"><span class="mi" style="color:var(--d)">check_circle</span><span><b>5 traspasos válidos</b> · total S/ 14,200.00</span></div>
+   <div class="row"><span class="mi" style="color:var(--warn)">warning</span><span><b>Fila 7:</b> 000005 → 000014 supera el saldo de origen por S/ 1,200.00</span></div>
+   <div class="row"><span class="mi" style="color:var(--o)">error</span><span><b>Fila 9:</b> la cuenta 000099 no pertenece a la cuenta bancaria</span></div>
+   <div class="sub" style="margin-top:8px">Se importarán solo las filas válidas. <a href="#" style="color:var(--brand)">Descargar reporte de errores</a></div></div>`;
+  st2.className='done';st3.className='on';bAcep.disabled=false;}
+function importar(){lotes.push({o:'000005',l:[{d:'000014',imp:1200}]});cerrarCM();render();}
+</script>
+<script>
+const C={
+ '000002':{num:'111110700000 2.09 000000 000000 01',desc:'Recaudación Impuesto a los Juegos y Apuestas – MINCETUR 11',saldo:100000},
+ '000005':{num:'111110700000 2.09 000000 000000 07',desc:'Canon Minero – Gobiernos Locales',saldo:30000},
+ '000003':{num:'111110400000 2.09 000000 000000 04',desc:'FONCOMUN',saldo:100000},
+ '000008':{num:'111110400000 2.09 000000 000000 09',desc:'Fondo de Compensación Regional',saldo:25000},
+ '000011':{num:'111110400000 2.09 000000 000000 12',desc:'Programa Vaso de Leche',saldo:12000},
+ '000014':{num:'111110400000 2.09 000000 000000 15',desc:'Fondo de Estabilización Fiscal',saldo:50000},
+};
+let lotes=[
+ {o:'000002',modo:'imp',l:[{d:'000003',imp:6000},{d:'000008',imp:3000},{d:'000011',imp:1000}]},
+ {o:'000005',modo:'imp',l:[{d:'000003',imp:2500}]},
+];
+const f=n=>'S/ '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fn=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=v=>parseFloat(String(v).replace(/,/g,''))||0;
+const opts=(sel,excl)=>Object.entries(C).filter(([k])=>!excl.includes(k)||k===sel).map(([k,c])=>`<option value="${k}"${k===sel?' selected':''}>${k} · ${c.desc}</option>`).join('');
+const sumL=L=>L.l.reduce((a,x)=>a+x.imp,0);
+function render(){
+  // lotes
+  lotes_el=document.getElementById('lotes');
+  lotes_el.innerHTML=lotes.map((L,i)=>{const c=C[L.o],s=sumL(L),pct=Math.min(100,s/c.saldo*100),bad=s>c.saldo,usados=L.l.map(x=>x.d).concat(L.o);
+    return `<div class="lote"><header><span class="badge">${i+1}</span>
+      <div><div class="desc">${c.desc}</div><div class="mono">${L.o} · ${c.num}</div></div>
+      <div style="text-align:right"><div class="sub">Sale ${f(s)} de ${f(c.saldo)}</div><div class="meter"><i style="width:${pct}%;${bad?'background:repeating-linear-gradient(45deg,var(--o) 0 5px,#e08 5px 10px)':''}"></i></div></div>
+      <button class="ico" onclick="lotes.splice(${i},1);render()" title="Quitar origen"><span class="mi">delete</span></button></header>
+      <div class="lines">${L.l.map((x,j)=>`<div class="line"><span class="mi arr">subdirectory_arrow_right</span>
+        <select onchange="lotes[${i}].l[${j}].d=this.value;render()">${opts(x.d,usados)}</select>
+        <span class="pct"><input class="n" value="${s?Math.round(x.imp/c.saldo*1000)/10:0}" onchange="lotes[${i}].l[${j}].imp=Math.round(${c.saldo}*num(this.value))/100;render()"></span>
+        <input class="n${bad?' bad':''}" value="${fn(x.imp)}" onchange="lotes[${i}].l[${j}].imp=num(this.value);render()">
+        <button class="ico" onclick="lotes[${i}].l.splice(${j},1);render()"><span class="mi">close</span></button></div>`).join('')}</div>
+      <footer><button class="btn sm t" onclick="addD(${i})"><span class="mi">add</span>Agregar destino</button>
+        <button class="btn sm" onclick="iguales(${i})"><span class="mi">view_column</span>Partes iguales</button>
+        <span class="sp"></span>${bad?`<span class="err">Supera el saldo en ${f(s-c.saldo)}</span>`:`<span class="sub">Queda en origen ${f(c.saldo-s)}</span>`}</footer></div>`}).join('')
+   +`<div class="sub" style="margin-top:10px">Columnas: cuenta destino · % del saldo origen · importe</div>`;
+  // matriz
+  const D=[...new Set(lotes.flatMap(L=>L.l.map(x=>x.d)))];
+  const cell=(L,d)=>L.l.filter(x=>x.d===d).reduce((a,x)=>a+x.imp,0);
+  document.getElementById('matriz').innerHTML=`<div style="overflow:auto"><table><thead><tr><th>Origen ＼ Destino</th>${D.map(d=>`<th><span class="chip d">${d}</span><br>${C[d].desc}</th>`).join('')}<th>Total origen</th></tr></thead>
+   <tbody>${lotes.map(L=>`<tr><td><span class="chip o">${L.o}</span> ${C[L.o].desc}</td>${D.map(d=>{const v=cell(L,d);return `<td class="${v?'':'z'}">${v?fn(v):'—'}</td>`}).join('')}<td><b>${fn(sumL(L))}</b></td></tr>`).join('')}</tbody>
+   <tfoot><tr><td>Total destino</td>${D.map(d=>`<td>${fn(lotes.reduce((a,L)=>a+cell(L,d),0))}</td>`).join('')}<td>${fn(lotes.reduce((a,L)=>a+sumL(L),0))}</td></tr></tfoot></table></div>`;
+  // resumen
+  const tot=lotes.reduce((a,L)=>a+sumL(L),0),nl=lotes.reduce((a,L)=>a+L.l.length,0),bad=lotes.some(L=>sumL(L)>C[L.o].saldo);
+  nT.textContent=nl;nC.textContent=lotes.length+' / '+D.length;document.getElementById('tot').textContent=f(tot);
+  st.className=bad?'ok':'ok';st.style.cssText=bad?'background:var(--o-bg);color:var(--o)':'';
+  st.innerHTML=bad?'<span class="mi">error</span> Un origen supera su saldo':'<span class="mi">check_circle</span> Origen = destino por construcción';
+  ver.disabled=bad||!nl;
+  const net={};lotes.forEach(L=>L.l.forEach(x=>{net[L.o]=(net[L.o]||0)-x.imp;net[x.d]=(net[x.d]||0)+x.imp;}));
+  neto.innerHTML=Object.entries(net).map(([k,v])=>`<div class="acc"><span class="chip ${v<0?'o':'d'}">${v<0?'−':'+'}</span><div class="grow"><div>${C[k].desc}</div><div class="mono">${f(C[k].saldo)} → <b style="color:${C[k].saldo+v<0?'var(--o)':'var(--text)'}">${f(C[k].saldo+v)}</b></div></div><b style="color:${v<0?'var(--o)':'var(--d)'}">${v<0?'−':'+'}${fn(Math.abs(v))}</b></div>`).join('');
+  addO.innerHTML='<option value="">+ Agregar cuenta origen…</option>'+opts('',lotes.map(L=>L.o));
+}
+function addD(i){const usados=lotes[i].l.map(x=>x.d).concat(lotes[i].o);const d=Object.keys(C).find(k=>!usados.includes(k));if(d){lotes[i].l.push({d,imp:0});render();}}
+function iguales(i){const L=lotes[i],s=sumL(L)||C[L.o].saldo*.1,n=L.l.length;let r=s;L.l.forEach((x,j)=>{x.imp=j<n-1?Math.floor(s/n*100)/100:Math.round(r*100)/100;r-=x.imp;});render();}
+addO.onchange=()=>{if(addO.value){lotes.push({o:addO.value,l:[]});addD(lotes.length-1);}};
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.seg button,.view').forEach(e=>e.classList.remove('on'));b.classList.add('on');document.getElementById(b.dataset.v).classList.add('on');});
+render();
+</script>
+</body>
+</html>

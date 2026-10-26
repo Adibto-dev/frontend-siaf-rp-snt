@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propuesta · Traslado entre cuentas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Icons+Outlined&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#014899; --brand-soft:rgb(1 72 153/.08); --accent:#D12B4B;
+  --text:rgb(32 32 32/.92); --text-2:rgb(32 32 32/.64); --line:rgb(32 32 32/.12);
+  --surface:#fff; --surface-low:#F6F6F6; --bg:#EEF1F5;
+  --ok:#20635E; --ok-bg:#C2E8E5; --warn:#876727; --warn-bg:#FCEAC6; --err:#A3192F; --err-bg:#FBE3E7;
+}
+*{box-sizing:border-box} body{margin:0;font:14px/1.45 Inter,sans-serif;color:var(--text);background:var(--bg)}
+.mi{font-family:'Material Icons Outlined';font-size:20px;line-height:1;vertical-align:middle}
+.top{background:var(--brand);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 24px}
+.top b{font-size:20px;letter-spacing:.5px} .top .sp{flex:1}
+.av{width:34px;height:34px;border-radius:50%;background:#fff;color:var(--brand);display:grid;place-items:center;font-weight:600}
+.head{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+.crumb{font-size:12px;color:var(--text-2)} h1{font-size:18px;margin:2px 0 0;display:flex;gap:8px;align-items:center}
+.tag{font-size:12px;font-weight:500;padding:2px 8px;border-radius:4px}
+.tag.new{background:var(--brand-soft);color:var(--brand)}
+.tag.o{background:var(--err-bg);color:var(--err)} .tag.d{background:var(--ok-bg);color:var(--ok)}
+.meta{font-size:12px;color:var(--text-2);margin-left:auto;text-align:right}
+.btn{font:inherit;font-weight:500;border-radius:8px;padding:8px 14px;border:1px solid var(--line);background:#fff;color:var(--text);display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.btn.f{background:var(--brand);color:#fff;border-color:var(--brand)} .btn.t{border-color:transparent;background:none;color:var(--brand)}
+.btn[disabled]{background:#EDEDED;color:rgb(32 32 32/.4);border-color:#EDEDED;cursor:not-allowed}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start}
+.card{background:var(--surface);border-radius:12px;border:1px solid var(--line);padding:20px 24px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+.n{width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;font-size:12px;display:grid;place-items:center}
+.n.done{background:var(--ok)} .hint{color:var(--text-2);font-size:13px;margin:0 0 14px 34px}
+.sel{display:flex;align-items:center;gap:24px;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:8px;padding:10px 16px;margin-left:34px}
+.sel div small{display:block;font-size:12px;color:var(--text-2)} .sel div{font-weight:600}
+.sel .grow{flex:1}
+.cols{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;margin-left:34px}
+.side{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.side header{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.side.o header{background:var(--err-bg);color:var(--err)} .side.d header{background:var(--ok-bg);color:var(--ok)}
+.arrow{display:grid;place-items:center;color:var(--text-2)} .arrow .mi{font-size:32px}
+.row{padding:12px 14px;border-top:1px solid var(--line)}
+.row .num{font-family:ui-monospace,monospace;font-size:12.5px} .row .desc{font-size:13px;color:var(--text-2);margin:2px 0 8px}
+.row .line{display:flex;gap:10px;align-items:center}
+.row .saldo{font-size:12px;color:var(--text-2);flex:1}
+.amt{width:130px;text-align:right;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px}
+.amt.bad{border-color:var(--err);background:var(--err-bg)}
+.err{font-size:12px;color:var(--err);margin-top:4px;display:none} .err.on{display:block}
+.add{width:100%;justify-content:center;border:none;border-top:1px dashed var(--line);border-radius:0;color:var(--brand);padding:10px}
+.ico{border:none;background:none;cursor:pointer;color:var(--text-2)}
+aside{position:sticky;top:84px}
+.sum .k{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}
+.sum .big{font-size:22px;font-weight:700;margin:4px 0 12px}
+.bar{height:10px;border-radius:5px;background:var(--surface-low);overflow:hidden;display:flex;margin:6px 0 2px}
+.bar i{display:block;height:100%}
+.state{border-radius:8px;padding:10px 12px;display:flex;gap:8px;font-size:13px;margin:12px 0}
+.state.w{background:var(--warn-bg);color:var(--warn)} .state.ok{background:var(--ok-bg);color:var(--ok)}
+.check{list-style:none;padding:0;margin:0;font-size:13px} .check li{display:flex;gap:8px;padding:4px 0;align-items:center}
+.check .mi{font-size:18px} .yes{color:var(--ok)} .no{color:var(--text-2)}
+.notes{max-width:1240px;margin:0 auto 40px;padding:0 24px}
+.notes .card{border-left:4px solid var(--accent)} .notes li{margin:4px 0}
+@media (max-width:900px){.wrap{grid-template-columns:1fr}.cols{grid-template-columns:1fr;margin-left:0}.arrow{transform:rotate(90deg)}.sel{margin-left:0;flex-wrap:wrap}.hint{margin-left:0}aside{position:static}.meta{display:none}}
+</style>
+</head>
+<body>
+<div class="top"><span class="mi">menu</span><b>SIAF·RP</b><span class="sp"></span><span class="mi">notifications</span><span class="av">JP</span><span>Usuario rol creador<br><small>MEF</small></span></div>
+
+<div class="head">
+  <div>
+    <div class="crumb">Tesorería › Cuentas bancarias › Traslados</div>
+    <h1>Registro de traslado entre cuentas de registro <span class="tag new">Nuevo · Creación</span></h1>
+  </div>
+  <div class="meta">Dirección General del Tesoro Público<br>Ministerio de Economía y Finanzas</div>
+  <button class="btn t"><span class="mi">close</span>Cancelar</button>
+  <button class="btn"><span class="mi">save</span>Grabar</button>
+  <button class="btn f" id="verificar" disabled title=""><span class="mi">task_alt</span>Verificar</button>
+</div>
+
+<div class="wrap">
+<main>
+  <section class="card">
+    <h2><span class="n done">✓</span>Movimiento interno</h2>
+    <p class="hint">Define el tipo de operación.</p>
+    <div class="sel"><div><small>Sigla</small>TRL</div><div class="grow"><small>Denominación</small>Traspaso entre cuentas de registros</div><div><small>Código</small><span class="tag new">Pendiente</span></div><button class="btn t">Cambiar</button></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n done">✓</span>Cuenta bancaria</h2>
+    <p class="hint">Las cuentas de registro se filtran por esta cuenta.</p>
+    <div class="sel"><div><small>Número de cuenta</small>12073303572000000003</div><div class="grow"><small>Denominación</small>MEF – DGTP</div><div><small>Moneda</small>PEN</div><div><small>Entidad</small>BCRP</div><button class="btn t">Cambiar</button></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>Traspasos entre cuentas de registro</h2>
+    <p class="hint">El importe que sale de origen debe ser igual al que entra a destino.</p>
+    <div class="cols">
+      <div class="side o" id="ladoO">
+        <header><span><span class="mi">north_east</span> Origen · Débito</span><span id="tO"></span></header>
+        <div class="row" data-saldo="100000">
+          <div class="num">000002 · 111110700000 2.09 000000 000000 01</div>
+          <div class="desc">Recaudación Impuesto a los Juegos y Apuestas Deportivas a Distancia – MINCETUR 11</div>
+          <div class="line"><span class="saldo">Saldo S/ 100,000.00</span><input class="amt" value="5,500.00"><button class="ico"><span class="mi">delete</span></button></div>
+          <div class="err">Supera el saldo disponible.</div>
+        </div>
+        <button class="btn add"><span class="mi">add</span>Agregar libreta origen</button>
+      </div>
+      <div class="arrow"><span class="mi">arrow_forward</span></div>
+      <div class="side d" id="ladoD">
+        <header><span><span class="mi">south_west</span> Destino · Crédito</span><span id="tD"></span></header>
+        <div class="row" data-saldo="">
+          <div class="num">000003 · 111110400000 2.09 000000 000000 04</div>
+          <div class="desc">FONCOMUN</div>
+          <div class="line"><span class="saldo">Saldo S/ 100,000.00</span><input class="amt" value="6,000.00"><button class="ico"><span class="mi">delete</span></button></div>
+          <div class="err"></div>
+        </div>
+        <button class="btn add"><span class="mi">add</span>Agregar libreta destino</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<aside>
+  <section class="card sum">
+    <h2>Cuadre del traslado</h2>
+    <div class="k"><span>Total origen</span><b id="sO"></b></div>
+    <div class="k"><span>Total destino</span><b id="sD"></b></div>
+    <div class="bar"><i id="bO" style="background:var(--err)"></i></div>
+    <div class="bar"><i id="bD" style="background:var(--ok)"></i></div>
+    <div class="k" style="margin-top:10px"><span>Diferencia</span></div>
+    <div class="big" id="dif"></div>
+    <div class="state" id="state"></div>
+    <ul class="check" id="check"></ul>
+    <button class="btn t" id="igualar" style="margin-top:10px"><span class="mi">balance</span>Igualar destino al origen</button>
+  </section>
+</aside>
+</div>
+
+<div class="notes"><section class="card">
+  <h2>Qué cambia respecto al diseño actual</h2>
+  <ol>
+    <li><b>Flujo en pasos numerados</b> (1 → 2 → 3) con check al completarse: se entiende el orden y el avance.</li>
+    <li><b>Origen y destino lado a lado</b> con flecha: la metáfora «sale de aquí → entra allá» reemplaza la tabla con columna «Traspaso» y reduce columnas repetidas (dos «IMP. M. CUENTA»).</li>
+    <li><b>Panel de cuadre fijo a la derecha</b>: totales, barras comparativas y diferencia siempre visibles al editar, en lugar de alerta + tarjeta que se desplazan.</li>
+    <li><b>«Verificar» explica por qué está deshabilitado</b> con una lista de requisitos, y la acción rápida «Igualar destino al origen».</li>
+    <li><b>Validación por fila</b>: el importe de origen no puede superar el saldo; el error aparece junto al campo.</li>
+    <li><b>Encabezado compacto y fijo</b>: entidad y ente rector pasan al encabezado; la fecha vacía «--/--/--» se omite hasta grabar. Seleccionados con «Cambiar» en vez de lupas rojas + ×.</li>
+    <li>Responsivo: en pantallas angostas, origen y destino se apilan y el cuadre baja al final.</li>
+  </ol>
+  <p class="crumb">Prueba: edita los importes; el cuadre y el botón Verificar reaccionan.</p>
+</section></div>
+
+<script>
+const fmt=n=>'S/ '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const val=i=>parseFloat(i.value.replace(/,/g,''))||0;
+const sum=id=>[...document.querySelectorAll('#'+id+' .amt')].reduce((a,i)=>a+val(i),0);
+function render(){
+  let saldoOk=true;
+  document.querySelectorAll('#ladoO .row').forEach(r=>{const i=r.querySelector('.amt'),bad=val(i)>+r.dataset.saldo;i.classList.toggle('bad',bad);r.querySelector('.err').classList.toggle('on',bad);if(bad)saldoOk=false;});
+  const o=sum('ladoO'),d=sum('ladoD'),df=d-o,max=Math.max(o,d,1);
+  tO.textContent=fmt(o);tD.textContent=fmt(d);sO.textContent=fmt(o);sD.textContent=fmt(d);
+  bO.style.width=o/max*100+'%';bD.style.width=d/max*100+'%';
+  dif.textContent=fmt(Math.abs(df));dif.style.color=df?'var(--err)':'var(--ok)';
+  const cuadra=df===0&&o>0;
+  state.className='state '+(cuadra?'ok':'w');
+  state.innerHTML=cuadra?'<span class="mi">check_circle</span>Importes cuadrados. Puedes verificar.':'<span class="mi">warning</span>'+(df>0?'El destino supera al origen':'El origen supera al destino')+' en '+fmt(Math.abs(df))+'.';
+  const req=[['Movimiento interno seleccionado',true],['Cuenta bancaria seleccionada',true],['Al menos una cuenta origen y una destino',true],['Importes dentro del saldo',saldoOk],['Origen = destino',cuadra]];
+  check.innerHTML=req.map(([t,ok])=>`<li class="${ok?'yes':'no'}"><span class="mi">${ok?'check_circle':'radio_button_unchecked'}</span>${t}</li>`).join('');
+  verificar.disabled=!req.every(r=>r[1]);
+  verificar.title=verificar.disabled?'Completa los requisitos del panel de cuadre':'';
+  igualar.style.display=cuadra?'none':'';
+}
+document.querySelectorAll('.amt').forEach(i=>{i.addEventListener('input',render);i.addEventListener('blur',()=>{i.value=val(i).toLocaleString('en-US',{minimumFractionDigits:2});render();});});
+igualar.onclick=()=>{const ins=document.querySelectorAll('#ladoD .amt');const resto=sum('ladoO')-[...ins].slice(0,-1).reduce((a,i)=>a+val(i),0);ins[ins.length-1].value=resto.toLocaleString('en-US',{minimumFractionDigits:2});render();};
+render();
+</script>
+</body>
+</html>

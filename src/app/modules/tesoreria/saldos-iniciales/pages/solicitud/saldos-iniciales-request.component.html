@@ -1,0 +1,507 @@
+<div class="min-h-[calc(100vh-56px)] bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
+  <siaf-solicitude-page-layout
+    [breadcrumbs]="breadcrumbs"
+    [role]="headerRole()"
+    [state]="headerState()"
+    [loading]="cargando()"
+    [heading]="heading"
+    secondaryText="Creación"
+    [showReturn]="true"
+    [saveDisabled]="!formValido() || saving()"
+    [verifyDisabled]="!puedeVerificar() || cargando()"
+    (returned)="regresar()"
+    (canceled)="regresar()"
+    (saved)="modalGrabar.set(true)"
+    (edited)="editar()"
+    (verified)="modalVerificar.set(true)"
+    (deleted)="modalEliminar.set(true)"
+    (approved)="abrirAprobar()"
+    (observed)="abrirObservar()"
+    (rejected)="abrirRechazar()"
+  >
+    @if (cargando()) {
+      <div class="rounded-siaf-md bg-surface p-siaf-xl">
+        <div class="grid grid-cols-3 gap-siaf-md">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="siaf-skeleton-pulse h-4 w-32 rounded bg-[var(--sys-color-bg-surfaces-surface-low)]"></div>
+          }
+        </div>
+      </div>
+    } @else {
+      @if (elaborado()) {
+        <section class="grid gap-siaf-md lg:grid-cols-[1fr_360px]">
+          <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
+          <siaf-document-summary-card [documentNumber]="numeroDocumento()" [status]="estadoDocumento()" />
+        </section>
+      } @else {
+        <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
+      }
+
+      <!-- ── Tipo de operación del saldo (fijo) ── -->
+      <siaf-solicitude-form-card title="Tipo de operación del saldo">
+        <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
+          <siaf-input label="Tipo de operación del saldo" [value]="tipoOperacion" [disabled]="true" />
+          <siaf-input label="Periodo" [value]="periodo" [disabled]="true" />
+        </div>
+      </siaf-solicitude-form-card>
+
+      <!-- ── Movimiento interno (fijo) ── -->
+      <siaf-solicitude-form-card title="Movimiento interno">
+        <siaf-summary-card [fields]="camposMovimiento" [bordered]="true" [showClose]="false" />
+      </siaf-solicitude-form-card>
+
+      <!-- ── Entidad financiera ── -->
+      <siaf-solicitude-form-card>
+        @if (entidad(); as e) {
+          <section class="grid gap-siaf-md">
+            <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+              <h3 class="m-0 text-sm font-bold uppercase text-text">Entidad financiera</h3>
+              @if (!soloLectura()) {
+                <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Cambiar entidad financiera" (click)="abrirPanelEntidad()" />
+              }
+            </div>
+            <siaf-summary-card
+              [fields]="camposEntidadFinanciera()"
+              [bordered]="true"
+              [showClose]="!soloLectura()"
+              [closeLabel]="'Quitar entidad financiera ' + e.sigla"
+              (closed)="quitarEntidad()"
+            />
+          </section>
+        } @else {
+          <empty-section title="Entidad financiera" [disabled]="soloLectura()" (actionClicked)="abrirPanelEntidad()" />
+        }
+      </siaf-solicitude-form-card>
+
+      <!-- ── Saldos iniciales libro bancos (el formulario de un saldo la reemplaza mientras está abierto) ── -->
+      @if (!editorAbierto()) {
+      <siaf-solicitude-form-card>
+        <section class="grid gap-siaf-md">
+          <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+            <h3 class="m-0 text-sm font-bold uppercase text-text">Saldos iniciales libro bancos</h3>
+            @if (!soloLectura()) {
+              <div class="flex items-center gap-siaf-xs">
+                <!-- Carga masiva: aún no disponible. -->
+                <siaf-button variant="outline" size="md" icon="file_upload" [iconOnly]="true" ariaLabel="Carga masiva de saldos (no disponible)" [disabled]="true" />
+                <siaf-button
+                  variant="accent"
+                  size="md"
+                  icon="add"
+                  [iconOnly]="true"
+                  ariaLabel="Agregar saldo inicial libro bancos"
+                  [disabled]="!entidad() || editorAbierto()"
+                  (click)="nuevoSaldo()"
+                />
+              </div>
+            }
+          </div>
+
+          @if (saldos().length === 0) {
+            <message-box [text]="entidad() ? 'Por favor, haga clic en el botón (+) para seleccionar una opción.' : 'Seleccione primero la entidad financiera.'" />
+          } @else {
+            <siaf-form-table-search placeholder="Buscar" [value]="busquedaSaldos()" (valueChange)="buscarSaldos($event)" />
+
+            @if (!soloLectura()) {
+              <siaf-table-controls
+                selectAllLabel="Seleccionar todos los saldos"
+                [checked]="todosSeleccionados()"
+                [indeterminate]="seleccionSaldos().length > 0 && !todosSeleccionados()"
+                [selectedCount]="seleccionSaldos().length"
+                [showEditAction]="true"
+                [editDisabled]="seleccionSaldos().length !== 1"
+                editLabel="Editar saldo seleccionado"
+                (edit)="editarSeleccionado()"
+                [showDeleteAction]="seleccionSaldos().length > 0"
+                deleteLabel="Quitar saldos seleccionados"
+                [page]="paginaSaldos()"
+                [pageSize]="tamanoSaldos()"
+                [totalItems]="totalSaldos()"
+                [totalPages]="tablaSaldos().totalPaginas"
+                (selectionChange)="alternarSeleccionTodos($event)"
+                (delete)="quitarSeleccionados()"
+                (previous)="paginaSaldos.set(paginaSaldos() - 1)"
+                (next)="paginaSaldos.set(paginaSaldos() + 1)"
+              />
+            }
+
+            <div class="siaf-table-shell">
+              <table class="siaf-table min-w-[960px]">
+                <caption class="sr-only">Saldos iniciales en libro bancos agregados</caption>
+                <thead>
+                  <tr class="siaf-table-head-row">
+                    @if (!soloLectura()) {
+                      <th class="siaf-table-th w-12" rowspan="2"><span class="sr-only">Seleccionar</span></th>
+                    }
+                    <th class="siaf-table-th w-[140px]" rowspan="2">F. operación</th>
+                    <th class="siaf-table-th text-center" colspan="2">Cuenta bancaria</th>
+                    <th class="siaf-table-th text-center" colspan="2">Libro bancos</th>
+                    <th class="siaf-table-th w-[104px]" rowspan="2"><span class="sr-only">Acciones</span></th>
+                  </tr>
+                  <tr class="siaf-table-head-row">
+                    <th class="siaf-table-th">Número</th>
+                    <th class="siaf-table-th w-[110px]">Moneda</th>
+                    <th class="siaf-table-th w-[170px] text-right">Imp. M. cuenta</th>
+                    <th class="siaf-table-th w-[170px] text-right">Imp. M. nacional</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (saldo of tablaSaldos().filas; track saldo.id) {
+                    <tr class="siaf-table-row">
+                      @if (!soloLectura()) {
+                        <td class="siaf-table-td">
+                          <siaf-checkbox
+                            [label]="''"
+                            [checked]="seleccionSaldos().includes(saldo.id)"
+                            [attr.aria-label]="'Seleccionar saldo de la cuenta ' + saldo.cuentaBancaria"
+                            (checkedChange)="alternarSeleccion(saldo.id, $event)"
+                          />
+                        </td>
+                      }
+                      <td class="siaf-table-td">{{ formatoFecha(saldo.fechaOperacion) }}</td>
+                      <td class="siaf-table-td font-mono">{{ saldo.cuentaBancaria }}</td>
+                      <td class="siaf-table-td">{{ saldo.moneda }}</td>
+                      <td class="siaf-table-td text-right">{{ formatoImporte(saldo.importeCuenta) }}</td>
+                      <td class="siaf-table-td text-right">{{ formatoImporte(saldo.importeNacional) }}</td>
+                      <td class="siaf-table-td">
+                        <div class="flex items-center justify-end gap-siaf-xxs">
+                          @if (!soloLectura()) {
+                            <siaf-button
+                              variant="text"
+                              size="sm"
+                              icon="description"
+                              [iconOnly]="true"
+                              [ariaLabel]="'Editar saldo de la cuenta ' + saldo.cuentaBancaria"
+                              [siafTooltip]="'Editar saldo'"
+                              [disabled]="editorAbierto()"
+                              (click)="editarSaldo(saldo)"
+                            />
+                          }
+                          <siaf-button
+                            variant="text"
+                            size="sm"
+                            icon="table_view"
+                            [iconOnly]="true"
+                            [ariaLabel]="(saldoDesplegado() === saldo.id ? 'Ocultar' : 'Ver') + ' cuentas de registro de ' + saldo.cuentaBancaria"
+                            [siafTooltip]="saldoDesplegado() === saldo.id ? 'Ocultar cuentas de registro' : 'Ver cuentas de registro'"
+                            [activated]="saldoDesplegado() === saldo.id"
+                            (click)="alternarDespliegue(saldo.id)"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                    @if (saldoDesplegado() === saldo.id) {
+                      <tr>
+                        <td class="bg-[var(--sys-color-bg-surfaces-surface-low)] px-siaf-md py-siaf-sm" [attr.colspan]="soloLectura() ? 6 : 7">
+                          <div class="grid gap-siaf-xs">
+                            <p class="siaf-text-overline-medium m-0 text-[var(--sys-color-text-neutral-low)]">
+                              Cuentas de registro · Secuencia {{ saldo.secuencia || 'por asignar' }} · Tipo de cambio {{ saldo.tipoCambio }} · Sustento: {{ saldo.sustento || 'sin archivo' }}
+                            </p>
+                            @for (libreta of libretasDe(saldo); track libreta.idCorrelativo) {
+                              <div class="grid grid-cols-[80px_1fr_1fr_150px_150px] gap-siaf-md text-sm">
+                                <span>{{ libreta.idCorrelativo }}</span>
+                                <span class="font-mono">{{ libreta.numero }}</span>
+                                <span>{{ libreta.descripcion }}</span>
+                                <span class="text-right">{{ formatoImporte(libreta.importe) }}</span>
+                                <span class="text-right">{{ formatoImporte(libreta.importeNacional) }}</span>
+                              </div>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  } @empty {
+                    <tr class="siaf-table-row">
+                      <td class="siaf-table-td text-center" [attr.colspan]="soloLectura() ? 6 : 7">No se encontraron saldos.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <siaf-pagination
+              navigation="Activate"
+              position="Bottom"
+              [rowPage]="true"
+              [page]="paginaSaldos()"
+              [pageSize]="tamanoSaldos()"
+              [totalItems]="totalSaldos()"
+              [totalPages]="tablaSaldos().totalPaginas"
+              [rowsPerPage]="tamanoSaldos()"
+              [rowsPerPageOptions]="[10, 25, 50]"
+              (previous)="paginaSaldos.set(paginaSaldos() - 1)"
+              (next)="paginaSaldos.set(paginaSaldos() + 1)"
+              (rowsPerPageChange)="tamanoSaldos.set($event); paginaSaldos.set(1)"
+            />
+          }
+        </section>
+      </siaf-solicitude-form-card>
+      } @else {
+      <!-- ── Agregar / editar saldo inicial libro bancos ── -->
+        <siaf-solicitude-form-card>
+          <section class="grid gap-siaf-lg" aria-label="Agregar saldo inicial libro bancos">
+            <div class="flex min-h-10 flex-wrap items-center justify-between gap-siaf-md">
+              <h3 class="m-0 text-sm font-bold uppercase text-text">
+                {{ saldoEditado() ? 'Editar saldo inicial libro bancos' : 'Agregar saldo inicial libro bancos' }}
+              </h3>
+              <div class="flex items-center gap-siaf-xs">
+                <siaf-button variant="outline" size="md" (click)="cerrarEditor()">Cancelar</siaf-button>
+                <siaf-button variant="filled" size="md" [disabled]="!puedeAceptarSaldo()" (click)="aceptarSaldo()">Aceptar</siaf-button>
+              </div>
+            </div>
+
+            <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
+              <div class="relative">
+                <siaf-input label="Secuencia" [value]="''" [disabled]="true" />
+                <span
+                  class="absolute right-siaf-sm top-1/2 inline-flex -translate-y-1/2 rounded-full text-[var(--sys-color-text-neutral-medium)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
+                  tabindex="0"
+                  role="img"
+                  [attr.aria-label]="ayudaSecuencia"
+                  [siafTooltip]="ayudaSecuencia"
+                >
+                  <siaf-icon name="info" [size]="24" />
+                </span>
+              </div>
+              <siaf-date-time-picker
+                label="Fecha de operación"
+                [required]="true"
+                [fullWidth]="true"
+                [defaultToToday]="false"
+                [value]="borrador().fechaOperacion"
+                (valueChange)="actualizarFecha($event)"
+              />
+            </div>
+
+            <!-- Cuenta bancaria -->
+            @if (cuentaBorrador(); as c) {
+              <section class="grid gap-siaf-md">
+                <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+                  <h4 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h4>
+                  <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Cambiar cuenta bancaria" (click)="abrirPanelCuenta()" />
+                </div>
+                <siaf-summary-card
+                  [fields]="camposCuenta()"
+                  [bordered]="true"
+                  [closeLabel]="'Quitar cuenta bancaria ' + c.numero"
+                  (closed)="quitarCuenta()"
+                />
+              </section>
+            } @else {
+              <empty-section title="Cuenta bancaria" (actionClicked)="abrirPanelCuenta()" />
+            }
+
+            <!-- Tipo de cambio: solo para cuentas en moneda extranjera -->
+            @if (esDolares()) {
+              <section class="grid gap-siaf-md">
+                <h4 class="m-0 text-sm font-bold uppercase text-text">Tipo de cambio</h4>
+                <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
+                  <siaf-input label="Tipo de cotización" [value]="tipoCotizacion" [disabled]="true" />
+                  <siaf-input label="Compra" [value]="tipoCambioBorrador() ? tipoCambioBorrador()!.toFixed(2) : ''" hint="Según la fecha de operación." [disabled]="true" />
+                </div>
+              </section>
+            }
+
+            <!-- Importes (calculados) -->
+            <section class="grid gap-siaf-md">
+              <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
+              <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
+                <div class="relative">
+                  <siaf-input
+                    label="En moneda de la cuenta"
+                    [required]="true"
+                    [value]="importeCuentaBorrador() > 0 ? formatoImporte(importeCuentaBorrador()) : ''"
+                    [disabled]="true"
+                  />
+                  <span
+                    class="absolute right-siaf-sm top-1/2 inline-flex -translate-y-1/2 rounded-full text-[var(--sys-color-text-neutral-medium)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
+                    tabindex="0"
+                    role="img"
+                    [attr.aria-label]="ayudaImportes"
+                    [siafTooltip]="ayudaImportes"
+                  >
+                    <siaf-icon name="info" [size]="24" />
+                  </span>
+                </div>
+                <siaf-input
+                  label="En moneda nacional"
+                  [value]="importeCuentaBorrador() > 0 ? formatoImporte(importeNacionalBorrador()) : ''"
+                  [disabled]="true"
+                />
+              </div>
+            </section>
+
+            <!-- Cuentas de registro vinculadas a la cuenta bancaria -->
+            <section class="grid gap-siaf-md">
+              <h4 class="m-0 text-sm font-bold uppercase text-text">Cuentas de registro</h4>
+              @if (!cuentaBorrador()) {
+                <message-box text="No se ha seleccionado una cuenta bancaria. Haga clic en el botón para realizar una selección." />
+              } @else {
+                <siaf-form-table-search placeholder="Buscar" [value]="busquedaLibretas()" (valueChange)="buscarLibretas($event)" />
+                <div class="siaf-table-shell">
+                  <table class="siaf-table min-w-[1080px]">
+                    <caption class="sr-only">Cuentas de registro de la cuenta {{ borrador().cuentaBancaria }}</caption>
+                    <thead>
+                      <tr class="siaf-table-head-row">
+                        <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
+                        <th class="siaf-table-th text-center" colspan="3">Cuenta de registro</th>
+                        <th class="siaf-table-th text-center" colspan="2">Libretas</th>
+                      </tr>
+                      <tr class="siaf-table-head-row">
+                        <th class="siaf-table-th w-[100px]">ID corr.</th>
+                        <th class="siaf-table-th">Número</th>
+                        <th class="siaf-table-th">Descripción</th>
+                        <th class="siaf-table-th w-[190px]">Imp. M. cuenta</th>
+                        <th class="siaf-table-th w-[180px]">Imp. M. nacional</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (libreta of tablaLibretas().filas; track libreta.idCorrelativo) {
+                        <tr class="siaf-table-row">
+                          <td class="siaf-table-td">{{ formatoFecha(borrador().fechaOperacion) || '--/--/----' }}</td>
+                          <td class="siaf-table-td">{{ libreta.idCorrelativo }}</td>
+                          <td class="siaf-table-td font-mono">{{ libreta.numero }}</td>
+                          <td class="siaf-table-td">{{ libreta.descripcion }}</td>
+                          <td class="siaf-table-td py-siaf-xs">
+                            <siaf-input
+                              [label]="'Importe ' + libreta.idCorrelativo"
+                              type="decimal"
+                              [clearable]="true"
+                              [autoSuccess]="false"
+                              [value]="importeDe(libreta.idCorrelativo)"
+                              (valueChange)="actualizarImporte(libreta.idCorrelativo, $event)"
+                            />
+                          </td>
+                          <td class="siaf-table-td py-siaf-xs">
+                            <siaf-input
+                              [label]="'Nacional ' + libreta.idCorrelativo"
+                              [value]="borrador().importes[libreta.idCorrelativo] ? formatoImporte(importeNacionalLibreta(libreta.idCorrelativo)) : ''"
+                              [disabled]="true"
+                            />
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr class="siaf-table-row">
+                          <td class="siaf-table-td text-center" colspan="6">No se encontraron cuentas de registro.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                <siaf-pagination
+                  navigation="Activate"
+                  position="Bottom"
+                  [rowPage]="true"
+                  [page]="paginaLibretas()"
+                  [pageSize]="tamanoLibretas()"
+                  [totalItems]="totalLibretas()"
+                  [totalPages]="tablaLibretas().totalPaginas"
+                  [rowsPerPage]="tamanoLibretas()"
+                  [rowsPerPageOptions]="[10, 25, 50]"
+                  (previous)="paginaLibretas.set(paginaLibretas() - 1)"
+                  (next)="paginaLibretas.set(paginaLibretas() + 1)"
+                  (rowsPerPageChange)="tamanoLibretas.set($event); paginaLibretas.set(1)"
+                />
+              }
+            </section>
+
+            <!-- Documento de sustento del saldo (opcional) -->
+            <section class="grid gap-siaf-xs">
+              <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+                <h4 class="m-0 text-sm font-bold uppercase text-text">Documento de sustento</h4>
+                <siaf-button variant="accent" size="md" icon="file_upload" [iconOnly]="true" ariaLabel="Subir documento de sustento del saldo" (click)="panelSustentoAbierto.set(true)" />
+              </div>
+              @if (borrador().sustento) {
+                <siaf-uploaded-file-card [file]="borrador().sustento" (replace)="panelSustentoAbierto.set(true)" (removed)="quitarSustento()" />
+              } @else {
+                <message-box text="No se ha adjuntado ningún archivo. Esta acción no es obligatoria." />
+              }
+            </section>
+          </section>
+        </siaf-solicitude-form-card>
+      }
+
+      @if (historial().length > 0 || comentarioActual()) {
+        <siaf-detail-history-tabs [comentario]="comentarioActual()" [entries]="historial()" />
+      }
+
+      @if (numeroDocumento()) {
+        <siaf-action-tracker [showSummaryCards]="true" [showTabs]="false" [summaryItems]="trazabilidad()" />
+      }
+    }
+  </siaf-solicitude-page-layout>
+
+  <siaf-selection-side-nav
+    [open]="panelEntidad()"
+    title="Buscar entidad financiera"
+    mode="single"
+    idKey="codigo"
+    [rows]="entidadesFiltradas()"
+    [columns]="columnasEntidad"
+    [searchValue]="busquedaEntidad()"
+    [selectedIds]="entidadTemporal() ? [entidadTemporal()!] : []"
+    (searchChange)="busquedaEntidad.set($event)"
+    (selectionChange)="entidadTemporal.set($event[0] || null)"
+    (closed)="panelEntidad.set(false)"
+    (accepted)="aceptarEntidad($event)"
+  />
+
+  <siaf-selection-side-nav
+    [open]="panelCuenta()"
+    title="Buscar cuenta bancaria"
+    mode="single"
+    idKey="numero"
+    [rows]="cuentasDeEntidad()"
+    [columns]="columnasCuenta"
+    [searchValue]="busquedaCuenta()"
+    [selectedIds]="cuentaTemporal() ? [cuentaTemporal()!] : []"
+    [disabledIds]="cuentasUsadas()"
+    emptyMessage="La entidad financiera no tiene cuentas bancarias."
+    (searchChange)="busquedaCuenta.set($event)"
+    (selectionChange)="cuentaTemporal.set($event[0] || null)"
+    (closed)="panelCuenta.set(false)"
+    (accepted)="aceptarCuenta($event)"
+  />
+
+  <siaf-upload-side-nav [open]="panelSustentoAbierto()" (closed)="panelSustentoAbierto.set(false)" (confirmed)="onSustentoConfirmado($event)" />
+
+  <siaf-modal
+    [open]="modalCambioEntidad()"
+    variant="custom"
+    title="¿Cambiar la entidad financiera?"
+    description="Se quitarán los saldos iniciales agregados, porque sus cuentas bancarias pertenecen a la entidad actual."
+    confirmLabel="Cambiar"
+    (confirmed)="confirmarCambioEntidad()"
+    (canceled)="modalCambioEntidad.set(false)"
+    (closed)="modalCambioEntidad.set(false)"
+  />
+
+  <siaf-request-approval-modals
+    [saveOpen]="modalGrabar()"
+    [verifyOpen]="modalVerificar()"
+    [deleteOpen]="modalEliminar()"
+    [approveOpen]="modalAprobar()"
+    [observeOpen]="modalObservar()"
+    [rejectOpen]="modalRechazar()"
+    [saving]="saving()"
+    [reason]="comentario()"
+    [rejectReasonType]="motivoRechazo()"
+    [rejectReasonTypeOptions]="motivosRechazo"
+    [snackbarVariant]="aviso()"
+    [snackbarOpen]="avisoAbierto()"
+    requestType="creación"
+    [requestNumber]="numeroDocumento()"
+    (saveConfirmed)="onConfirmarGrabar()"
+    (verifyConfirmed)="onConfirmarVerificar()"
+    (deleteConfirmed)="onConfirmarEliminar()"
+    (approveConfirmed)="onConfirmarAprobar()"
+    (observeConfirmed)="onConfirmarObservar()"
+    (rejectConfirmed)="onConfirmarRechazar()"
+    (saveClosed)="modalGrabar.set(false)"
+    (verifyClosed)="modalVerificar.set(false)"
+    (deleteClosed)="modalEliminar.set(false)"
+    (approvalClosed)="cerrarModalesAprobador()"
+    (reasonChange)="comentario.set($event)"
+    (rejectReasonTypeChange)="motivoRechazo.set($event)"
+    (snackbarClosed)="avisoAbierto.set(false)"
+  />
+</div>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propuesta v2 · Origen y destino</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Icons+Outlined&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#014899;--brand-soft:rgb(1 72 153/.08);--text:rgb(32 32 32/.92);--text-2:rgb(32 32 32/.62);--line:rgb(32 32 32/.12);
+--surface:#fff;--low:#F5F6F8;--bg:#EEF1F5;--o:#B5452F;--o-bg:#FBE7E1;--d:#20635E;--d-bg:#D6EFEC;--warn:#876727;--warn-bg:#FCEAC6}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,sans-serif;color:var(--text);background:var(--bg)}
+.mi{font-family:'Material Icons Outlined';font-size:20px;line-height:1;vertical-align:middle}
+.top{background:var(--brand);color:#fff;padding:12px 24px;font-weight:700}
+.page{max-width:1240px;margin:0 auto;padding:24px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin-bottom:16px}
+h1{font-size:18px;margin:0 0 4px}h2{font-size:15px;margin:0 0 12px}
+.sub{color:var(--text-2);font-size:13px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:8px 0 20px;flex-wrap:wrap}
+.tabs button{font:inherit;font-weight:500;background:none;border:none;padding:10px 14px;cursor:pointer;color:var(--text-2);border-bottom:3px solid transparent}
+.tabs button.on{color:var(--brand);border-color:var(--brand)}
+.view{display:none}.view.on{display:block}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+.amt{width:120px;text-align:right;font:inherit;font-weight:600;padding:6px 8px;border:1px solid var(--line);border-radius:6px}
+.amt.bad{border-color:var(--o);background:var(--o-bg)}
+.pill{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px}
+.pill.o{background:var(--o-bg);color:var(--o)}.pill.d{background:var(--d-bg);color:var(--d)}
+.k{font-size:12px;color:var(--text-2)}
+/* A: flujo */
+.flow{display:grid;grid-template-columns:1fr 200px 1fr;gap:0;align-items:stretch}
+.stack{display:flex;flex-direction:column;gap:10px}
+.node{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;position:relative}
+.stack.o .node{border-left:5px solid var(--o)}.stack.d .node{border-right:5px solid var(--d)}
+.node .t{font-weight:600;margin:2px 0}.node .r{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
+svg.bands{width:100%;height:100%}
+.hub{fill:var(--brand)}
+/* B: debe/haber */
+.th{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--text);border-radius:4px}
+.th>div{padding:0}.th>div:first-child{border-right:2px solid var(--text)}
+.th h3{margin:0;padding:10px 14px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--text);display:flex;justify-content:space-between}
+.th .li{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);align-items:center}
+.th .tot{display:flex;justify-content:space-between;padding:10px 14px;font-weight:700;background:var(--low)}
+/* C: saldo antes/después */
+.acc{display:grid;grid-template-columns:110px 1.4fr 2fr 130px;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.meter{position:relative;height:28px;background:var(--low);border-radius:6px;overflow:hidden}
+.meter i{position:absolute;top:0;bottom:0;left:0}
+.meter .base{background:rgb(32 32 32/.18)}.meter .neg{background:repeating-linear-gradient(45deg,var(--o) 0 6px,#d9735f 6px 12px)}.meter .pos{background:var(--d)}
+.meter span{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 8px;font-size:12px;font-weight:600;color:#fff;mix-blend-mode:difference}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--text-2);margin-bottom:8px}.legend b{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+/* resumen */
+.foot{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 12px rgb(0 0 0/.06)}
+.foot .in{max-width:1240px;margin:0 auto;padding:12px 24px;display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.foot .big{font-size:18px;font-weight:700}.foot .sp{flex:1}
+.btn{font:inherit;font-weight:500;border-radius:8px;padding:9px 16px;border:1px solid var(--brand);background:var(--brand);color:#fff}
+.btn[disabled]{background:#EDEDED;color:rgb(32 32 32/.4);border-color:#EDEDED}
+.notes li{margin:4px 0}
+@media(max-width:860px){.flow{grid-template-columns:1fr}.flow svg{display:none}.th{grid-template-columns:1fr}.th>div:first-child{border-right:none;border-bottom:2px solid var(--text)}.acc{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="top">SIAF·RP</div>
+<div class="page">
+  <div class="card">
+    <h1>Traspasos entre cuentas de registro</h1>
+    <div class="sub">Cuenta bancaria <span class="mono">12073303572000000003</span> · MEF – DGTP · PEN · BCRP — Movimiento TRL</div>
+    <div class="tabs">
+      <button class="on" data-v="a"><span class="mi">account_tree</span> A · Flujo</button>
+      <button data-v="b"><span class="mi">balance</span> B · Debe / Haber</button>
+      <button data-v="c"><span class="mi">stacked_bar_chart</span> C · Impacto en saldos</button>
+    </div>
+
+    <div class="view on" id="a">
+      <p class="sub">Se lee de izquierda a derecha: el grosor de cada banda es proporcional al importe. El centro muestra el total que se traslada.</p>
+      <div class="flow">
+        <div class="stack o" id="fo"></div>
+        <svg class="bands" id="sv" preserveAspectRatio="none"></svg>
+        <div class="stack d" id="fd"></div>
+      </div>
+    </div>
+
+    <div class="view" id="b">
+      <p class="sub">Formato de asiento contable, familiar para el tesorero: débitos a la izquierda, créditos a la derecha y la suma de cada columna debe coincidir.</p>
+      <div class="th">
+        <div><h3><span>Debe · Origen</span><span class="pill o">Débito</span></h3><div id="bo"></div><div class="tot"><span>Total debe</span><span id="bto"></span></div></div>
+        <div><h3><span>Haber · Destino</span><span class="pill d">Crédito</span></h3><div id="bd"></div><div class="tot"><span>Total haber</span><span id="btd"></span></div></div>
+      </div>
+    </div>
+
+    <div class="view" id="c">
+      <p class="sub">Cada cuenta muestra su saldo actual y cómo queda después del traslado. Evita que una cuenta origen quede en negativo.</p>
+      <div class="legend"><span><b style="background:rgb(32 32 32/.18)"></b>Saldo actual</span><span><b style="background:var(--o)"></b>Sale</span><span><b style="background:var(--d)"></b>Entra</span></div>
+      <div id="cc"></div>
+    </div>
+  </div>
+
+  <div class="card notes">
+    <h2>Ideas clave de esta versión</h2>
+    <ul>
+      <li><b>Mismos datos, tres lecturas</b>: el usuario elige la vista; los importes se editan en cualquiera y se sincronizan.</li>
+      <li><b>A · Flujo</b>: comunica «de dónde sale y a dónde va» de un vistazo, útil cuando hay varias cuentas origen y destino.</li>
+      <li><b>B · Debe / Haber</b>: el cuadre se valida como un asiento contable; es la vista más compacta para registrar.</li>
+      <li><b>C · Impacto en saldos</b>: muestra el saldo resultante por cuenta (dato que hoy no aparece) y marca en rayado si un origen queda sin fondos.</li>
+      <li>Cada cuenta se identifica por su <b>descripción</b> primero y el número largo en monoespaciado debajo, agrupado para leerse mejor.</li>
+      <li>Barra inferior fija con el cuadre y «Verificar»; se habilita solo cuando origen = destino y ningún saldo queda negativo.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="foot"><div class="in">
+  <div><div class="k">Total origen</div><div class="big" id="to" style="color:var(--o)"></div></div>
+  <div><div class="k">Total destino</div><div class="big" id="td" style="color:var(--d)"></div></div>
+  <div><div class="k">Diferencia</div><div class="big" id="df"></div></div>
+  <div class="sp"></div><span class="sub" id="msg"></span>
+  <button class="btn" id="ver" disabled>Verificar</button>
+</div></div>
+
+<script>
+const data=[
+ {lado:'o',id:'000002',num:'111110700000 2.09 000000 000000 01',desc:'Recaudación Impuesto a los Juegos y Apuestas Deportivas a Distancia – MINCETUR 11',saldo:100000,imp:5500},
+ {lado:'o',id:'000005',num:'111110700000 2.09 000000 000000 07',desc:'Canon Minero – Gobiernos Locales',saldo:3000,imp:500},
+ {lado:'d',id:'000003',num:'111110400000 2.09 000000 000000 04',desc:'FONCOMUN',saldo:100000,imp:4000},
+ {lado:'d',id:'000008',num:'111110400000 2.09 000000 000000 09',desc:'Fondo de Compensación Regional',saldo:25000,imp:2500},
+];
+const f=n=>'S/ '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const inp=(r,i)=>`<input class="amt${r.lado==='o'&&r.imp>r.saldo?' bad':''}" data-i="${i}" value="${r.imp.toLocaleString('en-US',{minimumFractionDigits:2})}">`;
+const head=r=>`<div class="k">${r.id} · <span class="mono">${r.num}</span></div><div class="t">${r.desc}</div>`;
+function render(){
+  const O=data.filter(r=>r.lado==='o'),D=data.filter(r=>r.lado==='d');
+  const to=O.reduce((a,r)=>a+r.imp,0),td=D.reduce((a,r)=>a+r.imp,0),dif=td-to;
+  // A
+  const nodeA=r=>`<div class="node">${head(r)}<div class="r"><span class="k">Saldo ${f(r.saldo)}</span>${inp(r,data.indexOf(r))}</div></div>`;
+  fo.innerHTML=O.map(nodeA).join('');fd.innerHTML=D.map(nodeA).join('');
+  requestAnimationFrame(()=>drawBands(O,D,to,td));
+  // B
+  const li=r=>`<div class="li"><div>${head(r)}</div>${inp(r,data.indexOf(r))}</div>`;
+  bo.innerHTML=O.map(li).join('');bd.innerHTML=D.map(li).join('');bto.textContent=f(to);btd.textContent=f(td);
+  bto.style.color=btd.style.color=dif?'var(--o)':'var(--d)';
+  // C
+  const max=Math.max(...data.map(r=>r.saldo+(r.lado==='d'?r.imp:0)));
+  cc.innerHTML=data.map((r,i)=>{const fin=r.lado==='o'?r.saldo-r.imp:r.saldo+r.imp,w=v=>Math.max(0,v)/max*100;
+    const bars=r.lado==='o'?`<i class="base" style="width:${w(r.saldo)}%"></i><i class="neg" style="left:${w(fin)}%;width:${w(r.saldo)-w(fin)}%"></i>`
+      :`<i class="base" style="width:${w(r.saldo)}%"></i><i class="pos" style="left:${w(r.saldo)}%;width:${w(fin)-w(r.saldo)}%"></i>`;
+    return `<div class="acc"><span class="pill ${r.lado}">${r.lado==='o'?'Origen':'Destino'}</span><div>${head(r)}</div>
+      <div><div class="meter">${bars}</div><div class="k" style="display:flex;justify-content:space-between;margin-top:4px"><span>Actual ${f(r.saldo)}</span><b style="color:${fin<0?'var(--o)':'inherit'}">Resultante ${f(fin)}${fin<0?' · sin fondos':''}</b></div></div>${inp(r,i)}</div>`}).join('');
+  // pie
+  const okSaldo=O.every(r=>r.imp<=r.saldo),ok=!dif&&to>0&&okSaldo;
+  window.to.textContent=f(to);window.td.textContent=f(td);window.df.textContent=f(Math.abs(dif));window.df.style.color=dif?'var(--o)':'var(--d)';
+  msg.textContent=!okSaldo?'Un origen supera su saldo':dif?(dif>0?'El destino supera al origen':'El origen supera al destino'):'Importes cuadrados';
+  ver.disabled=!ok;
+  document.querySelectorAll('.amt').forEach(e=>e.onchange=()=>{data[e.dataset.i].imp=parseFloat(e.value.replace(/,/g,''))||0;render();});
+}
+function drawBands(O,D,to,td){
+  const H=Math.max(fo.offsetHeight,fd.offsetHeight),W=sv.clientWidth||200;sv.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const cx=W/2,hubH=Math.min(H*.8,H),hy=(H-hubH)/2,tot=Math.max(to,td,1);let s='';
+  const side=(nodes,el,arr,isO)=>{let acc=0;[...el.children].forEach((n,k)=>{const r=arr[k],t=r.imp/tot*hubH,y=n.offsetTop+n.offsetHeight/2-t/2,hy0=hy+acc;acc+=t;
+    const x0=isO?0:W,x1=cx+(isO?-12:12),c=isO?'var(--o)':'var(--d)';
+    s+=`<path d="M${x0},${y} C${(x0+x1)/2},${y} ${(x0+x1)/2},${hy0} ${x1},${hy0} L${x1},${hy0+t} C${(x0+x1)/2},${hy0+t} ${(x0+x1)/2},${y+t} ${x0},${y+t}Z" fill="${c}" opacity=".35"/>`;});};
+  side(O,fo,O,true);side(D,fd,D,false);
+  s+=`<rect class="hub" x="${cx-12}" y="${hy}" width="24" height="${hubH}" rx="6"/><text x="${cx}" y="${hy-6}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--brand)">${f(to)}</text>`;
+  sv.innerHTML=s;
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button,.view').forEach(e=>e.classList.remove('on'));b.classList.add('on');document.getElementById(b.dataset.v).classList.add('on');render();});
+addEventListener('resize',render);render();
+</script>
+</body>
+</html>
