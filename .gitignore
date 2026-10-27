@@ -22,3 +22,7 @@ npm-debug.log*
 # ─── Sistema operativo ───────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# Generados localmente
+figma/
+graphify-out/
