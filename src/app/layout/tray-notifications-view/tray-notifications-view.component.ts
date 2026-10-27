@@ -2,10 +2,9 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { Router } from '@angular/router';
 
 import { IconComponent } from '../../shared/ui/icon/icon.component';
-import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { PaginationComponent, FILAS_POR_PAGINA, FILAS_POR_PAGINA_OPCIONES } from '../../shared/components/pagination/pagination.component';
 import { NotificacionesApiService, NotificacionResponse } from '../../core/api/notificaciones-api.service';
 import { NotificationsStateService } from '../../core/realtime/notifications-state.service';
-import { TableControlsComponent } from '../../shared/components/table-controls/table-controls.component';
 
 type FiltroLeidas = 'todas' | 'leidas' | 'no_leidas';
 
@@ -30,10 +29,10 @@ type FiltroLeidas = 'todas' | 'leidas' | 'no_leidas';
  * - Para el historial de un documento o registro: usar `siaf-document-history-panel` o `siaf-action-tracker`.
  * @teclado
  * - **Tab**: recorre el Inicio de la ruta (sin acción), «Marcar todas como leídas» si hay no leídas, las tres pestañas
- *   de filtro (cada una es una parada), la paginación de arriba, las notificaciones y la de abajo.
+ *   de filtro (cada una es una parada), las notificaciones y la paginación.
  * - **Enter / Espacio**: en una pestaña aplica el filtro y vuelve a la página 1; en una notificación abre su documento,
  *   si lo tiene; en «Marcar todas como leídas», las marca.
- * - La paginación sigue `siaf-table-controls` y `siaf-pagination`.
+ * - La paginación sigue `siaf-pagination`.
  * @accesibilidad
  * - **Pendiente · 1.3.1 Información y relaciones (A)**: `h1`, `h2` y notificaciones en lista `ul`/`li`, pero la ruta de
  *   navegación es un `nav` hecho a mano, sin `ol`/`li` ni `aria-current` (`siaf-breadcrumb` ya lo resuelve), y leída o
@@ -56,7 +55,7 @@ type FiltroLeidas = 'todas' | 'leidas' | 'no_leidas';
   selector: 'siaf-tray-notifications-view',
   standalone: true,
   imports: [
-    TableControlsComponent,IconComponent, PaginationComponent],
+    IconComponent, PaginationComponent],
   template: `
     <section class="min-h-[calc(100vh-56px)] bg-[var(--sys-color-bg-surfaces-surface-lowest)]">
       <section class="bg-surface">
@@ -130,15 +129,6 @@ type FiltroLeidas = 'todas' | 'leidas' | 'no_leidas';
                 </p>
               </div>
             } @else {
-              <siaf-table-controls [showSelection]="false"
-                [page]="page()"
-                [pageSize]="pageSize()"
-                [totalItems]="filtered().length"
-                [totalPages]="totalPages()"
-                (previous)="prevPage()"
-                (next)="nextPage()"
-              />
-
               <ul class="m-0 flex list-none flex-col gap-0 p-0">
                 @for (notif of pagedItems(); track notif.id) {
                   <li>
@@ -221,8 +211,8 @@ export class TrayNotificationsViewComponent implements OnInit {
   readonly all = signal<NotificacionResponse[]>([]);
   readonly filtro = signal<FiltroLeidas>('todas');
   readonly page = signal(1);
-  readonly pageSize = signal(10);
-  readonly rowsPerPageOptions = [10, 25, 50, 100];
+  readonly pageSize = signal(FILAS_POR_PAGINA);
+  readonly rowsPerPageOptions = FILAS_POR_PAGINA_OPCIONES;
   readonly skeletonRows = Array.from({ length: 6 });
 
   readonly filtroOpciones: { label: string; value: FiltroLeidas }[] = [

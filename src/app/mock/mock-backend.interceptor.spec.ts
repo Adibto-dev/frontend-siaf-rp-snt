@@ -141,6 +141,50 @@ describe('mockBackendInterceptor', () => {
     expect(eliminar.error?.error.message).toContain('observada');
   }));
 
+  describe('registro automático de saldos de apertura (RASA)', () => {
+    it('lo crea el sistema: no se puede crear y ambos roles ven solo los Procesados, con sus registros', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const luis = entrar('70318246');
+      const tipos = esperar(http.get<{ codigo: string }[]>(`${API}/tipos-documento`, { headers: ana })).valor!;
+      const deAna = esperar(http.get<SolicitudResponse[]>(`${API}/solicitudes/bandeja-creador?tipos=RASA`, { headers: ana })).valor!;
+      const deLuis = esperar(http.get<SolicitudResponse[]>(`${API}/solicitudes/bandeja-aprobador?tipos=RASA`, { headers: luis })).valor!;
+      const registros = esperar(http.get<SaldoInicialRegistro[]>(`${API}/saldos-iniciales`, { headers: ana })).valor!;
+
+      expect(tipos.some((t) => t.codigo === 'RASA')).toBeFalse();
+      expect(deAna.map((s) => s.estado)).toEqual(['PROCESADO', 'PROCESADO']);
+      expect(deLuis.map((s) => s.estado)).toEqual(['PROCESADO', 'PROCESADO']);
+      for (const s of deAna) {
+        expect(s.numero).toMatch(/^PCB-RASA-\d{5}-\d{4}-MEF-OGA$/);
+        const suyos = registros.filter((r) => r.documentoId === s.id);
+        expect(suyos.length).toBe(s.detalleSaldosIniciales!.saldos.length);
+        expect(suyos.every((r) => r.automatico && r.movimiento === 'SIA001 - Saldo de Apertura' && /^\d{6}$/.test(r.secuencia ?? ''))).toBeTrue();
+      }
+    }));
+  });
+
+  describe('ajuste de saldo inicial (RSIN, tipo de operación 2)', () => {
+    it('ajusta una sola cuenta ya registrada: el aprobado crea un registro ASC002 y el saldo original no cambia', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const bandeja = esperar(http.get<SolicitudResponse[]>(`${API}/solicitudes/bandeja-creador?tipos=RSIN`, { headers: ana })).valor!;
+      const registros = esperar(http.get<SaldoInicialRegistro[]>(`${API}/saldos-iniciales`, { headers: ana })).valor!;
+      const ajustes = bandeja.filter((s) => s.detalleSaldosIniciales?.saldos.some((x) => x.ajuste));
+
+      expect(ajustes.map((s) => s.estado).sort()).toEqual(['APROBADO', 'APROBADO', 'VERIFICADO']);
+      for (const s of ajustes) {
+        const [saldo, ...resto] = s.detalleSaldosIniciales!.saldos;
+        expect(resto.length).toBe(0);
+        const original = registros.find((r) => r.secuencia === saldo.ajuste!.secuenciaReferencia)!;
+        expect(original.cuentaBancaria).toBe(saldo.cuentaBancaria);
+        expect(original.ajuste).toBeUndefined();
+        expect(original.movimiento).toBe('SI0001 - Saldo Inicial');
+        expect(original.importeCuenta).toBe(saldo.ajuste!.saldoInicial);
+        const suyo = registros.filter((r) => r.documentoId === s.id);
+        expect(suyo.length).toBe(s.estado === 'APROBADO' ? 1 : 0);
+        if (suyo[0]) expect(suyo[0].movimiento).toBe('ASC002 - Ajuste del Saldo Inicial');
+      }
+    }));
+  });
+
   describe('saldos iniciales (RSIN)', () => {
     const SALDOS: SaldosInicialesDatos = {
       entidadFinanciera: '0001',
@@ -169,7 +213,7 @@ describe('mockBackendInterceptor', () => {
       esperar(http.post(`${API}/solicitudes/${id}/saldos-iniciales`, SALDOS, { headers: ana }));
       const elaborar = esperar(http.patch<{ numero: string }>(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
 
-      expect(elaborar.valor?.numero).toMatch(/^PCB-RSIN-00005-\d{4}-MEF-OGA$/);
+      expect(elaborar.valor?.numero).toMatch(/^PCB-RSIN-00008-\d{4}-MEF-OGA$/);
       const saldo = esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: ana })).valor!.detalleSaldosIniciales!.saldos[0];
       expect(saldo.importeCuenta).toBe(100000);
       expect(saldo.tipoCambio).toBeGreaterThanOrEqual(3.39);

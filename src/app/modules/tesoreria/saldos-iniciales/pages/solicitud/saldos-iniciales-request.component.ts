@@ -33,8 +33,6 @@ import { MessageBoxComponent } from '../../../../../shared/ui/message-box/messag
 import { ModalComponent } from '../../../../../shared/ui/modal/modal.component';
 import { SnackbarVariant } from '../../../../../shared/ui/snackbar/snackbar.component';
 import { SummaryCardComponent, SummaryCardField } from '../../../../../shared/ui/summary-card/summary-card.component';
-import { SidePanelComponent } from '../../../../../shared/ui/side-panel/side-panel.component';
-import { ExpansionPanelComponent } from '../../../../../shared/ui/expansion-panel/expansion-panel.component';
 import { TextFieldComponent } from '../../../../../shared/ui/text-field/text-field.component';
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { UploadSideNavComponent } from '../../../../../shared/ui/upload-side-nav/upload-side-nav.component';
@@ -42,12 +40,12 @@ import { UploadedFileCardComponent, UploadedFileInfo } from '../../../../../shar
 import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs.util';
 import { crearSnapshotFormulario, hayCambiosRespectoAlSnapshot } from '../../../../../shared/utils/form-snapshot.util';
 import { SaldosInicialesApiService } from '../../api/saldos-iniciales-api.service';
-import { PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/saldos-iniciales.rutas';
+import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
+import { ADJUSTMENT_ROUTE, PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/saldos-iniciales.rutas';
 import {
   CODIGO_DOCUMENTO,
   CUENTAS_BANCARIAS,
   CuentaBancaria,
-  CuentaRegistro,
   ENTE_RECTOR,
   ENTIDADES_FINANCIERAS,
   EntidadFinanciera,
@@ -101,6 +99,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
   selector: 'siaf-saldos-iniciales-request',
   standalone: true,
   imports: [
+    SaldoLibretasPanelComponent,
     ActionTrackerComponent,
     ButtonComponent,
     CheckboxComponent,
@@ -119,8 +118,6 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
     SolicitudeInfoCardComponent,
     SolicitudePageLayoutComponent,
     SummaryCardComponent,
-    SidePanelComponent,
-    ExpansionPanelComponent,
     TableControlsComponent,
     TextFieldComponent,
     TooltipDirective,
@@ -245,16 +242,6 @@ export class SaldosInicialesRequestComponent implements OnInit {
 
   // ── Saldos iniciales libretas (panel de detalle de un saldo) ──────
   readonly saldoVisto = signal<SaldoInicial | null>(null);
-  readonly busquedaVista = signal('');
-  readonly paginaVista = signal(1);
-  readonly tamanoVista = signal(25);
-  private readonly libretasVistaFiltradas = computed(() => {
-    const s = this.saldoVisto();
-    const q = this.busquedaVista();
-    return s ? this.libretasDe(s).filter((l) => !q || [l.idCorrelativo, l.numero, l.descripcion].some((v) => contiene(v, q))) : [];
-  });
-  readonly tablaVista = computed(() => paginar(this.libretasVistaFiltradas(), this.paginaVista(), this.tamanoVista()));
-  readonly totalVista = computed(() => this.libretasVistaFiltradas().length);
 
   private readonly saldosFiltrados = computed(() => {
     const q = this.busquedaSaldos();
@@ -440,29 +427,11 @@ export class SaldosInicialesRequestComponent implements OnInit {
   }
 
   verLibretas(saldo: SaldoInicial): void {
-    this.busquedaVista.set('');
-    this.paginaVista.set(1);
     this.saldoVisto.set(saldo);
-  }
-
-  camposCuentaDe(saldo: SaldoInicial): SummaryCardField[] {
-    const c = cuentaPorNumero(saldo.cuentaBancaria);
-    return [
-      { label: 'Número de cuenta', value: saldo.cuentaBancaria },
-      { label: 'Denominación', value: c?.denominacion ?? '' },
-      { label: 'Moneda', value: saldo.moneda },
-    ];
   }
 
   alternarDespliegue(id: string): void {
     this.saldoDesplegado.update((actual) => (actual === id ? null : id));
-  }
-
-  libretasDe(saldo: SaldoInicial): (CuentaRegistro & { importe: number; importeNacional: number })[] {
-    const importes = new Map(saldo.libretas.map((l) => [l.idCorrelativo, l.importe]));
-    return cuentasRegistroDe(saldo.cuentaBancaria)
-      .filter((l) => importes.has(l.idCorrelativo))
-      .map((l) => ({ ...l, importe: importes.get(l.idCorrelativo)!, importeNacional: redondear(importes.get(l.idCorrelativo)! * saldo.tipoCambio) }));
   }
 
   // ── Agregar / editar un saldo ─────────────────────────────────────
@@ -688,6 +657,11 @@ export class SaldosInicialesRequestComponent implements OnInit {
     this.cargando.set(true);
     this.solicitudesApi.obtenerDetalle(id).subscribe({
       next: (s) => {
+        // Un ajuste de saldo inicial (tipo de operación 2) tiene su propia vista de solo lectura.
+        if (s.detalleSaldosIniciales?.saldos.some((x) => x.ajuste)) {
+          void this.router.navigate([ADJUSTMENT_ROUTE, s.id], { replaceUrl: true });
+          return;
+        }
         this.solicitudId = s.id;
         this.solicitud.set(s);
         this.editando.set(false);

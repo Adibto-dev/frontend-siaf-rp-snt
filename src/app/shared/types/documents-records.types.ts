@@ -37,6 +37,8 @@ export type DocumentsRecordsColumn = {
   widthClass?: string;
   align?: 'left' | 'right' | 'center';
   kind?: 'text' | 'document-link' | 'flow-status' | 'record-status';
+  /** Cabecera agrupadora: las columnas seguidas con el mismo texto comparten una celda arriba (p. ej. «Libro bancos»). */
+  headerGroup?: string;
 };
 
 export type DocumentsRecordsFilterOption = {
@@ -59,6 +61,19 @@ export type DocumentsQuery = {
   page: number;
   limit: number;
 };
+
+/** Acción de ícono por fila en la pestaña Registros (va antes del historial). */
+export type DocumentsRecordsRowAction = {
+  id: string;
+  /** Nombre de Material Icons. */
+  icon: string;
+  /** Texto del tooltip y del `aria-label`. */
+  label: string;
+  /** Deshabilita la acción en esa fila (p. ej. sin documento de sustento). */
+  disabled?: (row: DocumentsRecordsRow) => boolean;
+};
+
+export type DocumentsRecordsRowActionEvent = { actionId: string; row: DocumentsRecordsRow };
 
 export type DocumentsRecordsConfig = {
   title: string;
@@ -89,6 +104,10 @@ export type DocumentsRecordsConfig = {
   /** Variante del panel "Historial del registro" de la pestaña Registros:
    *  'cuenta' (default, plan de cuentas) o 'asiento' (asiento de ajuste). */
   recordHistoryKind?: 'cuenta' | 'asiento' | 'documento';
+  /** Acciones de ícono por fila en Registros, antes del historial; la página las reemite en `recordActionTriggered`. */
+  recordRowActions?: DocumentsRecordsRowAction[];
+  /** Ruta del detalle de un registro: con ella, la fila entera de Registros abre esa página (salvo sus controles). */
+  recordRoute?: (row: DocumentsRecordsRow) => string;
   // Filtros para tab Documentos
   statusFilterOptions: string[];
   actionTypeFilterOptions: string[];

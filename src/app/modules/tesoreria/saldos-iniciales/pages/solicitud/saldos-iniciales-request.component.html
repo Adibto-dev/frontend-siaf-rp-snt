@@ -113,14 +113,8 @@
                 (edit)="editarSeleccionado()"
                 [showDeleteAction]="seleccionSaldos().length > 0"
                 deleteLabel="Quitar saldos seleccionados"
-                [page]="paginaSaldos()"
-                [pageSize]="tamanoSaldos()"
-                [totalItems]="totalSaldos()"
-                [totalPages]="tablaSaldos().totalPaginas"
                 (selectionChange)="alternarSeleccionTodos($event)"
                 (delete)="quitarSeleccionados()"
-                (previous)="paginaSaldos.set(paginaSaldos() - 1)"
-                (next)="paginaSaldos.set(paginaSaldos() + 1)"
               />
             }
 
@@ -206,7 +200,6 @@
               [totalItems]="totalSaldos()"
               [totalPages]="tablaSaldos().totalPaginas"
               [rowsPerPage]="tamanoSaldos()"
-              [rowsPerPageOptions]="[10, 25, 50]"
               (previous)="paginaSaldos.set(paginaSaldos() - 1)"
               (next)="paginaSaldos.set(paginaSaldos() + 1)"
               (rowsPerPageChange)="tamanoSaldos.set($event); paginaSaldos.set(1)"
@@ -375,7 +368,6 @@
                   [totalItems]="totalLibretas()"
                   [totalPages]="tablaLibretas().totalPaginas"
                   [rowsPerPage]="tamanoLibretas()"
-                  [rowsPerPageOptions]="[10, 25, 50]"
                   (previous)="paginaLibretas.set(paginaLibretas() - 1)"
                   (next)="paginaLibretas.set(paginaLibretas() + 1)"
                   (rowsPerPageChange)="tamanoLibretas.set($event); paginaLibretas.set(1)"
@@ -409,103 +401,8 @@
     }
   </siaf-solicitude-page-layout>
 
-  <!-- Saldos iniciales libretas: detalle de un saldo agregado (Figma 23870:87733 y 23870:87777) -->
-  <siaf-side-panel title="Saldos iniciales libretas" [open]="!!saldoVisto()" [showFooter]="false" (closed)="saldoVisto.set(null)">
-    @if (saldoVisto(); as s) {
-      <div class="grid gap-siaf-md">
-        <siaf-expansion-panel title="Cuenta bancaria" [expanded]="false">
-          <div class="grid gap-siaf-lg">
-            <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-2">
-              <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia</dt><dd class="m-0 text-sm">{{ s.secuencia || '-' }}</dd></div>
-              <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Fecha de operación</dt><dd class="m-0 text-sm">{{ formatoFecha(s.fechaOperacion) }}</dd></div>
-            </dl>
-            <section class="grid gap-siaf-sm">
-              <h4 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h4>
-              <siaf-summary-card [fields]="camposCuentaDe(s)" [bordered]="true" [showClose]="false" />
-            </section>
-            @if (s.moneda === 'USD') {
-              <section class="grid gap-siaf-sm">
-                <h4 class="m-0 text-sm font-bold uppercase text-text">Tipo de cambio</h4>
-                <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-2">
-                  <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Tipo de cotización</dt><dd class="m-0 text-sm">{{ tipoCotizacion }}</dd></div>
-                  <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Compra</dt><dd class="m-0 text-sm">{{ s.tipoCambio.toFixed(2) }}</dd></div>
-                </dl>
-              </section>
-            }
-            <section class="grid gap-siaf-sm">
-              <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
-              <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                <div class="relative">
-                  <siaf-input label="En moneda de la cuenta" [value]="formatoImporte(s.importeCuenta)" [disabled]="true" />
-                  <span
-                    class="absolute right-siaf-sm top-1/2 inline-flex -translate-y-1/2 rounded-full text-[var(--sys-color-text-neutral-medium)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
-                    tabindex="0"
-                    role="img"
-                    [attr.aria-label]="ayudaImportes"
-                    [siafTooltip]="ayudaImportes"
-                  >
-                    <siaf-icon name="info" [size]="24" />
-                  </span>
-                </div>
-                <siaf-input label="En moneda nacional" [value]="formatoImporte(s.importeNacional)" [disabled]="true" />
-              </div>
-            </section>
-          </div>
-        </siaf-expansion-panel>
-
-        <siaf-form-table-search placeholder="Buscar" [value]="busquedaVista()" (valueChange)="busquedaVista.set($event); paginaVista.set(1)" />
-        <div class="siaf-table-shell">
-          <table class="siaf-table min-w-[960px]">
-            <caption class="sr-only">Cuentas de registro de la cuenta {{ s.cuentaBancaria }}</caption>
-            <thead>
-              <tr class="siaf-table-head-row">
-                <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
-                <th class="siaf-table-th text-center" colspan="3">Cuenta de registro</th>
-                <th class="siaf-table-th text-center" colspan="2">Libretas</th>
-              </tr>
-              <tr class="siaf-table-head-row">
-                <th class="siaf-table-th w-[100px]">ID corr.</th>
-                <th class="siaf-table-th">Número</th>
-                <th class="siaf-table-th">Descripción</th>
-                <th class="siaf-table-th w-[170px] text-right">Imp. M. cuenta</th>
-                <th class="siaf-table-th w-[170px] text-right">Imp. M. nacional</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (libreta of tablaVista().filas; track libreta.idCorrelativo) {
-                <tr class="siaf-table-row">
-                  <td class="siaf-table-td">{{ formatoFecha(s.fechaOperacion) }}</td>
-                  <td class="siaf-table-td">{{ libreta.idCorrelativo }}</td>
-                  <td class="siaf-table-td font-mono">{{ libreta.numero }}</td>
-                  <td class="siaf-table-td">{{ libreta.descripcion }}</td>
-                  <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importe) }}</td>
-                  <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importeNacional) }}</td>
-                </tr>
-              } @empty {
-                <tr class="siaf-table-row">
-                  <td class="siaf-table-td text-center" colspan="6">No se encontraron cuentas de registro.</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        <siaf-pagination
-          navigation="Activate"
-          position="Bottom"
-          [rowPage]="true"
-          [page]="paginaVista()"
-          [pageSize]="tamanoVista()"
-          [totalItems]="totalVista()"
-          [totalPages]="tablaVista().totalPaginas"
-          [rowsPerPage]="tamanoVista()"
-          [rowsPerPageOptions]="[10, 25, 50]"
-          (previous)="paginaVista.set(paginaVista() - 1)"
-          (next)="paginaVista.set(paginaVista() + 1)"
-          (rowsPerPageChange)="tamanoVista.set($event); paginaVista.set(1)"
-        />
-      </div>
-    }
-  </siaf-side-panel>
+  <!-- Saldos iniciales libretas: detalle de un saldo agregado -->
+  <siaf-saldo-libretas-panel [saldo]="saldoVisto()" (closed)="saldoVisto.set(null)" />
 
   <siaf-selection-side-nav
     [open]="panelEntidad()"

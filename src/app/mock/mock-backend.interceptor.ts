@@ -216,7 +216,8 @@ function bandeja(ctx: Contexto, estados?: EstadoDocumento[]): Respuesta {
   const tipos = (query.get('tipos') ?? '').split(',').filter(Boolean);
   const busqueda = (query.get('search') ?? '').trim().toLowerCase();
 
-  let lista = datos.solicitudes.filter((s) => s.entidadCreadora?.id === sesion.perfil.entidadId && s.estado !== 'NUEVO');
+  let lista = datos.solicitudes.filter((s) => s.entidadCreadora?.id === sesion.perfil.entidadId && s.estado !== 'NUEVO' && s.estado !== 'REGISTRADO');
+  // REGISTRADO: el sistema aún no procesa el documento automático; recién al quedar PROCESADO aparece en las bandejas.
   if (estados) lista = lista.filter((s) => estados.includes(s.estado));
   if (tipos.length) lista = lista.filter((s) => tipos.includes(s.catDocumento?.codigo ?? ''));
   if (busqueda) {
@@ -236,7 +237,7 @@ function bandeja(ctx: Contexto, estados?: EstadoDocumento[]): Respuesta {
 }
 
 const bandejaCreador: Manejador = (ctx) => bandeja(ctx);
-const bandejaAprobador: Manejador = (ctx) => bandeja(ctx, ['VERIFICADO', 'OBSERVADO', 'APROBADO', 'RECHAZADO']);
+const bandejaAprobador: Manejador = (ctx) => bandeja(ctx, ['VERIFICADO', 'OBSERVADO', 'APROBADO', 'RECHAZADO', 'PROCESADO']);
 
 const detalleSolicitud: Manejador = ({ datos, params }) => {
   const s = buscarSolicitud(datos, params[0]);

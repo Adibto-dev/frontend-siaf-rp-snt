@@ -5,9 +5,17 @@ import { IconComponent } from '../../ui/icon/icon.component';
 export type PaginationNavigation = 'Inactive' | 'Activate';
 export type PaginationPosition = 'Top' | 'Bottom';
 
+/** Regla de tablas: filas por página de 25 a 100. */
+export const FILAS_POR_PAGINA_OPCIONES = [25, 50, 100];
+/** Tamaño inicial de toda tabla. */
+export const FILAS_POR_PAGINA = 25;
+
 /**
- * Paginación de las grillas: contador «1-10 de 800» y flechas Página anterior / Página siguiente, que se deshabilitan
+ * Paginación de las grillas: contador «1-25 de 800» y flechas Página anterior / Página siguiente, que se deshabilitan
  * solas en la primera y la última página.
+ *
+ * Regla de tablas: filas por página de 25 a 100 (`FILAS_POR_PAGINA_OPCIONES`, inicial `FILAS_POR_PAGINA`) y, si el
+ * total no pasa del menor tamaño (25 filas), el paginador no se muestra: todo cabe en una página.
  *
  * Con `position="Bottom"` y `rowPage` suma a la izquierda el select nativo de filas por página; en `Top` es la versión
  * compacta que pinta `siaf-table-controls`. Solo emite eventos (`previous`, `next`, `rowsPerPageChange`): el padre
@@ -49,6 +57,7 @@ export type PaginationPosition = 'Top' | 'Bottom';
   standalone: true,
   imports: [IconComponent],
   template: `
+    @if (visible) {
     <nav
       class="siaf-text-caption-1 flex w-full min-w-0 items-center gap-siaf-md text-text-muted"
       [class.justify-between]="position === 'Bottom' && rowPage"
@@ -103,6 +112,7 @@ export type PaginationPosition = 'Top' | 'Bottom';
         </div>
       </div>
     </nav>
+    }
   `,
   styles: `
     :host {
@@ -123,8 +133,13 @@ export class PaginationComponent {
   @Input() navigation: PaginationNavigation = 'Activate';
   @Input() position: PaginationPosition = 'Top';
   @Input() rowPage = false;
-  @Input() rowsPerPage = 10;
-  @Input() rowsPerPageOptions: number[] = [10, 25, 50, 100];
+  @Input() rowsPerPage = FILAS_POR_PAGINA;
+  @Input() rowsPerPageOptions: number[] = FILAS_POR_PAGINA_OPCIONES;
+
+  /** Sin más filas que el menor tamaño de página no hay nada que paginar: se oculta. */
+  get visible(): boolean {
+    return this.totalItems > Math.min(...(this.rowsPerPageOptions.length ? this.rowsPerPageOptions : [FILAS_POR_PAGINA]));
+  }
 
   @Output() previous = new EventEmitter<void>();
   @Output() next = new EventEmitter<void>();

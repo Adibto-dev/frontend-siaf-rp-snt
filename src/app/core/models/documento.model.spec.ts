@@ -14,6 +14,8 @@ describe('ESTADO (etiquetas de UI)', () => {
       RECHAZADO: 'Rechazado',
       OBSERVADO: 'Observado',
       ELIMINADO: 'Eliminado',
+      REGISTRADO: 'Registrado',
+      PROCESADO: 'Procesado',
     });
   });
 

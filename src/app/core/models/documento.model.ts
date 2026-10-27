@@ -11,6 +11,9 @@ export const ESTADOS_DOCUMENTO = [
   'APROBADO',
   'RECHAZADO',
   'ELIMINADO',
+  // Documentos automáticos (los crea y procesa el sistema).
+  'REGISTRADO',
+  'PROCESADO',
 ] as const;
 
 export type EstadoDocumento = (typeof ESTADOS_DOCUMENTO)[number];
@@ -35,6 +38,8 @@ export const ESTADO = {
   RECHAZADO: 'Rechazado',
   OBSERVADO: 'Observado',
   ELIMINADO: 'Eliminado',
+  REGISTRADO: 'Registrado',
+  PROCESADO: 'Procesado',
 } as const;
 
 export type EstadoSolicitudUi = (typeof ESTADO)[keyof typeof ESTADO];

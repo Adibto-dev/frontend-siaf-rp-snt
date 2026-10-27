@@ -495,7 +495,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     ],
     "usar": "- Para ver desde la bandeja del plan de cuentas cómo quedó una cuenta contable y quién elaboró, verificó y aprobó\n  la solicitud que la creó, sin abrir esa solicitud.\n- Para consultar en solo lectura atributos, dinámica contable, cuentas anteriores, entidades del estado y sustento\n  de un registro.",
     "evitar": "- Para registros que no son cuentas contables: sus secciones son las del plan de cuentas; los asientos de ajuste\n  usan `siaf-asiento-history-panel` (`recordHistoryKind: 'asiento'`).\n- Para el historial de estados de un documento (pestaña Documentos): usar `siaf-document-history-panel`.\n- Dentro de la solicitud abierta: usar `siaf-detail-history-tabs` y `siaf-action-tracker` en la página.\n- Para modificar la cuenta: el panel es de solo lectura; el cambio va por una solicitud de modificación.",
-    "teclado": "- **Tab**: al abrir, el foco entra en la X; recorre los controles de la tabla de entidades y da la vuelta sin salir\n  del panel (`siaf-table-controls` y `siaf-pagination` siguen su propio teclado).\n- **Enter / Espacio** en la X: cierran el panel (emite `closed`).\n- **Escape**: cierra el panel (emite `closed`) y el foco vuelve al botón de historial.",
+    "teclado": "- **Tab**: al abrir, el foco entra en la X; recorre los controles de la tabla de entidades y da la vuelta sin salir\n  del panel (`siaf-pagination` sigue su propio teclado).\n- **Enter / Espacio** en la X: cierran el panel (emite `closed`).\n- **Escape**: cierra el panel (emite `closed`) y el foco vuelve al botón de historial.",
     "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: es `role=\"dialog\"` con `aria-modal=\"true\"` y nombre desde su título\n  (`aria-labelledby`); la X se llama «Cerrar historial de cuenta contable».\n- **1.3.1 Información y relaciones (A)**: títulos `h2` y `h3` por sección, cuentas anteriores y entidades en una\n  `table` con `thead` y `th`, y «¿Está visible?» como checkbox nativo deshabilitado dentro de su `label`.\n- **1.4.1 Uso del color (A)**: el estado del registro va en `siaf-record-status-tag`, con ícono y texto.\n- **1.4.3 Contraste mínimo (AA)**: títulos y valores `text-neutral-high` 16.29:1 (oscuro 16.53:1), etiquetas\n  `text-neutral-low` 5.01:1 (8.86:1) y textos `text-neutral-medium` 14.53:1 (12.87:1) sobre la superficie.\n- **2.4.3 Orden del foco (A)**: con `siafFoco`, al abrir lleva el foco a la X y lo retiene en el panel; al cerrar (X,\n  Escape o clic en el fondo) lo devuelve al botón de historial.\n- **2.4.7 Foco visible (AA)**: la X no define estilo de foco: muestra el contorno por defecto del navegador.\n- **Pendiente · 4.1.3 Mensajes de estado (AA)**: la señal `loading` no se pinta: mientras responde la API los\n  campos muestran «--» sin aviso visual ni `aria-live`.\n- **1.4.13 Contenido en hover o foco (AA)**: desde `sm` los valores truncados se completan con `siafTooltip`, que\n  se cierra con Escape y se puede recorrer con el puntero.\n- **Pendiente · 2.1.1 Teclado (A)**: esos valores no reciben foco, así que con teclado el globo no aparece (el lector\n  de pantalla sí lee el valor entero).",
     "figma": [],
     "aria": {
@@ -650,8 +650,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       "siaf-pagination",
       "siaf-record-status-tag",
       "siaf-steps",
-      "siaf-summary-card",
-      "siaf-table-controls"
+      "siaf-summary-card"
     ],
     "sinUso": false
   },
@@ -4804,6 +4803,11 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": "Consulta remota de la pestaña Documentos (solo si la config declara `serverQuery`): se emite al confirmar la búsqueda (Enter/lupa), al cambiar de página y al cambiar el tamaño de página. El padre la resuelve contra el backend y devuelve `documentRows` ya filtrados y paginados."
       },
       {
+        "nombre": "recordActionTriggered",
+        "tipo": "DocumentsRecordsRowActionEvent",
+        "descripcion": "Clic en una acción de fila de Registros (`config.recordRowActions`): la abre la pantalla del proceso."
+      },
+      {
         "nombre": "recordsQueryChange",
         "tipo": "DocumentsQuery",
         "descripcion": "Igual que `documentsQueryChange`, para la pestaña Registros (`serverRecordsQuery`)."
@@ -4989,8 +4993,8 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       },
       {
         "nombre": "columns",
-        "tipo": "DocumentsRecordsColumn[]",
-        "porDefecto": "[]",
+        "tipo": "DocumentsRecordsColumn[] | null | undefined",
+        "porDefecto": null,
         "requerida": false,
         "descripcion": null
       },
@@ -5009,11 +5013,25 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "recordRoute",
+        "tipo": "((row: DocumentsRecordsRow) => string) | null",
+        "porDefecto": "null",
+        "requerida": false,
+        "descripcion": "Ruta del detalle de un registro: la fila entera de Registros lo abre."
+      },
+      {
         "nombre": "recordTrackKey",
         "tipo": "string",
         "porDefecto": "''",
         "requerida": false,
         "descripcion": null
+      },
+      {
+        "nombre": "rowActions",
+        "tipo": "DocumentsRecordsRowAction[]",
+        "porDefecto": "[]",
+        "requerida": false,
+        "descripcion": "Acciones de ícono por fila, antes del historial; solo se pintan en la pestaña Registros."
       },
       {
         "nombre": "rows",
@@ -5037,18 +5055,25 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "rowActionTriggered",
+        "tipo": "DocumentsRecordsRowActionEvent",
+        "descripcion": "Clic en una de `rowActions` (solo en Registros)."
+      },
+      {
         "nombre": "selectionChanged",
         "tipo": "DocumentsRecordsSelectionChange",
         "descripcion": null
       }
     ],
-    "usar": "- En las pestañas Documentos / Registros de `siaf-documents-records-page` (plan de cuentas, asiento de ajuste,\n  catálogo de ajuste, catálogos de eventos, apertura contable y contabilización).\n- Cuando las columnas vienen de configuración (`DocumentsRecordsColumn` con `kind`, `align` y `widthClass`) y el\n  panel de columnas decide cuáles se ven.\n- Con `selectionDisabled` para dejar marcables solo los documentos de la acción masiva: Elaborados para el creador\n  (Verificar) y Verificados para el aprobador (Aprobar).",
+    "usar": "- En las pestañas Documentos / Registros de `siaf-documents-records-page` (plan de cuentas, asiento de ajuste,\n  catálogo de ajuste, catálogos de eventos, apertura contable y contabilización).\n- Cuando las columnas vienen de configuración (`DocumentsRecordsColumn` con `kind`, `align` y `widthClass`) y el\n  panel de columnas decide cuáles se ven.\n- Con `headerGroup` en columnas seguidas para agruparlas bajo una cabecera común (Saldos iniciales: «Cuenta\n  bancaria», «Libro bancos» y «Documentos»): la cabecera pasa a dos filas.\n- Con `rowActions` para íconos por fila en Registros antes del historial (Saldos iniciales: ver documento de\n  sustento, deshabilitado sin archivo, y ver cuentas de registro); se deshabilitan por fila con `disabled`.\n- Con `selectionDisabled` para dejar marcables solo los documentos de la acción masiva: Elaborados para el creador\n  (Verificar) y Verificados para el aprobador (Aprobar).",
     "evitar": "- Para un listado de solo lectura con texto plano: `siaf-table`.\n- Usarla sola, sin barra ni paginado: va dentro de la grilla estándar (`siaf-table-controls` arriba, con el\n  seleccionar todo, y `siaf-pagination` con `position=\"Bottom\"` y `rowPage` abajo).\n- Mientras llegan las filas: `siaf-table-skeleton` con las mismas columnas y `minWidthClass`, no la tabla vacía.\n- Copiar su marcado en otra pantalla: `siaf-tray-documents-view` todavía tiene una tabla parecida hecha a mano.",
-    "teclado": "- **Tab**: recorre, fila por fila, el checkbox (solo en Documentos), el enlace al documento y el botón de historial;\n  un checkbox deshabilitado queda fuera.\n- **Espacio**: marca o desmarca el checkbox de la fila (emite `selectionChanged`).\n- **Enter**: en el enlace, abre el documento (`routerLink`).\n- **Enter / Espacio**: en el botón de historial, emiten `historyOpened`.",
-    "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `<table>` con `<thead>` y un `<th>` por columna (sin `scope`, que con una\n  sola fila de cabecera no hace falta); las columnas del checkbox y del historial tienen el `<th>` vacío. No ordena\n  columnas, así que no aplica `aria-sort`.\n- **Pendiente · 4.1.2 Nombre, función y valor (A)**: el checkbox de cada fila no tiene nombre (ni `aria-label` ni\n  `<label>`). El botón de historial sí lleva `aria-label`, pero en Registros dice siempre «Ver historial de cuenta\n  contable», también en los asientos de ajuste.\n- **Pendiente · 2.1.1 Teclado (A)**: la fila no es clicable y sus acciones son nativas, pero el texto completo de\n  las cabeceras y celdas cortadas solo sale con `siafTooltip` al pasar el mouse: esas celdas no reciben foco (el\n  enlace sí lo muestra al enfocarlo).\n- **1.4.13 Contenido en hover o foco (AA)**: ese tooltip se cierra con Escape y se puede recorrer con el puntero.\n- **Pendiente · 1.4.3 Contraste mínimo (AA)**: el enlace va en `text-neutral-high` (16.29:1 / 16.53:1) y «Nuevo» en\n  blanco sobre `bg-brand-primary` (8.79:1 / 6.67:1), pero la etiqueta Observado de `siaf-flow-status-tag` (también\n  Pendiente y Fallido) da 3.39:1 en claro, y el enlace en hover (`text-brand-primary`) pinta en oscuro con\n  `bg-brand-primary` (2.66:1 sobre la superficie).\n- **1.4.1 Uso del color (A)**: los estados llevan su nombre en la etiqueta y «Nuevo» es texto.\n- **2.4.7 Foco visible (AA)**: sin estilo propio: enlace, checkbox y botón muestran el anillo nativo del navegador.\n- **2.5.8 Tamaño del objetivo (AA)**: botón de historial de 32 px; el checkbox mide 16 px, pero cumple por\n  espaciado (celda de 40 × 58 px).",
+    "teclado": "- **Tab**: recorre, fila por fila, el checkbox (solo en Documentos), el enlace al documento y el botón de historial;\n  un checkbox deshabilitado queda fuera.\n- **Espacio**: marca o desmarca el checkbox de la fila (emite `selectionChanged`).\n- **Enter**: en el enlace, abre el documento (`routerLink`).\n- **Enter / Espacio**: en el botón de historial, emiten `historyOpened`; en una acción de `rowActions`,\n  `rowActionTriggered`. Una acción deshabilitada queda fuera del Tab.",
+    "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `<table>` con `<thead>` y un `<th scope=\"col\">` por columna; los grupos\n  (`headerGroup`) van en una primera fila con `<th scope=\"colgroup\">` y `colspan`, y las columnas sueltas y las del\n  checkbox e historial ocupan las dos filas (`rowspan`). Las del checkbox y del historial tienen el `<th>` vacío. No\n  ordena columnas, así que no aplica `aria-sort`.\n- **Pendiente · 4.1.2 Nombre, función y valor (A)**: el checkbox de cada fila no tiene nombre (ni `aria-label` ni\n  `<label>`). El botón de historial sí lleva `aria-label`, pero en Registros dice siempre «Ver historial de cuenta\n  contable», también en los asientos de ajuste.\n- **Pendiente · 2.1.1 Teclado (A)**: la fila no es clicable y sus acciones son nativas, pero el texto completo de\n  las cabeceras y celdas cortadas solo sale con `siafTooltip` al pasar el mouse: esas celdas no reciben foco (el\n  enlace sí lo muestra al enfocarlo).\n- **1.4.13 Contenido en hover o foco (AA)**: ese tooltip se cierra con Escape y se puede recorrer con el puntero.\n- **Pendiente · 1.4.3 Contraste mínimo (AA)**: el enlace va en `text-neutral-high` (16.29:1 / 16.53:1) y «Nuevo» en\n  blanco sobre `bg-brand-primary` (8.79:1 / 6.67:1), pero la etiqueta Observado de `siaf-flow-status-tag` (también\n  Pendiente y Fallido) da 3.39:1 en claro, y el enlace en hover (`text-brand-primary`) pinta en oscuro con\n  `bg-brand-primary` (2.66:1 sobre la superficie).\n- **1.4.1 Uso del color (A)**: los estados llevan su nombre en la etiqueta y «Nuevo» es texto.\n- **2.4.7 Foco visible (AA)**: sin estilo propio: enlace, checkbox y botón muestran el anillo nativo del navegador.\n- **2.5.8 Tamaño del objetivo (AA)**: botón de historial de 32 px; el checkbox mide 16 px, pero cumple por\n  espaciado (celda de 40 × 58 px).",
     "figma": [],
     "aria": {
-      "roles": [],
+      "roles": [
+        "button"
+      ],
       "atributos": [
         "aria-label"
       ]
@@ -5094,6 +5119,12 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       },
       {
         "token": "--sys-color-divider-strong",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-text-neutral-disabled",
         "via": [
           "var()"
         ]
@@ -8351,7 +8382,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "components",
     "importacion": "@siaf/shared/components/pagination/pagination.component",
     "archivo": "src/app/shared/components/pagination/pagination.component.ts",
-    "descripcion": "Paginación de las grillas: contador «1-10 de 800» y flechas Página anterior / Página siguiente, que se deshabilitan\nsolas en la primera y la última página.\n\nCon `position=\"Bottom\"` y `rowPage` suma a la izquierda el select nativo de filas por página; en `Top` es la versión\ncompacta que pinta `siaf-table-controls`. Solo emite eventos (`previous`, `next`, `rowsPerPageChange`): el padre\ncambia `page` y las filas.",
+    "descripcion": "Paginación de las grillas: contador «1-25 de 800» y flechas Página anterior / Página siguiente, que se deshabilitan\nsolas en la primera y la última página.\n\nRegla de tablas: filas por página de 25 a 100 (`FILAS_POR_PAGINA_OPCIONES`, inicial `FILAS_POR_PAGINA`) y, si el\ntotal no pasa del menor tamaño (25 filas), el paginador no se muestra: todo cabe en una página.\n\nCon `position=\"Bottom\"` y `rowPage` suma a la izquierda el select nativo de filas por página; en `Top` es la versión\ncompacta que pinta `siaf-table-controls`. Solo emite eventos (`previous`, `next`, `rowsPerPageChange`): el padre\ncambia `page` y las filas.",
     "usaSesion": false,
     "proyectaContenido": false,
     "entradas": [
@@ -8400,14 +8431,14 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       {
         "nombre": "rowsPerPage",
         "tipo": "number",
-        "porDefecto": "10",
+        "porDefecto": "FILAS_POR_PAGINA",
         "requerida": false,
         "descripcion": null
       },
       {
         "nombre": "rowsPerPageOptions",
         "tipo": "number[]",
-        "porDefecto": "[10, 25, 50, 100]",
+        "porDefecto": "FILAS_POR_PAGINA_OPCIONES",
         "requerida": false,
         "descripcion": null
       },
@@ -10512,7 +10543,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       {
         "nombre": "rowsPerPageOptions",
         "tipo": "number[]",
-        "porDefecto": "[10, 25, 50, 100]",
+        "porDefecto": "FILAS_POR_PAGINA_OPCIONES",
         "requerida": false,
         "descripcion": "Opciones del selector de filas por página."
       },
@@ -10570,14 +10601,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "tipo": "boolean",
         "porDefecto": "false",
         "requerida": false,
-        "descripcion": "Solo en `mode='multiple'`. Renderiza `siaf-table-controls` arriba de la tabla (en vez de la paginación superior) con un checkbox de \"seleccionar todo\", estado indeterminado y contador de seleccionados. La lógica de qué se considera \"todo seleccionado\" la decide el padre."
-      },
-      {
-        "nombre": "showTopPagination",
-        "tipo": "boolean",
-        "porDefecto": "false",
-        "requerida": false,
-        "descripcion": "Muestra también una barra de paginación arriba de la tabla."
+        "descripcion": "Solo en `mode='multiple'`. Renderiza `siaf-table-controls` arriba de la tabla con un checkbox de \"seleccionar todo\", estado indeterminado y contador de seleccionados. La lógica de qué se considera \"todo seleccionado\" la decide el padre."
       },
       {
         "nombre": "tableMinWidthClass",
@@ -13192,7 +13216,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "components",
     "importacion": "@siaf/shared/components/table-controls/table-controls.component",
     "archivo": "src/app/shared/components/table-controls/table-controls.component.ts",
-    "descripcion": "Barra superior estándar de las grillas: checkbox de seleccionar todo (con estado indeterminado), acciones sobre las\nfilas elegidas y, a la derecha, `siaf-pagination` en posición `Top`.\n\nLas acciones (editar, eliminar, exportar, más opciones y las que la página proyecta con el atributo `tableAction`)\nsolo aparecen con `selectedCount` mayor que 0, cada una encendida con `showEditAction`, `showDeleteAction`,\n`showExportAction` o `showMenuAction`. Con `[showSelection]=\"false\"` queda solo la paginación.",
+    "descripcion": "Barra superior de las grillas con selección: checkbox de seleccionar todo (con estado indeterminado) y acciones\nsobre las filas elegidas. No pagina: la única paginación de una grilla es `siaf-pagination` en `Bottom`, abajo.\n\nLas acciones (editar, eliminar, exportar, más opciones y las que la página proyecta con el atributo `tableAction`)\nsolo aparecen con `selectedCount` mayor que 0, cada una encendida con `showEditAction`, `showDeleteAction`,\n`showExportAction` o `showMenuAction`.",
     "usaSesion": false,
     "proyectaContenido": true,
     "entradas": [
@@ -13239,13 +13263,6 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
-        "nombre": "hideTopPaginationOnMobile",
-        "tipo": "boolean",
-        "porDefecto": "false",
-        "requerida": false,
-        "descripcion": null
-      },
-      {
         "nombre": "indeterminate",
         "tipo": "boolean",
         "porDefecto": "false",
@@ -13256,20 +13273,6 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "nombre": "menuLabel",
         "tipo": "string",
         "porDefecto": "'Mas opciones'",
-        "requerida": false,
-        "descripcion": null
-      },
-      {
-        "nombre": "page",
-        "tipo": "number",
-        "porDefecto": "1",
-        "requerida": false,
-        "descripcion": null
-      },
-      {
-        "nombre": "pageSize",
-        "tipo": "number",
-        "porDefecto": "10",
         "requerida": false,
         "descripcion": null
       },
@@ -13321,20 +13324,6 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "porDefecto": "true",
         "requerida": false,
         "descripcion": null
-      },
-      {
-        "nombre": "totalItems",
-        "tipo": "number",
-        "porDefecto": "0",
-        "requerida": false,
-        "descripcion": null
-      },
-      {
-        "nombre": "totalPages",
-        "tipo": "number",
-        "porDefecto": "1",
-        "requerida": false,
-        "descripcion": null
       }
     ],
     "eventos": [
@@ -13359,25 +13348,15 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
-        "nombre": "next",
-        "tipo": "void",
-        "descripcion": null
-      },
-      {
-        "nombre": "previous",
-        "tipo": "void",
-        "descripcion": null
-      },
-      {
         "nombre": "selectionChange",
         "tipo": "boolean",
         "descripcion": null
       }
     ],
-    "usar": "- Arriba de toda grilla, siempre: bandeja, pestañas Documentos / Registros, panel lateral de selección y tablas de\n  solicitudes, consultas, Admin y Apertura contable.\n- En edición, con `[showSelection]=\"!isReadOnly\"` y las acciones que correspondan (p. ej. `showEditAction` con\n  `editDisabled` si hay más de una fila elegida); en consulta, con `[showSelection]=\"false\"`.\n- Para una acción extra sobre la selección: proyectarla con `tableAction` (Libros contables proyecta un\n  `siaf-icon-dropdown-menu` «Descargar la selección»).",
-    "evitar": "- Armar la barra a mano con un checkbox y `siaf-pagination` en `Top`: esa paginación solo vive dentro de este\n  componente.\n- Para la paginación de abajo: `siaf-pagination` con `position=\"Bottom\"` y `rowPage`.\n- Para acciones que no dependen de la selección (crear, exportar todo): van en la cabecera de la sección con\n  `siaf-button` o `siaf-icon-dropdown-menu`; aquí solo aparecen con filas elegidas.",
-    "teclado": "- **Tab**: recorre el checkbox de seleccionar todo, las acciones visibles y las flechas de la paginación.\n- **Espacio**: marca o desmarca el checkbox (nativo) y emite `selectionChange`.\n- **Enter / Espacio**: ejecutan la acción enfocada. Las flechas siguen `siaf-pagination` y las acciones proyectadas,\n  su componente.",
-    "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: checkbox nativo con `aria-label` (`selectAllLabel`, «Seleccionar filas» por\n  defecto) y estado mixto con `indeterminate`; las acciones son `<button>` con `aria-label` (`editLabel`,\n  `deleteLabel`, `exportLabel` y `menuLabel`, este «Mas opciones» sin tilde) y `editDisabled` usa `disabled`.\n- **Pendiente · 4.1.3 Mensajes de estado (AA)**: el contador de la paginación superior no se anuncia al cambiar de\n  página o filtrar (lo hereda de `siaf-pagination`), y tampoco hay aviso de cuántas filas quedan elegidas.\n- **Pendiente · 2.4.3 Orden del foco (A)**: las acciones solo existen con filas elegidas: si una deja la selección\n  en 0 (p. ej. Eliminar), su botón enfocado desaparece y el foco no pasa a otro control.\n- **1.4.11 Contraste no textual (AA)**: borde del checkbox en `icon-states-enabled` (8.70:1 / 12.87:1; marcado, en\n  `icon-states-active`, 8.79:1 / 10.15:1) e íconos de acción en `text-neutral-low` (5.01:1 / 8.86:1).\n- **2.4.7 Foco visible (AA)**: sin estilo propio: el checkbox y los botones muestran el anillo nativo del navegador;\n  las flechas, el de `siaf-pagination`.\n- **2.5.8 Tamaño del objetivo (AA)**: el `<label>` del checkbox y cada acción miden 40 × 40 px.",
+    "usar": "- Arriba de una grilla con selección de filas: bandeja, pestaña Documentos, panel lateral de selección múltiple y\n  tablas de solicitudes en edición.\n- Con las acciones que correspondan (p. ej. `showEditAction` con `editDisabled` si hay más de una fila elegida).\n- Para una acción extra sobre la selección: proyectarla con `tableAction` (Libros contables proyecta un\n  `siaf-icon-dropdown-menu` «Descargar la selección»).",
+    "evitar": "- En grillas sin selección (consulta, notificaciones): no lleva barra superior.\n- Para paginar: `siaf-pagination` con `position=\"Bottom\"` y `rowPage`, al final de la tabla.\n- Para acciones que no dependen de la selección (crear, exportar todo): van en la cabecera de la sección con\n  `siaf-button` o `siaf-icon-dropdown-menu`; aquí solo aparecen con filas elegidas.",
+    "teclado": "- **Tab**: recorre el checkbox de seleccionar todo y las acciones visibles.\n- **Espacio**: marca o desmarca el checkbox (nativo) y emite `selectionChange`.\n- **Enter / Espacio**: ejecutan la acción enfocada. Las acciones proyectadas siguen su componente.",
+    "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: checkbox nativo con `aria-label` (`selectAllLabel`, «Seleccionar filas» por\n  defecto) y estado mixto con `indeterminate`; las acciones son `<button>` con `aria-label` (`editLabel`,\n  `deleteLabel`, `exportLabel` y `menuLabel`, este «Mas opciones» sin tilde) y `editDisabled` usa `disabled`.\n- **Pendiente · 4.1.3 Mensajes de estado (AA)**: no hay aviso de cuántas filas quedan elegidas.\n- **Pendiente · 2.4.3 Orden del foco (A)**: las acciones solo existen con filas elegidas: si una deja la selección\n  en 0 (p. ej. Eliminar), su botón enfocado desaparece y el foco no pasa a otro control.\n- **1.4.11 Contraste no textual (AA)**: borde del checkbox en `icon-states-enabled` (8.70:1 / 12.87:1; marcado, en\n  `icon-states-active`, 8.79:1 / 10.15:1) e íconos de acción en `text-neutral-low` (5.01:1 / 8.86:1).\n- **2.4.7 Foco visible (AA)**: sin estilo propio: el checkbox y los botones muestran el anillo nativo del navegador.\n- **2.5.8 Tamaño del objetivo (AA)**: el `<label>` del checkbox y cada acción miden 40 × 40 px.",
     "figma": [],
     "aria": {
       "roles": [],
@@ -13424,8 +13403,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       }
     ],
     "usa": [
-      "siaf-icon",
-      "siaf-pagination"
+      "siaf-icon"
     ],
     "sinUso": false
   },
@@ -14656,7 +14634,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "eventos": [],
     "usar": "- Como sección Notificaciones de la Bandeja en `siaf-app-shell`: se pinta cuando `siaf-tray-menu` emite\n  «Notificaciones».\n- Para revisar el historial completo, filtrar leídas o no leídas y abrir el documento de cada notificación (plan de\n  cuentas, asientos de ajuste, tipos y clases de ajuste, apertura contable).",
     "evitar": "- Para un vistazo rápido desde cualquier pantalla: usar la campana de `siaf-navbar`, que abre\n  `siaf-notifications-panel`.\n- Para las demás secciones de la bandeja (Recibidos, Enviados, Borradores, Papelera): usar `siaf-tray-documents-view`.\n- Para el historial de un documento o registro: usar `siaf-document-history-panel` o `siaf-action-tracker`.",
-    "teclado": "- **Tab**: recorre el Inicio de la ruta (sin acción), «Marcar todas como leídas» si hay no leídas, las tres pestañas\n  de filtro (cada una es una parada), la paginación de arriba, las notificaciones y la de abajo.\n- **Enter / Espacio**: en una pestaña aplica el filtro y vuelve a la página 1; en una notificación abre su documento,\n  si lo tiene; en «Marcar todas como leídas», las marca.\n- La paginación sigue `siaf-table-controls` y `siaf-pagination`.",
+    "teclado": "- **Tab**: recorre el Inicio de la ruta (sin acción), «Marcar todas como leídas» si hay no leídas, las tres pestañas\n  de filtro (cada una es una parada), las notificaciones y la paginación.\n- **Enter / Espacio**: en una pestaña aplica el filtro y vuelve a la página 1; en una notificación abre su documento,\n  si lo tiene; en «Marcar todas como leídas», las marca.\n- La paginación sigue `siaf-pagination`.",
     "accesibilidad": "- **Pendiente · 1.3.1 Información y relaciones (A)**: `h1`, `h2` y notificaciones en lista `ul`/`li`, pero la ruta de\n  navegación es un `nav` hecho a mano, sin `ol`/`li` ni `aria-current` (`siaf-breadcrumb` ya lo resuelve), y leída o\n  no leída solo se ve por el punto azul, que es `aria-hidden`.\n- **Pendiente · 1.4.3 Contraste mínimo (AA)**: título `text-text` 16.29:1 / 16.53:1, mensaje `text-neutral-medium`\n  14.53:1 / 12.87:1, fecha y pestañas inactivas `text-neutral-low` 5.01:1 / 8.86:1 y pestaña activa blanca sobre\n  `bg-brand-primary` 8.79:1 / 6.67:1; pero «Marcar todas como leídas» usa la clase `text-brand-primary` (azul de\n  fondo de marca) y en oscuro queda en 2.66:1.\n- **Pendiente · 1.4.11 Contraste no textual (AA)**: en oscuro, el punto de no leída, el relleno de la pestaña activa y\n  el contorno de foco, todos en `brand-primary`, quedan en 2.66:1 sobre la superficie.\n- **Pendiente · 2.4.3 Orden del foco (A)**: al usar «Marcar todas como leídas» el botón desaparece y el foco se pierde.\n- **2.4.7 Foco visible (AA)**: las notificaciones y «Marcar todas como leídas» muestran un contorno azul de 2 px con\n  `focus-visible`; las pestañas y el Inicio de la ruta no tienen estilo propio y quedan con el anillo del navegador.\n- **Pendiente · 4.1.2 Nombre, función y valor (A)**: el filtro es `role=\"tablist\"` con `role=\"tab\"` y `aria-selected`,\n  pero sin `role=\"tabpanel\"` ni flechas, y cada pestaña es una parada de Tab; `siaf-tabs` ya lo resuelve.\n- **Pendiente · 4.1.3 Mensajes de estado (AA)**: la carga solo marca `aria-busy`, y no se anuncian el resultado de\n  filtrar, el vacío «No hay notificaciones para mostrar.» ni el marcado de todas como leídas.",
     "figma": [],
     "aria": {
@@ -14798,8 +14776,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     ],
     "usa": [
       "siaf-icon",
-      "siaf-pagination",
-      "siaf-table-controls"
+      "siaf-pagination"
     ],
     "sinUso": false
   },

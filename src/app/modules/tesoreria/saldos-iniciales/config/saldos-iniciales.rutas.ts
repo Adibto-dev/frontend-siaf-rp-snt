@@ -5,6 +5,12 @@ import { NOMBRE_DOCUMENTO } from '../models/saldo-inicial.model';
 export const PROCESS_ROUTE = '/procesos/saldos-iniciales';
 export const REQUEST_SEGMENT = 'solicitud';
 export const REQUEST_ROUTE = `${PROCESS_ROUTE}/${REQUEST_SEGMENT}`;
+/** Detalle de un saldo aprobado (pestaña Registros): `${RECORD_ROUTE}/:registroId`. */
+export const RECORD_ROUTE = `${PROCESS_ROUTE}/registro`;
+/** Vista de un registro automático de saldos de apertura: `${AUTOMATIC_ROUTE}/:id`. */
+export const AUTOMATIC_ROUTE = `${PROCESS_ROUTE}/automatico`;
+/** Vista de un ajuste de saldo inicial (RSIN con tipo de operación 2): `${ADJUSTMENT_ROUTE}/:id`. */
+export const ADJUSTMENT_ROUTE = `${PROCESS_ROUTE}/ajuste`;
 
 /**
  * MFD «Documentos de saldos iniciales» en `docs/menu-procesos.xlsx` (columna id): arma las migas de pan y el título.

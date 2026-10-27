@@ -135,17 +135,13 @@ describe('SelectionSideNavComponent', () => {
     expect(fixture.debugElement.query(By.css('siaf-pagination'))).toBeNull();
   });
 
-  it('paginated=true renderiza paginación inferior; showTopPagination añade la superior', () => {
+  it('paginated=true renderiza solo la paginación inferior', () => {
     fixture.componentRef.setInput('open', true);
     fixture.componentRef.setInput('rows', SAMPLE_CLASES);
     fixture.componentRef.setInput('columns', COLUMNS);
     fixture.componentRef.setInput('paginated', true);
     fixture.detectChanges();
     expect(fixture.debugElement.queryAll(By.css('siaf-pagination')).length).toBe(1);
-
-    fixture.componentRef.setInput('showTopPagination', true);
-    fixture.detectChanges();
-    expect(fixture.debugElement.queryAll(By.css('siaf-pagination')).length).toBe(2);
   });
 
   it('paginación reenvía previous/next/rowsPerPageChange', () => {
@@ -170,17 +166,17 @@ describe('SelectionSideNavComponent', () => {
     expect(rpp).toBe(50);
   });
 
-  it('showSelectAll en mode=multiple renderiza siaf-table-controls (no la paginación superior)', () => {
+  it('showSelectAll en mode=multiple renderiza siaf-table-controls sin paginación arriba', () => {
     fixture.componentRef.setInput('open', true);
     fixture.componentRef.setInput('mode', 'multiple');
     fixture.componentRef.setInput('rows', SAMPLE_CLASES);
     fixture.componentRef.setInput('columns', COLUMNS);
     fixture.componentRef.setInput('paginated', true);
-    fixture.componentRef.setInput('showTopPagination', true);
     fixture.componentRef.setInput('showSelectAll', true);
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('siaf-table-controls'))).not.toBeNull();
+    expect(fixture.debugElement.queryAll(By.css('siaf-pagination')).length).toBe(1);
   });
 
   it('select-all reenvía (selectionChange) del table-controls como selectAllChange', () => {

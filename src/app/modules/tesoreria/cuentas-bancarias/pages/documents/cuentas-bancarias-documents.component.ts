@@ -18,6 +18,7 @@ import {
   nombreMoneda,
   nombreTipoCuenta,
 } from '../../models/cuenta-bancaria.model';
+import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 
 /**
  * «Documentos y registros» del proceso de ejemplo. La pantalla entera la arma `siaf-documents-records-page`:
@@ -50,7 +51,7 @@ export class CuentasBancariasDocumentsComponent implements OnInit {
   ngOnInit(): void {
     // Bandeja según el rol (el aprobador además refresca cada 30 s).
     // La primera página la resuelve el backend (simulado), igual que las siguientes.
-    this.solicitudesFacade.iniciarBandeja(this.permissions.currentRole(), this.destroyRef, [CODIGO_DOCUMENTO], { page: 1, limit: 10 });
+    this.solicitudesFacade.iniciarBandeja(this.permissions.currentRole(), this.destroyRef, [CODIGO_DOCUMENTO], { page: 1, limit: FILAS_POR_PAGINA });
     this.cuentasApi.listarRegistros().subscribe({
       next: (registros) => { this.registros.set(registros); this.cargando.set(false); },
       error: () => this.cargando.set(false),

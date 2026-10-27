@@ -76,8 +76,8 @@ describe('UiKitFundamentosComponent', () => {
     await refrescar();
     const conCalendar = todos.filter((n) => n.includes('calendar'));
     expect(iconos()).toEqual(conCalendar);
-    expect(paginacion().textContent).toContain(`1-${conCalendar.length} de ${conCalendar.length}`);
-    expect(paginacion().querySelector<HTMLButtonElement>('[aria-label="Página siguiente"]')!.disabled).toBeTrue();
+    // Caben en una página: el paginador no se muestra (regla de tablas).
+    expect(paginacion().textContent?.trim()).toBe('');
   });
 
   it('al pulsar un ícono copia el siaf-icon con el tamaño elegido', async () => {

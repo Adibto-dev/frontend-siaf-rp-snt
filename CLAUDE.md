@@ -77,6 +77,9 @@ usuarios de demostración, el recorrido de la clase y cómo sumar un proceso.
 - **Íconos: solo Material Icons con `siaf-icon`**. Un nombre inexistente no falla al compilar: `npm run icons:check`.
 - **Botones** (`siaf-button`): `filled` / `outline` / `text`, tamaños `md` y `sm`. No hay `danger`: lo destructivo es
   `filled` con modal de confirmación.
+- **Tablas**: paginación con `siaf-pagination`; filas por página de 25 a 100 (`FILAS_POR_PAGINA_OPCIONES`, inicial
+  `FILAS_POR_PAGINA`, en `pagination.component.ts`). Con 25 filas o menos el paginador se oculta solo. No pasar
+  `rowsPerPageOptions` propias ni tamaños de 10.
 - **Estados**: `siaf-flow-status-tag` (documento) y `siaf-record-status-tag` (registro).
 - **Formularios de solicitud**: «Grabar» solo con cambios (foto del formulario con `shared/utils/form-snapshot.util.ts`
   al entrar a editar); el sustento se toma en `(confirmed)` de `siaf-upload-side-nav`; las acciones de aprobar,

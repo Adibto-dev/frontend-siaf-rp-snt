@@ -5,7 +5,7 @@ import { FilterPillComponent } from '../../shared/components/filter-pill/filter-
 import { FlowStatusTagComponent } from '../../shared/ui/flow-status-tag/flow-status-tag.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { IconDropdownMenuComponent, IconDropdownMenuItem } from '../../shared/ui/icon-dropdown-menu/icon-dropdown-menu.component';
-import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { PaginationComponent, FILAS_POR_PAGINA, FILAS_POR_PAGINA_OPCIONES } from '../../shared/components/pagination/pagination.component';
 import { RecordsSearchToolbarComponent } from '../../shared/components/records-search-toolbar/records-search-toolbar.component';
 import { TableControlsComponent } from '../../shared/components/table-controls/table-controls.component';
 import { SolicitudesStateService, SolicitudDemo } from '../../core/state/solicitudes-state.service';
@@ -25,7 +25,7 @@ type TrayDocumentRow = {
   entity: string;
 };
 
-type TrayDocumentStatus = 'Elaborado' | 'Verificado' | 'Eliminado' | 'Aprobado' | 'Observado' | 'Rechazado';
+type TrayDocumentStatus = 'Elaborado' | 'Verificado' | 'Eliminado' | 'Aprobado' | 'Observado' | 'Rechazado' | 'Registrado' | 'Procesado';
 type TrayTitle = 'Recibidos' | 'Enviados' | 'Borradores' | 'Papelera' | string;
 
 type AppliedCustomFilter = {
@@ -147,12 +147,6 @@ type AppliedCustomFilter = {
 
             <siaf-table-controls
               selectAllLabel="Seleccionar documentos de bandeja"
-              [page]="page"
-              [pageSize]="rowsPerPage"
-              [totalItems]="filteredRows.length"
-              [totalPages]="totalPages"
-              (previous)="onPreviousPage()"
-              (next)="onNextPage()"
             />
 
             <div class="siaf-table-scroll min-w-0">
@@ -249,8 +243,8 @@ export class TrayDocumentsViewComponent implements OnInit, OnChanges {
   editingCustomFilterId = '';
   private customFilterSequence = 0;
 
-  readonly rowsPerPageOptions = [10, 25, 50, 100];
-  rowsPerPage = 10;
+  readonly rowsPerPageOptions = FILAS_POR_PAGINA_OPCIONES;
+  rowsPerPage = FILAS_POR_PAGINA;
   page = 1;
 
   readonly filterCampoOptions = [

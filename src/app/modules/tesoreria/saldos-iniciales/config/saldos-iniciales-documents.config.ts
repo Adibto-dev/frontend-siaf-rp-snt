@@ -15,6 +15,10 @@ import { CREATE_DOCUMENT_OPTIONS, PROCESS_ID, PROCESS_ROUTE, REQUEST_ROUTE } fro
  * `siaf-documents-records-page`: aquí solo se dice qué columnas, filtros y opciones tiene.
  */
 
+/** Acciones por fila de la pestaña Registros. */
+export const ACCION_VER_SUSTENTO = 'ver-sustento';
+export const ACCION_VER_CUENTAS = 'ver-cuentas-registro';
+
 const documentColumns: DocumentsRecordsColumn[] = [
   { key: 'document', label: 'Documento', visibility: 'visible', group: 'default', widthClass: 'w-[380px]', kind: 'document-link' },
   { key: 'number', label: 'Número', visibility: 'visible', group: 'default', widthClass: 'w-[280px]' },
@@ -32,15 +36,19 @@ const documentColumns: DocumentsRecordsColumn[] = [
   { key: 'approvalUser', label: 'Usuario de aprobación', visibility: 'hidden', group: 'more', widthClass: 'w-[220px]' },
 ];
 
+// Orden, textos y grupos de cabecera del Figma (tabla «Saldos-iniciales-cuentas-bancarias»).
 const recordColumns: DocumentsRecordsColumn[] = [
-  { key: 'status', label: 'Estado', visibility: 'visible', group: 'default', widthClass: 'w-[120px]', kind: 'record-status' },
-  { key: 'secuencia', label: 'Secuencia', visibility: 'visible', group: 'default', widthClass: 'w-[120px]' },
-  { key: 'entidadFinanciera', label: 'Entidad financiera', visibility: 'visible', group: 'default', widthClass: 'w-[280px]' },
-  { key: 'numeroCuenta', label: 'Cuenta bancaria', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
-  { key: 'moneda', label: 'Moneda', visibility: 'visible', group: 'default', widthClass: 'w-[100px]' },
-  { key: 'fechaOperacion', label: 'Fecha de operación', visibility: 'visible', group: 'default', widthClass: 'w-[170px]' },
-  { key: 'importeCuenta', label: 'Imp. M. cuenta', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
-  { key: 'importeNacional', label: 'Imp. M. nacional', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
+  { key: 'secuencia', label: 'Sec.', visibility: 'visible', group: 'default', widthClass: 'w-[100px]' },
+  { key: 'fechaOperacion', label: 'F. operación', visibility: 'visible', group: 'default', widthClass: 'w-[140px]' },
+  { key: 'numeroCuenta', label: 'Número', headerGroup: 'Cuenta bancaria', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
+  { key: 'moneda', label: 'Moneda', headerGroup: 'Cuenta bancaria', visibility: 'visible', group: 'default', widthClass: 'w-[90px]' },
+  { key: 'movimiento', label: 'Movimiento', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
+  { key: 'importeCuenta', label: 'Imp. M. cuenta', headerGroup: 'Libro bancos', visibility: 'visible', group: 'default', widthClass: 'w-[160px]', align: 'right' },
+  { key: 'importeNacional', label: 'Imp. M. nacional', headerGroup: 'Libro bancos', visibility: 'visible', group: 'default', widthClass: 'w-[160px]', align: 'right' },
+  { key: 'status', label: 'Estado de registro', visibility: 'visible', group: 'default', widthClass: 'w-[120px]', kind: 'record-status' },
+  { key: 'number', label: 'Número', headerGroup: 'Documentos', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
+  { key: 'descripcion', label: 'Descripción', headerGroup: 'Documentos', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
+  { key: 'entidadFinanciera', label: 'Entidad financiera', visibility: 'hidden', group: 'more', widthClass: 'w-[280px]' },
 ];
 
 const fieldsMenuOptions: DocumentsRecordsMenuOption[] = [
@@ -79,11 +87,16 @@ export const SALDOS_INICIALES_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   documentColumns,
   recordColumns,
   documentTableMinWidthClass: 'min-w-[2200px]',
-  recordTableMinWidthClass: 'min-w-[1350px]',
+  recordTableMinWidthClass: 'min-w-[1600px]',
   recordTrackKey: 'recordId',
   recordHistoryDocumentLabel: NOMBRE_DOCUMENTO,
   // El historial de un registro es el de la solicitud que lo creó.
   recordHistoryKind: 'documento',
+  // Íconos del Figma antes del historial; el sustento es opcional, sin archivo queda deshabilitado.
+  recordRowActions: [
+    { id: ACCION_VER_SUSTENTO, icon: 'description', label: 'Ver documento de sustento', disabled: (row) => !row['sustento'] },
+    { id: ACCION_VER_CUENTAS, icon: 'table_view', label: 'Ver cuentas de registro' },
+  ],
   statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.OBSERVADO, ESTADO.APROBADO, ESTADO.RECHAZADO],
   actionTypeFilterOptions: ['Creación'],
   filterCampoOptions,

@@ -15,6 +15,10 @@ export type MonedaSaldo = 'PEN' | 'USD';
 export const CODIGO_DOCUMENTO = 'RSIN';
 export const NOMBRE_DOCUMENTO = 'Registro de saldos iniciales';
 
+/** Movimiento de cada registro según su origen: RSIN, registro automático (RASA) o ajuste. */
+export const MOVIMIENTO_SALDO_INICIAL = 'SI0001 - Saldo Inicial';
+export const MOVIMIENTO_APERTURA = 'SIA001 - Saldo de Apertura';
+
 /** Datos fijos de la cabecera y de «Tipo de operación del saldo». */
 export const ENTE_RECTOR = 'Dirección General del Tesoro Público';
 export const TIPO_OPERACION = '1 - Saldos iniciales';
@@ -22,6 +26,38 @@ export const PERIODO = '2026';
 export const TIPO_COTIZACION = '01 - Compra / Venta';
 
 export const MOVIMIENTO_INTERNO = { codigo: 'SI0001', denominacion: 'SALDO INICIAL', naturaleza: 'Crédito', sigla: 'SI' };
+
+/** Documento automático: lo crea y procesa el sistema (estados Registrado y Procesado), sin intervención de usuarios. */
+export const CODIGO_AUTOMATICO = 'RASA';
+export const NOMBRE_AUTOMATICO = 'Registro automático de saldos de apertura';
+export const TIPO_OPERACION_APERTURA = '3 - Saldo de apertura';
+export const MOVIMIENTO_INTERNO_APERTURA = { codigo: 'SIA001', denominacion: 'SALDO DE APERTURA', naturaleza: 'Crédito', sigla: 'SIA' };
+
+/**
+ * Ajuste de saldo inicial: un RSIN con tipo de operación 2. Se autoriza en otro módulo (el flujo llega después) y
+ * ajusta UNA cuenta bancaria ya registrada: suma (Crédito) o resta (Débito) al saldo de referencia.
+ */
+export const TIPO_OPERACION_AJUSTE = '2 - Ajuste de saldo inicial';
+export const MOVIMIENTO_INTERNO_AJUSTE = { codigo: 'ASC002', denominacion: 'AJUSTE DEL SALDO INICIAL', naturaleza: 'Crédito / Débito', sigla: 'ASC' };
+export const MOVIMIENTO_AJUSTE = 'ASC002 - Ajuste del Saldo Inicial';
+
+export type NaturalezaAjuste = 'Crédito' | 'Débito';
+
+/** Datos del ajuste dentro de un saldo: el registro que ajusta y su saldo antes del ajuste. */
+export interface AjusteSaldo {
+  naturaleza: NaturalezaAjuste;
+  /** Secuencia del saldo inicial que se ajusta. */
+  secuenciaReferencia: string;
+  /** Importe en moneda de la cuenta del saldo de referencia. */
+  saldoInicial: number;
+  /** Importes de las libretas del saldo de referencia. */
+  libretasIniciales: ImporteLibreta[];
+}
+
+/** Saldo después del ajuste: el crédito suma y el débito resta. */
+export function saldoActualizado(inicial: number, importe: number, naturaleza: NaturalezaAjuste): number {
+  return redondear(naturaleza === 'Crédito' ? inicial + importe : inicial - importe);
+}
 
 export interface EntidadFinanciera {
   codigo: string;
@@ -133,6 +169,8 @@ export interface SaldoInicial {
   secuencia?: string | null;
   /** Nombre del documento de sustento del saldo (opcional; el taller guarda solo el nombre). */
   sustento?: string | null;
+  /** Solo en un ajuste de saldo inicial (tipo de operación 2). */
+  ajuste?: AjusteSaldo;
 }
 
 /** Lo que el creador registra en el documento. */
@@ -145,11 +183,15 @@ export interface SaldosInicialesDatos {
 export interface SaldoInicialRegistro extends SaldoInicial {
   registroId: string;
   estado: 'Activo' | 'Inactivo';
+  /** Código y nombre del movimiento en libro bancos (p. ej. «SIA001 - Saldo de Apertura»). */
+  movimiento: string;
   entidadFinanciera: string;
   entidadSiglas: string;
   documentoId: string;
   numeroDocumento: string;
   fechaRegistro: string;
+  /** Viene de un registro automático de saldos de apertura (RASA). */
+  automatico?: boolean;
 }
 
 /** Arma un saldo a partir de lo ingresado: suma las libretas y calcula el nacional con el tipo de cambio. */

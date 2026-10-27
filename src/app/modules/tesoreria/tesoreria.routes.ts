@@ -51,4 +51,25 @@ export const TESORERIA_ROUTES: Routes = [
         (m) => m.SaldosInicialesRequestComponent,
       ),
   },
+  {
+    path: 'procesos/saldos-iniciales/automatico/:id',
+    loadComponent: () =>
+      import('./saldos-iniciales/pages/automatico/saldos-apertura-documento.component').then(
+        (m) => m.SaldosAperturaDocumentoComponent,
+      ),
+  },
+  {
+    path: 'procesos/saldos-iniciales/ajuste/:id',
+    loadComponent: () =>
+      import('./saldos-iniciales/pages/ajuste/ajuste-saldo-documento.component').then(
+        (m) => m.AjusteSaldoDocumentoComponent,
+      ),
+  },
+  {
+    path: 'procesos/saldos-iniciales/registro/:registroId',
+    loadComponent: () =>
+      import('./saldos-iniciales/pages/registro/saldo-inicial-detalle.component').then(
+        (m) => m.SaldoInicialDetalleComponent,
+      ),
+  },
 ];

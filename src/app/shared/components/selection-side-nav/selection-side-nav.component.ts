@@ -5,7 +5,7 @@ import { ButtonComponent } from '../../ui/button/button.component';
 import { IconComponent } from '../../ui/icon/icon.component';
 import { SidePanelAnimacion } from '../../ui/side-panel-animacion';
 import { FormTableSearchComponent } from '../form-table-search/form-table-search.component';
-import { PaginationComponent } from '../pagination/pagination.component';
+import { PaginationComponent, FILAS_POR_PAGINA_OPCIONES } from '../pagination/pagination.component';
 import { TableControlsComponent } from '../table-controls/table-controls.component';
 import { FocoDirective } from '../../ui/foco/foco.directive';
 
@@ -150,24 +150,7 @@ export type SelectionMode = 'single' | 'multiple';
                   [showEditAction]="false"
                   [showDeleteAction]="false"
                   [showMenuAction]="false"
-                  [page]="page"
-                  [pageSize]="pageSize"
-                  [totalItems]="totalItems"
-                  [totalPages]="totalPages"
                   (selectionChange)="selectAllChange.emit($event)"
-                  (previous)="previousPage.emit()"
-                  (next)="nextPage.emit()"
-                />
-              </div>
-            } @else if (paginated && showTopPagination) {
-              <div class="mt-siaf-md">
-                <siaf-table-controls [showSelection]="false"
-                  [page]="page"
-                  [pageSize]="pageSize"
-                  [totalItems]="totalItems"
-                  [totalPages]="totalPages"
-                  (previous)="previousPage.emit()"
-                  (next)="nextPage.emit()"
                 />
               </div>
             }
@@ -333,8 +316,6 @@ export class SelectionSideNavComponent<T = Record<string, unknown>> implements O
    * `siaf-pagination` y emite los eventos de navegación.
    */
   @Input() paginated = false;
-  /** Muestra también una barra de paginación arriba de la tabla. */
-  @Input() showTopPagination = false;
   /** Muestra el selector de filas por página en la barra inferior. */
   @Input() showRowsPerPage = true;
   /** Página actual (1-based). */
@@ -348,11 +329,11 @@ export class SelectionSideNavComponent<T = Record<string, unknown>> implements O
   /** Filas por página seleccionadas. */
   @Input() rowsPerPage = 10;
   /** Opciones del selector de filas por página. */
-  @Input() rowsPerPageOptions: number[] = [10, 25, 50, 100];
+  @Input() rowsPerPageOptions: number[] = FILAS_POR_PAGINA_OPCIONES;
 
   /**
    * Solo en `mode='multiple'`. Renderiza `siaf-table-controls` arriba de la
-   * tabla (en vez de la paginación superior) con un checkbox de
+   * tabla con un checkbox de
    * "seleccionar todo", estado indeterminado y contador de seleccionados.
    * La lógica de qué se considera "todo seleccionado" la decide el padre.
    */

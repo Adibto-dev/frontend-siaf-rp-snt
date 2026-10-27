@@ -9,7 +9,7 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
 import { ParametroAplicado, ParametrosAplicadosComponent } from '../../../shared/components/parametros-aplicados/parametros-aplicados.component';
 import { RecordsSearchToolbarComponent } from '../../../shared/components/records-search-toolbar/records-search-toolbar.component';
 import { TableControlsComponent } from '../../../shared/components/table-controls/table-controls.component';
-import { DocumentsRecordsColumn, DocumentsRecordsRow } from '../../../shared/types/documents-records.types';
+import { DocumentsRecordsColumn, DocumentsRecordsRow, DocumentsRecordsRowAction } from '../../../shared/types/documents-records.types';
 import { DocumentsRecordsTableComponent } from '../../../shared/ui/documents-records-table/documents-records-table.component';
 import { IconDropdownMenuComponent, IconDropdownMenuItem } from '../../../shared/ui/icon-dropdown-menu/icon-dropdown-menu.component';
 import { ListComponent, ListItem } from '../../../shared/ui/list/list.component';
@@ -51,7 +51,11 @@ import { COLUMNAS_REPORTE_DE_MUESTRA, FILAS_REPORTE_DE_MUESTRA } from './reporte
         </p>
       }
       @case ('siaf-documents-records-table') {
-        <siaf-documents-records-table activeTab="documents" [columns]="columnasDocumentos" [rows]="documentos" [documentRoute]="rutaDocumento" />
+        <div class="flex flex-col gap-siaf-lg">
+          <siaf-documents-records-table activeTab="documents" [columns]="columnasDocumentos" [rows]="documentos" [documentRoute]="rutaDocumento" />
+          <!-- Registros con cabecera agrupada (headerGroup), como Saldos iniciales -->
+          <siaf-documents-records-table activeTab="records" recordTrackKey="sec" [columns]="columnasRegistrosAgrupados" [rows]="registrosAgrupados" [rowActions]="accionesRegistro" />
+        </div>
       }
       @case ('siaf-table-controls') {
         <siaf-table-controls
@@ -60,10 +64,6 @@ import { COLUMNAS_REPORTE_DE_MUESTRA, FILAS_REPORTE_DE_MUESTRA } from './reporte
           [selectedCount]="seleccionados()"
           [showEditAction]="true"
           [showDeleteAction]="true"
-          [page]="1"
-          [pageSize]="25"
-          [totalItems]="187"
-          [totalPages]="8"
           (selectionChange)="seleccionados.set($event ? 2 : 0)"
         />
       }
@@ -177,6 +177,24 @@ export class EjemplosDatosComponent {
     { id: '1', numero: '00001', documento: 'Solicitud de cuenta contable', estado: 'Aprobado' },
     { id: '2', numero: '00002', documento: 'Registro de asiento de ajuste', estado: 'Verificado' },
     { id: '3', numero: '00003', documento: 'Catálogo de eventos', estado: 'Elaborado' },
+  ];
+
+  readonly columnasRegistrosAgrupados: DocumentsRecordsColumn[] = [
+    { key: 'sec', label: 'Sec.', visibility: 'visible', group: 'default', widthClass: 'w-[100px]' },
+    { key: 'numero', label: 'Número', visibility: 'visible', group: 'default', widthClass: 'w-[220px]', headerGroup: 'Cuenta bancaria' },
+    { key: 'moneda', label: 'Moneda', visibility: 'visible', group: 'default', widthClass: 'w-[90px]', headerGroup: 'Cuenta bancaria' },
+    { key: 'cuenta', label: 'Imp. M. cuenta', visibility: 'visible', group: 'default', widthClass: 'w-[150px]', align: 'right', headerGroup: 'Libro bancos' },
+    { key: 'nacional', label: 'Imp. M. nacional', visibility: 'visible', group: 'default', widthClass: 'w-[150px]', align: 'right', headerGroup: 'Libro bancos' },
+    { key: 'status', label: 'Estado de registro', visibility: 'visible', group: 'default', widthClass: 'w-[120px]', kind: 'record-status' },
+  ];
+  /** Íconos por fila de Registros: el de sustento se deshabilita en la fila sin archivo. */
+  readonly accionesRegistro: DocumentsRecordsRowAction[] = [
+    { id: 'sustento', icon: 'description', label: 'Ver documento de sustento', disabled: (fila) => !fila['sustento'] },
+    { id: 'cuentas', icon: 'table_view', label: 'Ver cuentas de registro' },
+  ];
+  readonly registrosAgrupados: DocumentsRecordsRow[] = [
+    { sec: '000002', numero: '12073303572000000003', moneda: 'USD', cuenta: '100,000.00', nacional: '341,000.00', status: 'Activo', sustento: 'constancia-saldo.pdf' },
+    { sec: '000001', numero: '11040103570200000000', moneda: 'PEN', cuenta: '100,000.00', nacional: '100,000.00', status: 'Activo' },
   ];
 
   readonly columnasDocumentos: DocumentsRecordsColumn[] = [

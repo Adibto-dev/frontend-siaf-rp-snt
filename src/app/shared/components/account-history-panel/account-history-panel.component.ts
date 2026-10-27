@@ -9,7 +9,6 @@ import { ActionTrackerComponent, ActionTrackerSummary } from '../../ui/action-tr
 import { IconComponent } from '../../ui/icon/icon.component';
 import { RecordStatus, RecordStatusTagComponent } from '../../ui/record-status-tag/record-status-tag.component';
 import { PlanesApiService, CuentaContableResponse, CuentaHistorialEntry } from '../../../core/api/planes-api.service';
-import { TableControlsComponent } from '../../components/table-controls/table-controls.component';
 import { StepItem, StepsComponent } from '../../ui/steps/steps.component';
 import { SummaryCardComponent, SummaryCardField } from '../../ui/summary-card/summary-card.component';
 import { TooltipDirective } from '../../ui/tooltip/tooltip.directive';
@@ -54,7 +53,7 @@ const DEMO_PLAN_NAME = 'Plan Contable Gubernamental Unico';
  * - Para modificar la cuenta: el panel es de solo lectura; el cambio va por una solicitud de modificación.
  * @teclado
  * - **Tab**: al abrir, el foco entra en la X; recorre los controles de la tabla de entidades y da la vuelta sin salir
- *   del panel (`siaf-table-controls` y `siaf-pagination` siguen su propio teclado).
+ *   del panel (`siaf-pagination` sigue su propio teclado).
  * - **Enter / Espacio** en la X: cierran el panel (emite `closed`).
  * - **Escape**: cierra el panel (emite `closed`) y el foco vuelve al botón de historial.
  * @accesibilidad
@@ -79,7 +78,7 @@ const DEMO_PLAN_NAME = 'Plan Contable Gubernamental Unico';
   selector: 'siaf-account-history-panel',
   standalone: true,
   imports: [FocoDirective, 
-    TableControlsComponent, ActionTrackerComponent, IconComponent, NgTemplateOutlet, PaginationComponent, RecordStatusTagComponent, StepsComponent, SummaryCardComponent, TooltipDirective],
+    ActionTrackerComponent, IconComponent, NgTemplateOutlet, PaginationComponent, RecordStatusTagComponent, StepsComponent, SummaryCardComponent, TooltipDirective],
   template: `
     @if (anim.visible()) {
       <section class="siaf-sidepanel-overlay fixed inset-y-0 left-0 right-0 z-50 bg-black/55 pl-0 lg:pl-[65px]" [class.cerrando]="anim.cerrando()" aria-modal="true" role="dialog" aria-labelledby="account-history-title" (click)="closed.emit()">
@@ -199,7 +198,6 @@ const DEMO_PLAN_NAME = 'Plan Contable Gubernamental Unico';
                           [showClose]="false"
                         />
                       } @else {
-                        <siaf-table-controls [showSelection]="false" [page]="1" [pageSize]="entityRows.length" [totalItems]="entityRows.length" [totalPages]="1" />
                         <div class="siaf-table-scroll min-w-0">
                           <table class="siaf-text-body-2 w-full min-w-[720px] border-collapse text-left">
                             <thead>

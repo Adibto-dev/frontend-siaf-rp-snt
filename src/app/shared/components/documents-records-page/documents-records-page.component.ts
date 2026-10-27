@@ -13,7 +13,7 @@ import { PaginationComponent } from '../../components/pagination/pagination.comp
 import { RecordsSearchToolbarComponent } from '../../components/records-search-toolbar/records-search-toolbar.component';
 import { RecordsTabItem, RecordsTabsComponent } from '../../components/records-tabs/records-tabs.component';
 import { TableControlsComponent } from '../../components/table-controls/table-controls.component';
-import type { DocumentsQuery, DocumentsRecordsColumn, DocumentsRecordsConfig, DocumentsRecordsRow, DocumentsRecordsTab } from '../../types/documents-records.types';
+import type { DocumentsQuery, DocumentsRecordsColumn, DocumentsRecordsConfig, DocumentsRecordsRow, DocumentsRecordsRowActionEvent, DocumentsRecordsTab } from '../../types/documents-records.types';
 import { AccountHistoryPanelComponent } from '../account-history-panel/account-history-panel.component';
 import { AsientoHistoryPanelComponent } from '../asiento-history-panel/asiento-history-panel.component';
 import { ButtonComponent } from '../../ui/button/button.component';
@@ -28,6 +28,7 @@ import { SnackbarComponent } from '../../ui/snackbar/snackbar.component';
 import { TableSkeletonComponent } from '../../ui/table-skeleton/table-skeleton.component';
 import { ESTADO } from '../../../core/models/documento.model';
 import { FocoDirective } from '../../ui/foco/foco.directive';
+import { FILAS_POR_PAGINA, FILAS_POR_PAGINA_OPCIONES } from '../pagination/pagination.component';
 
 type AppliedCustomFilter = {
   id: string;
@@ -38,9 +39,10 @@ type AppliedCustomFilter = {
 };
 
 // Estados visibles para el APROBADOR (filtra Elaborado y Eliminado)
-const ESTADOS_APROBADOR: string[] = [ESTADO.VERIFICADO, ESTADO.APROBADO, ESTADO.OBSERVADO, ESTADO.RECHAZADO];
+// Procesado: documentos automáticos (los crea el sistema); los ven los dos roles. Los Registrados no se muestran.
+const ESTADOS_APROBADOR: string[] = [ESTADO.VERIFICADO, ESTADO.APROBADO, ESTADO.OBSERVADO, ESTADO.RECHAZADO, ESTADO.PROCESADO];
 // El CREADOR ve todos los estados de su ciclo — para auditoría y trazabilidad visual completa
-const ESTADOS_CREADOR: string[] = [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.APROBADO, ESTADO.OBSERVADO, ESTADO.RECHAZADO, ESTADO.ELIMINADO];
+const ESTADOS_CREADOR: string[] = [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.APROBADO, ESTADO.OBSERVADO, ESTADO.RECHAZADO, ESTADO.ELIMINADO, ESTADO.PROCESADO];
 
 type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
 
@@ -314,26 +316,10 @@ type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
               @if (activeTab === 'documents') {
                 <siaf-table-controls
                   selectAllLabel="Seleccionar documentos o registros"
-                  [hideTopPaginationOnMobile]="true"
                   [checked]="allVisibleElaboradoDocumentsSelected"
                   [indeterminate]="someVisibleElaboradoDocumentsSelected"
                   [disabled]="visibleSelectableElaboradoDocuments.length === 0"
-                  [page]="page"
-                  [pageSize]="rowsPerPage"
-                  [totalItems]="totalItemsPaginador"
-                  [totalPages]="totalPages"
                   (selectionChange)="toggleVisibleElaboradoDocuments($event)"
-                  (previous)="onPreviousPage()"
-                  (next)="onNextPage()"
-                />
-              } @else {
-                <siaf-table-controls [showSelection]="false"
-                  [page]="page"
-                  [pageSize]="rowsPerPage"
-                  [totalItems]="totalItemsPaginador"
-                  [totalPages]="totalPages"
-                  (previous)="onPreviousPage()"
-                  (next)="onNextPage()"
                 />
               }
 
@@ -354,6 +340,9 @@ type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
                   [selectionDisabled]="selectionDisabled"
                   (selectionChanged)="toggleRowSelection($event)"
                   (historyOpened)="openHistory($event)"
+                  [rowActions]="effectiveConfig.recordRowActions ?? []"
+                  [recordRoute]="effectiveConfig.recordRoute ?? null"
+                  (rowActionTriggered)="recordActionTriggered.emit($event)"
                 />
               }
 
@@ -425,6 +414,8 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   @Output() documentsQueryChange = new EventEmitter<DocumentsQuery>();
   /** Igual que `documentsQueryChange`, para la pestaña Registros (`serverRecordsQuery`). */
   @Output() recordsQueryChange = new EventEmitter<DocumentsQuery>();
+  /** Clic en una acción de fila de Registros (`config.recordRowActions`): la abre la pantalla del proceso. */
+  @Output() recordActionTriggered = new EventEmitter<DocumentsRecordsRowActionEvent>();
   @Input() loading = false;
 
   // Config efectivo con reglas de rol aplicadas automáticamente
@@ -475,7 +466,8 @@ export class DocumentsRecordsPageComponent implements OnChanges {
     };
   }
 
-  activeTab: DocumentsRecordsTab = 'documents';
+  // `?tab=records` abre en Registros (p. ej. al volver del detalle de un registro).
+  activeTab: DocumentsRecordsTab = this.router.parseUrl(this.router.url).queryParams['tab'] === 'records' ? 'records' : 'documents';
   createDocumentPopoverOpen = false;
   customFilterOpen = false;
   columnPanelOpen = false;
@@ -511,7 +503,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   draftHiddenColumns = new Set<string>();
   selectedAccountHistoryRecord: DocumentsRecordsRow | null = null;
   selectedHistorySummary: DocumentHistorySummary = { solicitudId: '', document: '', number: '', actionType: '' };
-  readonly rowsPerPageOptions = [10, 25, 50, 100];
+  readonly rowsPerPageOptions = FILAS_POR_PAGINA_OPCIONES;
   readonly filterCondicionOptions = [
     { label: 'Es igual a', value: 'eq' },
     { label: 'No es igual a', value: 'neq' },
@@ -521,7 +513,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
     { label: 'Termina con', value: 'ends_with' }
   ];
   private customFilterSequence = 0;
-  rowsPerPage = 10;
+  rowsPerPage = FILAS_POR_PAGINA;
   page = 1;
 
   // ── Items derivados para los nuevos componentes composables ──

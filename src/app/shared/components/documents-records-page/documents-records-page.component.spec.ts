@@ -42,9 +42,9 @@ describe('DocumentsRecordsPageComponent', () => {
     fixture.detectChanges();
   }
 
-  /** Contadores de los dos paginadores de la pestaña: el de `siaf-table-controls` arriba y el de abajo. */
+  /** Contadores de los paginadores de la pestaña: solo queda el de abajo. */
   const contadores = (): string[] =>
-    fixture.debugElement.queryAll(By.directive(PaginationComponent)).map((d) => (d.componentInstance as PaginationComponent).counterText);
+    fixture.debugElement.queryAll(By.directive(PaginationComponent)).map((d) => d.componentInstance as PaginationComponent).filter((p) => p.visible).map((p) => p.counterText);
 
   const panelHistorial = (): HTMLElement | null => el().querySelector('siaf-document-history-panel');
 
@@ -65,18 +65,24 @@ describe('DocumentsRecordsPageComponent', () => {
 
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
-  describe('paginadores de la pestaña Documentos', () => {
-    it('en modo servidor, arriba y abajo muestran el total del backend, no las filas de la página', () => {
-      // La bandeja trae la primera página (10 filas) de 12 documentos.
-      configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: filas(10), serverQuery: { total: 12 } });
+  describe('paginador de la pestaña Documentos', () => {
+    it('hay uno solo, abajo; en modo servidor muestra el total del backend, no las filas de la página', () => {
+      // La bandeja trae la primera página (25 filas) de 30 documentos.
+      configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: filas(25), serverQuery: { total: 30 } });
 
-      expect(contadores()).toEqual(['1-10 de 12', '1-10 de 12']);
+      expect(contadores()).toEqual(['1-25 de 30']);
     });
 
-    it('sin serverQuery, arriba y abajo cuentan las filas cargadas', () => {
+    it('sin serverQuery, cuenta las filas cargadas', () => {
+      configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: filas(30) });
+
+      expect(contadores()).toEqual(['1-25 de 30']);
+    });
+
+    it('con 25 filas o menos no se muestra: todo cabe en una página', () => {
       configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: filas(12) });
 
-      expect(contadores()).toEqual(['1-10 de 12', '1-10 de 12']);
+      expect(contadores()).toEqual([]);
     });
   });
 

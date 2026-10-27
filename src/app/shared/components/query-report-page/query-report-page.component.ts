@@ -28,7 +28,7 @@ import { FilterPillComponent } from '../filter-pill/filter-pill.component';
 import { FormTableSearchComponent } from '../form-table-search/form-table-search.component';
 import { PageHeaderComponent } from '../page-header/page-header.component';
 import { PageShellComponent } from '../page-shell/page-shell.component';
-import { PaginationComponent } from '../pagination/pagination.component';
+import { PaginationComponent, FILAS_POR_PAGINA_OPCIONES } from '../pagination/pagination.component';
 import { ParametroAplicado, ParametrosAplicadosComponent } from '../parametros-aplicados/parametros-aplicados.component';
 import { QueryParametersPanelComponent, tieneValor } from '../query-parameters-panel/query-parameters-panel.component';
 import { GraficoCalculado, calcularGrafico, calcularKpis } from './query-report-charts';
@@ -421,7 +421,7 @@ export class QueryReportPageComponent {
   readonly filtros = signal<Record<string, string>>({});
   readonly pagina = signal(1);
   readonly tamanoPagina = signal(25);
-  readonly opcionesTamano = [10, 25, 50, 100];
+  readonly opcionesTamano = FILAS_POR_PAGINA_OPCIONES;
   readonly idTitulo = `siaf-consulta-resultado-${++siguienteId}`;
 
   /** Figma 22715:21316: `info` para la tabla e `insert_chart` para las gráficas; la etiqueta va en el tooltip. */

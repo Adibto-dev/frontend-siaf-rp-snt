@@ -88,3 +88,73 @@ describe('DocumentsRecordsTableComponent — tooltip de textos truncados', () =>
     expect(tooltipVisible()).toBeNull();
   }));
 });
+
+describe('DocumentsRecordsTableComponent — cabecera agrupada', () => {
+  it('con headerGroup arma dos filas: el grupo con colspan y las columnas sueltas con rowspan', async () => {
+    await TestBed.configureTestingModule({ imports: [DocumentsRecordsTableComponent], providers: [provideRouter([]), provideHttpClient()] }).compileComponents();
+    const fixture = TestBed.createComponent(DocumentsRecordsTableComponent);
+    fixture.componentRef.setInput('activeTab', 'records');
+    fixture.componentRef.setInput('columns', [
+      { key: 'sec', label: 'Sec.', visibility: 'visible', group: 'default' },
+      { key: 'numero', label: 'Número', visibility: 'visible', group: 'default', headerGroup: 'Cuenta bancaria' },
+      { key: 'moneda', label: 'Moneda', visibility: 'visible', group: 'default', headerGroup: 'Cuenta bancaria' },
+    ] as DocumentsRecordsColumn[]);
+    fixture.componentRef.setInput('rows', [{ sec: '000001', numero: '11040103570200000000', moneda: 'PEN' }]);
+    fixture.detectChanges();
+
+    const filas = fixture.nativeElement.querySelectorAll('thead tr') as NodeListOf<HTMLTableRowElement>;
+    expect(filas.length).toBe(2);
+    const arriba = Array.from(filas[0].cells).map((c) => [c.textContent!.trim(), c.rowSpan, c.colSpan]);
+    expect(arriba).toEqual([['Sec.', 2, 1], ['Cuenta bancaria', 1, 2], ['', 2, 1]]);
+    expect(Array.from(filas[1].cells).map((c) => c.textContent!.trim())).toEqual(['Número', 'Moneda']);
+    expect(filas[0].cells[1].getAttribute('scope')).toBe('colgroup');
+    expect(fixture.nativeElement.querySelectorAll('tbody td').length).withContext('3 columnas + historial').toBe(4);
+  });
+
+  it('sin headerGroup la cabecera sigue en una fila', async () => {
+    await TestBed.configureTestingModule({ imports: [DocumentsRecordsTableComponent], providers: [provideRouter([]), provideHttpClient()] }).compileComponents();
+    const fixture = TestBed.createComponent(DocumentsRecordsTableComponent);
+    fixture.componentRef.setInput('columns', [{ key: 'a', label: 'A', visibility: 'visible', group: 'default' }] as DocumentsRecordsColumn[]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('thead tr').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('thead th').hasAttribute('rowspan')).toBeFalse();
+  });
+});
+
+describe('DocumentsRecordsTableComponent — acciones por fila', () => {
+  async function crear(tab: 'records' | 'documents') {
+    await TestBed.configureTestingModule({ imports: [DocumentsRecordsTableComponent], providers: [provideRouter([]), provideHttpClient()] }).compileComponents();
+    const fixture = TestBed.createComponent(DocumentsRecordsTableComponent);
+    fixture.componentRef.setInput('activeTab', tab);
+    fixture.componentRef.setInput('columns', [{ key: 'sec', label: 'Sec.', visibility: 'visible', group: 'default' }] as DocumentsRecordsColumn[]);
+    fixture.componentRef.setInput('rows', [{ sec: '1', sustento: 'a.pdf' }, { sec: '2' }]);
+    fixture.componentRef.setInput('rowActions', [
+      { id: 'sustento', icon: 'description', label: 'Ver documento de sustento', disabled: (r: DocumentsRecordsRow) => !r['sustento'] },
+      { id: 'cuentas', icon: 'table_view', label: 'Ver cuentas de registro' },
+    ]);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('en Registros pinta las acciones antes del historial y deshabilita la que corresponde', async () => {
+    const fixture = await crear('records');
+    const emitidas: string[] = [];
+    fixture.componentInstance.rowActionTriggered.subscribe((e) => emitidas.push(`${e.actionId}:${e.row['sec']}`));
+    const filas = fixture.nativeElement.querySelectorAll('tbody tr') as NodeListOf<HTMLTableRowElement>;
+    const botones = (i: number) => Array.from(filas[i].querySelectorAll('button')) as HTMLButtonElement[];
+    expect(botones(0).map((b) => b.getAttribute('aria-label'))).toEqual(['Ver documento de sustento', 'Ver cuentas de registro', 'Ver historial del registro']);
+    expect(botones(0)[0].disabled).toBeFalse();
+    expect(botones(1)[0].disabled).withContext('sin sustento').toBeTrue();
+    expect(getComputedStyle(botones(1)[0]).cursor).toBe('not-allowed');
+    botones(0)[0].click();
+    botones(1)[1].click();
+    botones(1)[0].click();
+    expect(emitidas).toEqual(['sustento:1', 'cuentas:2']);
+  });
+
+  it('en Documentos no pinta las acciones de Registros', async () => {
+    const fixture = await crear('documents');
+    const fila = fixture.nativeElement.querySelector('tbody tr') as HTMLElement;
+    expect(fila.querySelectorAll('td:last-child button').length).toBe(1);
+  });
+});

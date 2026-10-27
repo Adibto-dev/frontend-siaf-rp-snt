@@ -8,12 +8,19 @@ import {
   NOMBRE_DOCUMENTO,
 } from '../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
 import {
+  CODIGO_AUTOMATICO,
   CODIGO_DOCUMENTO as CODIGO_SALDOS,
+  MOVIMIENTO_AJUSTE,
+  MOVIMIENTO_APERTURA,
+  MOVIMIENTO_SALDO_INICIAL,
+  NaturalezaAjuste,
+  NOMBRE_AUTOMATICO,
   NOMBRE_DOCUMENTO as NOMBRE_SALDOS,
   SaldoInicial,
   SaldoInicialRegistro,
   calcularSaldo,
   cuentasRegistroDe,
+  redondear,
 } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
 
@@ -23,7 +30,7 @@ import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 4;
+const VERSION = 8;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -48,7 +55,9 @@ export interface DatosTaller {
 
 export const TIPO_DOCUMENTO = { id: 'td-rtcr', codigo: CODIGO_DOCUMENTO, nombre: NOMBRE_DOCUMENTO };
 export const TIPO_SALDOS = { id: 'td-rsin', codigo: CODIGO_SALDOS, nombre: NOMBRE_SALDOS };
-export const TIPOS_DOCUMENTO = [TIPO_DOCUMENTO, TIPO_SALDOS];
+/** Registro automático de saldos de apertura: lo crea el sistema; no aparece en «Crear documento». */
+export const TIPO_AUTOMATICO = { id: 'td-rasa', codigo: CODIGO_AUTOMATICO, nombre: NOMBRE_AUTOMATICO };
+export const TIPOS_DOCUMENTO = [TIPO_DOCUMENTO, TIPO_SALDOS, TIPO_AUTOMATICO];
 export const ENTIDAD_CREADORA = { id: 'ent-mef', codMef: '0001', siglas: 'MEF', nombre: 'Ministerio de Economía y Finanzas' };
 export const UNIDAD_CREADORA = { id: 'uo-oga', sigla: 'OGA', nombre: 'Oficina General de Administración' };
 
@@ -92,10 +101,11 @@ export function numeroDocumento(datos: DatosTaller, codigo: string, fecha: Date)
   return `PCB-${codigo}-${String(correlativo).padStart(5, '0')}-${fecha.getFullYear()}-MEF-OGA`;
 }
 
-/** Al aprobar un RSIN: cada saldo recibe su secuencia y pasa a los registros. */
+/** Al aprobar un RSIN (o al procesarse un RASA): cada saldo recibe su secuencia y pasa a los registros. */
 export function registrarSaldos(datos: DatosTaller, s: SolicitudResponse, fecha: string): void {
   const detalle = s.detalleSaldosIniciales;
   if (!detalle || datos.registrosSaldos.some((r) => r.documentoId === s.id)) return;
+  const automatico = s.catDocumento?.codigo === CODIGO_AUTOMATICO;
   for (const saldo of detalle.saldos) {
     datos.secuenciaSaldo += 1;
     saldo.secuencia = String(datos.secuenciaSaldo).padStart(6, '0');
@@ -103,11 +113,13 @@ export function registrarSaldos(datos: DatosTaller, s: SolicitudResponse, fecha:
       ...saldo,
       registroId: nuevoId(datos, 'si'),
       estado: 'Activo',
+      movimiento: saldo.ajuste ? MOVIMIENTO_AJUSTE : automatico ? MOVIMIENTO_APERTURA : MOVIMIENTO_SALDO_INICIAL,
       entidadFinanciera: detalle.entidadFinanciera,
       entidadSiglas: s.entidadCreadora?.siglas ?? '',
       documentoId: s.id,
       numeroDocumento: s.numero ?? '',
       fechaRegistro: fecha,
+      automatico,
     });
   }
 }
@@ -254,6 +266,8 @@ function crearDatosIniciales(): DatosTaller {
   }
 
   crearSaldosIniciales(datos);
+  crearAjustesSaldo(datos);
+  crearSaldosApertura(datos);
 
   // Notificaciones: el aprobador tiene una solicitud por aprobar; el creador, una observada y otras ya leídas.
   const aviso = (s: SolicitudResponse, tipo: string, titulo: string, mensaje: string, leida: boolean, destino: Pick<NotificacionMock, 'paraUsuarioId' | 'paraRolCodigo'>): NotificacionMock => ({
@@ -350,5 +364,128 @@ function crearSaldosIniciales(datos: DatosTaller): void {
     };
     datos.solicitudes.push(solicitud);
     if (semilla.estado === 'APROBADO') registrarSaldos(datos, solicitud, ultima);
+  }
+}
+
+// ─── Ajustes de saldo inicial (RSIN, tipo de operación 2) ──────────
+
+interface SemillaAjuste {
+  creada: string;
+  estado: 'VERIFICADO' | 'APROBADO';
+  /** Cuenta del saldo inicial registrado que se ajusta. */
+  cuenta: string;
+  fecha: string;
+  naturaleza: NaturalezaAjuste;
+  total: number;
+  sustento: string;
+}
+
+const SEMILLAS_AJUSTE: SemillaAjuste[] = [
+  { creada: '2026-03-17', estado: 'APROBADO', cuenta: '12073303572000000003', fecha: '2026-03-16', naturaleza: 'Crédito', total: 5000, sustento: 'Autorización de ajuste 001-2026.pdf' },
+  { creada: '2026-05-06', estado: 'APROBADO', cuenta: '00000281794000000005', fecha: '2026-05-05', naturaleza: 'Débito', total: 150000, sustento: 'Autorización de ajuste 002-2026.pdf' },
+  { creada: '2026-10-20', estado: 'VERIFICADO', cuenta: '11040103570200000000', fecha: '2026-10-19', naturaleza: 'Crédito', total: 20000, sustento: 'Autorización de ajuste 003-2026.pdf' },
+];
+
+/** Ajustes sobre saldos ya registrados: cada uno ajusta una sola cuenta bancaria; el saldo original no cambia. */
+function crearAjustesSaldo(datos: DatosTaller): void {
+  const ana = USUARIOS_DEMO[0];
+  const luis = USUARIOS_DEMO[1];
+  for (const semilla of SEMILLAS_AJUSTE) {
+    const original = datos.registrosSaldos.find((r) => r.cuentaBancaria === semilla.cuenta && !r.ajuste);
+    if (!original) continue;
+    const id = nuevoId(datos, 'sol');
+    const creada = enFecha(semilla.creada, 9);
+    const historial: HistorialItem[] = [
+      filaHistorial(datos, null, 'NUEVO', creada, ana, ROL_CREADOR),
+      filaHistorial(datos, 'NUEVO', 'ELABORADO', creada, ana, ROL_CREADOR),
+      filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10, 1), ana, ROL_CREADOR),
+    ];
+    if (semilla.estado === 'APROBADO') historial.push(filaHistorial(datos, 'VERIFICADO', 'APROBADO', enFecha(semilla.creada, 11, 2), luis, ROL_APROBADOR));
+    const ultima = historial[historial.length - 1].createdAt;
+    const saldo: SaldoInicial = {
+      ...saldoSemilla(datos, semilla.cuenta, semilla.fecha, semilla.total),
+      sustento: semilla.sustento,
+      ajuste: {
+        naturaleza: semilla.naturaleza,
+        secuenciaReferencia: original.secuencia ?? '',
+        saldoInicial: redondear(original.importeCuenta),
+        libretasIniciales: original.libretas.map((l) => ({ ...l })),
+      },
+    };
+    const solicitud: SolicitudResponse = {
+      id,
+      numero: numeroDocumento(datos, CODIGO_SALDOS, new Date(creada)),
+      catDocumento: TIPO_SALDOS,
+      tipoAccion: 'creacion',
+      estado: semilla.estado,
+      asuntoMotivo: `[OFICINA GENERAL DE ADMINISTRACIÓN] Ajuste de saldo inicial (${semilla.naturaleza.toLowerCase()}) autorizado.`,
+      entidadCreadora: ENTIDAD_CREADORA,
+      unidadCreadora: UNIDAD_CREADORA,
+      creador: { id: ana.id, nombres: ana.nombres, apellidoPaterno: ana.apellidoPaterno, apellidoMaterno: ana.apellidoMaterno },
+      fechaRegistro: creada,
+      createdAt: creada,
+      updatedAt: ultima,
+      itemsCuenta: [],
+      detalleSaldosIniciales: { documentoId: id, entidadFinanciera: original.entidadFinanciera, saldos: [saldo] },
+      sustentos: [],
+      historialEstados: historial,
+    };
+    datos.solicitudes.push(solicitud);
+    if (semilla.estado === 'APROBADO') registrarSaldos(datos, solicitud, ultima);
+  }
+}
+
+// ─── Registro automático de saldos de apertura (RASA) ──────────────
+
+/** El sistema: registra y procesa los documentos automáticos. */
+const SISTEMA: UsuarioDemo = { ...USUARIOS_DEMO[0], id: 'sistema', nombres: 'SIAF RP', apellidoPaterno: '', apellidoMaterno: '' };
+const ROL_SISTEMA = { codigo: 'SISTEMA', nombre: 'Sistema' };
+
+interface SemillaApertura {
+  /** Día del registro (yyyy-mm-dd), a las 00:00:00. */
+  dia: string;
+  estado: 'REGISTRADO' | 'PROCESADO';
+  entidad: string;
+  saldos: { cuenta: string; total: number }[];
+}
+
+const SEMILLAS_APERTURA: SemillaApertura[] = [
+  { dia: '2026-01-01', estado: 'PROCESADO', entidad: '0001', saldos: [{ cuenta: '11040103570200000000', total: 100000 }] },
+  { dia: '2026-01-01', estado: 'PROCESADO', entidad: '0018', saldos: [{ cuenta: '00000281794000000005', total: 1250000 }] },
+  { dia: '2026-10-27', estado: 'REGISTRADO', entidad: '0002', saldos: [{ cuenta: '19300456712000000002', total: 420000 }] },
+];
+
+function crearSaldosApertura(datos: DatosTaller): void {
+  for (const semilla of SEMILLAS_APERTURA) {
+    const id = nuevoId(datos, 'sol');
+    const registrado = new Date(`${semilla.dia}T00:00:00`).toISOString();
+    const procesado = new Date(`${semilla.dia}T00:00:02`).toISOString();
+    const historial: HistorialItem[] = [filaHistorial(datos, null, 'REGISTRADO', registrado, SISTEMA, ROL_SISTEMA)];
+    if (semilla.estado === 'PROCESADO') historial.push(filaHistorial(datos, 'REGISTRADO', 'PROCESADO', procesado, SISTEMA, ROL_SISTEMA));
+    const ultima = historial[historial.length - 1].createdAt;
+    const solicitud: SolicitudResponse = {
+      id,
+      numero: numeroDocumento(datos, CODIGO_AUTOMATICO, new Date(registrado)),
+      catDocumento: TIPO_AUTOMATICO,
+      tipoAccion: 'creacion',
+      estado: semilla.estado,
+      asuntoMotivo: 'Registro automático de saldos de apertura.',
+      entidadCreadora: ENTIDAD_CREADORA,
+      unidadCreadora: UNIDAD_CREADORA,
+      creador: { id: SISTEMA.id, nombres: SISTEMA.nombres, apellidoPaterno: '', apellidoMaterno: '' },
+      fechaRegistro: registrado,
+      createdAt: registrado,
+      updatedAt: ultima,
+      itemsCuenta: [],
+      detalleSaldosIniciales: {
+        documentoId: id,
+        entidadFinanciera: semilla.entidad,
+        saldos: semilla.saldos.map((s) => saldoSemilla(datos, s.cuenta, semilla.dia, s.total)),
+      },
+      sustentos: [],
+      historialEstados: historial,
+    };
+    datos.solicitudes.push(solicitud);
+    if (semilla.estado === 'PROCESADO') registrarSaldos(datos, solicitud, ultima);
   }
 }
