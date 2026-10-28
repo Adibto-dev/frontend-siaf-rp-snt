@@ -31,6 +31,7 @@ entró, y «Reiniciar datos de la demo» vuelve a los datos iniciales.
 | Ana Torres Díaz | `45872163` | Creador | Crear, grabar, editar, verificar y eliminar solicitudes |
 | Luis Ramírez Soto | `70318246` | Aprobador | Aprobar, observar (con comentario) o rechazar lo verificado |
 | Carla Mendoza Ríos | `41269587` | Creador y Aprobador | Lo mismo que los dos anteriores: cambia de perfil desde su menú de usuario |
+| Rosa Quispe Huamán | `46153928` | Creador autorizador | Crea y autoriza (sin aprobador) los documentos de autorización excepcional (RAUT); los demás perfiles solo los consultan |
 
 «Olvidé mi contraseña» también funciona: con el correo de un usuario (por ejemplo `ana.torres@taller.pe`) el código de
 verificación es `123456`.

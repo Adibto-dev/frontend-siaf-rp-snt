@@ -5,6 +5,7 @@ import { ESTADO } from '../../../../../core/models/documento.model';
 import { SolicitudesFacadeService } from '../../../../../core/state/solicitudes-facade.service';
 import { SolicitudesStateService } from '../../../../../core/state/solicitudes-state.service';
 import { DocumentsRecordsPageComponent } from '../../../../../shared/components/documents-records-page/documents-records-page.component';
+import { ACCION_HISTORIAL_REGISTRO } from '../../../../../shared/types/documents-records.types';
 import type {
   DocumentsQuery,
   DocumentsRecordsConfig,
@@ -13,6 +14,7 @@ import type {
 } from '../../../../../shared/types/documents-records.types';
 import { SidePanelComponent } from '../../../../../shared/ui/side-panel/side-panel.component';
 import { UploadedFileCardComponent, UploadedFileInfo } from '../../../../../shared/ui/uploaded-file-card/uploaded-file-card.component';
+import { SaldoHistorialPanelComponent } from '../../components/saldo-historial-panel/saldo-historial-panel.component';
 import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
 import { createNewDocumentIdsSignal } from '../../../../../shared/utils/new-document-ids.util';
 import { SaldosInicialesApiService } from '../../api/saldos-iniciales-api.service';
@@ -42,7 +44,7 @@ const TIPOS = [CODIGO_DOCUMENTO, CODIGO_AUTOMATICO];
 @Component({
   selector: 'siaf-saldos-iniciales-documents',
   standalone: true,
-  imports: [DocumentsRecordsPageComponent, SaldoLibretasPanelComponent, SidePanelComponent, UploadedFileCardComponent],
+  imports: [DocumentsRecordsPageComponent, SaldoHistorialPanelComponent, SaldoLibretasPanelComponent, SidePanelComponent, UploadedFileCardComponent],
   template: `
     <siaf-documents-records-page
       [config]="pageConfig()"
@@ -53,6 +55,9 @@ const TIPOS = [CODIGO_DOCUMENTO, CODIGO_AUTOMATICO];
 
     <!-- Ver cuentas de registro: el mismo panel que en la solicitud -->
     <siaf-saldo-libretas-panel [saldo]="registroCuentas()" (closed)="registroCuentas.set(null)" />
+
+    <!-- Historial del registro: documentos de la misma cuenta bancaria -->
+    <siaf-saldo-historial-panel [registro]="registroHistorial()" [registros]="registrosCargados()" (closed)="registroHistorial.set(null)" />
 
     <!-- Ver documento de sustento: el taller solo guarda el nombre del archivo -->
     <siaf-side-panel title="Documento de sustento" [open]="!!sustentoVisto()" [showFooter]="false" (closed)="sustentoVisto.set(null)">
@@ -75,12 +80,16 @@ export class SaldosInicialesDocumentsComponent implements OnInit {
   readonly cargando = signal(true);
   /** Registro cuyas cuentas de registro se ven en el panel lateral. */
   readonly registroCuentas = signal<SaldoInicialRegistro | null>(null);
+  /** Registro cuyo historial se ve a pantalla completa. */
+  readonly registroHistorial = signal<SaldoInicialRegistro | null>(null);
+  readonly registrosCargados = this.registros.asReadonly();
   /** Archivo de sustento que se ve en el panel lateral. */
   readonly sustentoVisto = signal<UploadedFileInfo | null>(null);
 
   onRecordAction({ actionId, row }: DocumentsRecordsRowActionEvent): void {
     const registro = this.registros().find((r) => r.registroId === row['recordId']);
     if (!registro) return;
+    if (actionId === ACCION_HISTORIAL_REGISTRO) this.registroHistorial.set(registro);
     if (actionId === ACCION_VER_CUENTAS) this.registroCuentas.set(registro);
     if (actionId === ACCION_VER_SUSTENTO && registro.sustento) this.sustentoVisto.set({ name: registro.sustento });
   }

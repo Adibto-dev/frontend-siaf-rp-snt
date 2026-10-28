@@ -110,7 +110,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                   <tr class="siaf-table-row">
                     <td class="siaf-table-td">{{ formatoFecha(s.fechaOperacion) }}</td>
                     <td class="siaf-table-td">{{ libreta.idCorrelativo }}</td>
-                    <td class="siaf-table-td font-mono">{{ libreta.numero }}</td>
+                    <td class="siaf-table-td">{{ libreta.numero }}</td>
                     <td class="siaf-table-td">{{ libreta.descripcion }}</td>
                     <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importe) }}</td>
                     <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importeNacional) }}</td>

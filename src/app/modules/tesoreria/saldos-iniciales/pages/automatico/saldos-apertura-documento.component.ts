@@ -150,7 +150,7 @@ function fechaHora(iso: string | null | undefined): string {
                       <tr class="siaf-table-row">
                         <td class="siaf-table-td">{{ saldo.secuencia || '-' }}</td>
                         <td class="siaf-table-td">{{ formatoFecha(saldo.fechaOperacion) }}</td>
-                        <td class="siaf-table-td font-mono">{{ saldo.cuentaBancaria }}</td>
+                        <td class="siaf-table-td">{{ saldo.cuentaBancaria }}</td>
                         <td class="siaf-table-td">{{ saldo.moneda }}</td>
                         <td class="siaf-table-td text-right">{{ formatoImporte(saldo.importeCuenta) }}</td>
                         <td class="siaf-table-td text-right">{{ formatoImporte(saldo.importeNacional) }}</td>

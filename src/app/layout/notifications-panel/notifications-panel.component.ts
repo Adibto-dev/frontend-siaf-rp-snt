@@ -186,7 +186,7 @@ export class NotificationsPanelComponent {
    */
   private resolveRoute(codigo: string, _nombre: string): string {
     // Taller: traslado entre cuentas de registros (RTCR) y saldos iniciales (RSIN).
-    const rutas: Record<string, string> = { RTCR: '/procesos/registro-cuentas-bancarias/solicitud', RSIN: '/procesos/saldos-iniciales/solicitud' };
+    const rutas: Record<string, string> = { RTCR: '/procesos/registro-cuentas-bancarias/solicitud', RSIN: '/procesos/saldos-iniciales/solicitud', RAUT: '/procesos/autorizaciones/solicitud' };
     return rutas[codigo] ?? '/procesos/registro-cuentas-bancarias/solicitud';
   }
 

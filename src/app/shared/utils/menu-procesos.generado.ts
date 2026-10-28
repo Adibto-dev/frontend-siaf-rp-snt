@@ -8,7 +8,7 @@ export const MENU_PROCESOS_FILAS: FilaMenuProcesos[] = [
   { id: 'conciliacion-bancaria', nombre: 'Conciliación bancaria', padre: 'gestion-liquidez', orden: 30, estado: 'activo', tipo: 'subproceso' },
   { id: 'reg-saldos-iniciales-lib-bancos-libretas', nombre: 'Registro de saldos iniciales en libro bancos y libretas de cuentas de registro', padre: 'conciliacion-bancaria', orden: 40, estado: 'activo', tipo: 'subproceso' },
   { id: 'doc-saldos-iniciales', nombre: 'Documentos de saldos iniciales', padre: 'reg-saldos-iniciales-lib-bancos-libretas', orden: 50, estado: 'activo', tipo: 'mfd', ruta: '/procesos/saldos-iniciales' },
-  { id: 'doc-autorizacion', nombre: 'Documentos de autorización', padre: 'reg-saldos-iniciales-lib-bancos-libretas', orden: 50, estado: 'proximamente', tipo: 'mfd' },
+  { id: 'doc-autorizacion', nombre: 'Documentos de autorización', padre: 'reg-saldos-iniciales-lib-bancos-libretas', orden: 60, estado: 'activo', tipo: 'mfd', ruta: '/procesos/autorizaciones' },
   { id: 'traspasos-cuentas-registros', nombre: 'Traspasos de cuentas de registros', padre: 'gestion-liquidez', orden: 30, estado: 'activo', tipo: 'subproceso' },
   { id: 'doc-traslado-cta-registros', nombre: 'Documentos de traslado entre cuentas de registros', padre: 'traspasos-cuentas-registros', orden: 40, estado: 'activo', tipo: 'mfd', ruta: '/procesos/registro-cuentas-bancarias' },
   { id: 'cons-traslado-cta-registros', nombre: 'Consultas y reportes de traslado entre cuentas de registros', padre: 'traspasos-cuentas-registros', orden: 40, estado: 'activo', tipo: 'mfd', ruta: '/procesos/registro-cuentas-bancarias/consultas' },

@@ -8879,13 +8879,16 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     ],
     "usar": "- Para el panel Procesos del armazón: `siaf-app-shell` lo abre desde el rail y navega a la `moduleRoute` o\n  `createRoute` del nodo emitido (plan de cuentas contables, catálogo de eventos, asientos de ajuste, apertura\n  contable…).\n- Para el menú Ajustes: el mismo componente con `ADMIN_MENU_TREE` y sus textos (`title`, `subtitle`, `placeholder`,\n  `searchLabel`), con gestión de usuarios, entidades y auditoría.\n- Para cualquier menú jerárquico nuevo del armazón: basta otro arreglo de `ProcessMenuNode`.",
     "evitar": "- Para envolverlo o copiarlo en otro componente de menú: por eso se retiró `siaf-admin-menu`; basta pasarle otros\n  `nodes` y textos.\n- Para un árbol dentro de una pantalla (plan de cuentas, clasificador): usar `siaf-tree-view` directamente.\n- Para buscar registros en el servidor: usar `siaf-form-table-search` (en Documentos y registros y la bandeja, su\n  variante `siaf-records-search-toolbar`); este buscador solo filtra la navegación en memoria.",
-    "teclado": "- **Tab**: pasa por el buscador y su lupa, y luego entra al árbol una sola vez (en el nodo elegido o el primero).\n- **Escribir en el buscador**: filtra el árbol en vivo, sin distinguir tildes ni mayúsculas, y abre las ramas con\n  coincidencias.\n- **En el árbol**: ↓ / ↑ entre nodos, → abre o entra al primer hijo, ← cierra o sube al padre, Inicio / Fin, y\n  Enter / Espacio eligen el nodo (y abren o cierran su rama). Ver `siaf-tree-view`.",
-    "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `<aside>` con `h2` y `h3`; el árbol es `role=\"tree\"` con nivel y posición\n  de cada nodo (`siaf-tree-view`). Pendiente: el `aria-label` del `aside` es fijo («Menu de procesos») y también se\n  lee en Ajustes.\n- **1.4.1 Uso del color (A)**: el nodo elegido va con fondo `light-activated`, color azul y negrita.\n- **1.4.3 Contraste mínimo (AA)**: en claro, título `text-neutral-high` 16.29:1 y nodos `text-neutral-medium` 14.53:1\n  sobre blanco; en oscuro el panel usa `bg-surfaces-field` y falta medirlo.\n- **2.4.7 Foco visible (AA)**: el nodo con foco muestra la capa de foco y un contorno azul de 2 px.\n- **Pendiente · 2.4.3 Orden del foco (A)**: no toma el foco al abrirse ni cierra con Escape. El armazón lo pinta\n  después del rail: desde Procesos el Tab pasa antes por Ayuda y Ajustes, y si lo pide una página\n  (`ShellNavigationService`) queda antes que el botón que lo abrió.\n- **Pendiente · 4.1.3 Mensajes de estado (AA)**: al filtrar no se anuncia cuántos nodos quedan y, sin coincidencias,\n  el árbol queda vacío y sin mensaje.",
+    "teclado": "- **Tab**: pasa por el buscador (y, con texto, por «Limpiar búsqueda») y luego entra al árbol una sola vez (en el\n  nodo elegido o el primero).\n- **Escape** en el buscador o **Enter / Espacio** en «Limpiar búsqueda»: vacían la búsqueda, vuelve el árbol completo\n  y el foco queda en el campo.\n- **Escribir en el buscador**: filtra el árbol en vivo, sin distinguir tildes ni mayúsculas, y abre las ramas con\n  coincidencias.\n- **En el árbol**: ↓ / ↑ entre nodos, → abre o entra al primer hijo, ← cierra o sube al padre, Inicio / Fin, y\n  Enter / Espacio eligen el nodo (y abren o cierran su rama). Ver `siaf-tree-view`.",
+    "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `<aside>` con `h2` y `h3`; el árbol es `role=\"tree\"` con nivel y posición\n  de cada nodo (`siaf-tree-view`). Pendiente: el `aria-label` del `aside` es fijo («Menu de procesos») y también se\n  lee en Ajustes.\n- **1.4.1 Uso del color (A)**: el nodo elegido va con fondo `light-activated`, color azul y negrita.\n- **1.4.3 Contraste mínimo (AA)**: en claro, título `text-neutral-high` 16.29:1 y nodos `text-neutral-medium` 14.53:1\n  sobre blanco; en oscuro el panel usa `bg-surfaces-field` y falta medirlo.\n- **2.4.7 Foco visible (AA)**: el nodo con foco muestra la capa de foco y un contorno azul de 2 px.\n- **Pendiente · 2.4.3 Orden del foco (A)**: no toma el foco al abrirse ni cierra con Escape. El armazón lo pinta\n  después del rail: desde Procesos el Tab pasa antes por Ayuda y Ajustes, y si lo pide una página\n  (`ShellNavigationService`) queda antes que el botón que lo abrió.\n- **4.1.3 Mensajes de estado (AA)**: sin coincidencias muestra «Sin resultados» (Figma UI-KIT 19617:886) en una\n  región , que se anuncia. **Pendiente**: con coincidencias no se anuncia cuántos nodos quedan.",
     "figma": [],
     "aria": {
-      "roles": [],
+      "roles": [
+        "status"
+      ],
       "atributos": [
-        "aria-label"
+        "aria-label",
+        "aria-live"
       ]
     },
     "tokens": [
@@ -8936,6 +8939,18 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         ]
       },
       {
+        "token": "--sys-gap-base-sm",
+        "via": [
+          "gap-siaf-sm"
+        ]
+      },
+      {
+        "token": "--sys-gap-base-xl",
+        "via": [
+          "pt-siaf-xl"
+        ]
+      },
+      {
         "token": "--sys-gap-base-xs",
         "via": [
           "pt-siaf-xs"
@@ -8949,6 +8964,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       }
     ],
     "usa": [
+      "siaf-icon",
       "siaf-input",
       "siaf-tree-view"
     ],

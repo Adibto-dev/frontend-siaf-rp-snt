@@ -81,6 +81,18 @@ const DATOS_EXTRA_POR_ID: Record<string, Partial<ProcessMenuNode>> = {
     ],
     actionTypeOptions: ['Creación'],
   },
+  'doc-autorizacion': {
+    createRoute: '/procesos/autorizaciones/solicitud',
+    documentOptions: ['Registro de autorización excepcional'],
+    documentCreateOptions: [
+      {
+        label: 'Registro de autorización excepcional',
+        route: '/procesos/autorizaciones/solicitud',
+        actionTypes: ['Creación', 'Modificación'],
+      },
+    ],
+    actionTypeOptions: ['Creación', 'Modificación'],
+  },
 };
 
 /**

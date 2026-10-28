@@ -280,7 +280,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
   readonly busquedaCuenta = signal('');
   readonly cuentaTemporal = signal<string | null>(null);
   readonly columnasCuenta: SelectionColumn<CuentaBancaria>[] = [
-    { key: 'numero', label: 'Número de cuenta', widthClass: 'w-[220px]', cellClass: 'font-mono' },
+    { key: 'numero', label: 'Número de cuenta', widthClass: 'w-[220px]' },
     { key: 'denominacion', label: 'Denominación' },
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[90px]' },
   ];

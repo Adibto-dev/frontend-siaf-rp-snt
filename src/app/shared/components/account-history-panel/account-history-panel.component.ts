@@ -156,7 +156,7 @@ const DEMO_PLAN_NAME = 'Plan Contable Gubernamental Unico';
                             <tbody>
                               @for (prev of previousAccounts; track prev.codigo) {
                                 <tr class="h-12 border-b border-[var(--sys-color-divider-default)] bg-surface text-[var(--sys-color-text-neutral-medium)]">
-                                  <td class="px-siaf-md py-siaf-sm font-mono">{{ prev.codigo }}</td>
+                                  <td class="px-siaf-md py-siaf-sm">{{ prev.codigo }}</td>
                                   <td class="px-siaf-md py-siaf-sm text-text">{{ prev.nombre }}</td>
                                 </tr>
                               }

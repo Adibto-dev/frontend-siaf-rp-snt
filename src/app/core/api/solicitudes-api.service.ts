@@ -6,6 +6,7 @@ import { APP_CONFIG } from '../config/app.config';
 import { EstadoDocumento } from '../models/documento.model';
 import type { CuentaBancariaDatos } from '../../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
 import type { SaldosInicialesDatos } from '../../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
+import type { AutorizacionDatos } from '../../modules/tesoreria/autorizaciones/models/autorizacion.model';
 
 // ─────────────────────────────────────────────────────────────
 // DTOs de creación — mantienen los nombres viejos por compat
@@ -315,6 +316,7 @@ export interface SolicitudResponse {
   detalleCuentaBancaria?: (CuentaBancariaDatos & { documentoId: string }) | null; // RTCR
   /** Taller: entidad financiera y saldos iniciales en libro bancos del documento RSIN. */
   detalleSaldosIniciales?: (SaldosInicialesDatos & { documentoId: string }) | null; // RSIN
+  detalleAutorizacion?: (AutorizacionDatos & { documentoId: string }) | null; // RAUT
   detalleConfiguracionMensual?: {
     documentoId: string;
     periodoContableId: string;

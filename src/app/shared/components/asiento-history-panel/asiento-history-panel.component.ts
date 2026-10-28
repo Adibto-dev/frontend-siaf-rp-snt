@@ -191,7 +191,7 @@ type MovimientoRow = {
                               <tbody>
                                 @for (mov of movimientosPagina; track $index) {
                                   <tr class="h-12 border-b border-[var(--sys-color-divider-default)] bg-surface text-[var(--sys-color-text-neutral-medium)]">
-                                    <td class="px-siaf-md py-siaf-sm font-mono">{{ mov.codigo }}</td>
+                                    <td class="px-siaf-md py-siaf-sm">{{ mov.codigo }}</td>
                                     <td class="px-siaf-md py-siaf-sm text-text">{{ mov.nombre }}</td>
                                     <td class="px-siaf-md py-siaf-sm">{{ mov.tipoMovimiento }}</td>
                                     <td class="px-siaf-md py-siaf-sm text-right">{{ formatImporte(mov.importe) }}</td>

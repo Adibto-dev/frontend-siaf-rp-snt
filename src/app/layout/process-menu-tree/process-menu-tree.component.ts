@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Injector, Input, Output, afterNextRender, computed, inject, signal } from '@angular/core';
 
+import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { TextFieldComponent } from '../../shared/ui/text-field/text-field.component';
 import { TreeViewComponent, TreeViewNode } from '../../shared/ui/tree-view/tree-view.component';
 import { DEFAULT_PROCESS_TREE, ProcessMenuNode } from '../../shared/utils/process-tree.util';
@@ -34,7 +35,10 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
  * - Para buscar registros en el servidor: usar `siaf-form-table-search` (en Documentos y registros y la bandeja, su
  *   variante `siaf-records-search-toolbar`); este buscador solo filtra la navegación en memoria.
  * @teclado
- * - **Tab**: pasa por el buscador y su lupa, y luego entra al árbol una sola vez (en el nodo elegido o el primero).
+ * - **Tab**: pasa por el buscador (y, con texto, por «Limpiar búsqueda») y luego entra al árbol una sola vez (en el
+ *   nodo elegido o el primero).
+ * - **Escape** en el buscador o **Enter / Espacio** en «Limpiar búsqueda»: vacían la búsqueda, vuelve el árbol completo
+ *   y el foco queda en el campo.
  * - **Escribir en el buscador**: filtra el árbol en vivo, sin distinguir tildes ni mayúsculas, y abre las ramas con
  *   coincidencias.
  * - **En el árbol**: ↓ / ↑ entre nodos, → abre o entra al primer hijo, ← cierra o sube al padre, Inicio / Fin, y
@@ -50,13 +54,13 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
  * - **Pendiente · 2.4.3 Orden del foco (A)**: no toma el foco al abrirse ni cierra con Escape. El armazón lo pinta
  *   después del rail: desde Procesos el Tab pasa antes por Ayuda y Ajustes, y si lo pide una página
  *   (`ShellNavigationService`) queda antes que el botón que lo abrió.
- * - **Pendiente · 4.1.3 Mensajes de estado (AA)**: al filtrar no se anuncia cuántos nodos quedan y, sin coincidencias,
- *   el árbol queda vacío y sin mensaje.
+ * - **4.1.3 Mensajes de estado (AA)**: sin coincidencias muestra «Sin resultados» (Figma UI-KIT 19617:886) en una
+ *   región , que se anuncia. **Pendiente**: con coincidencias no se anuncia cuántos nodos quedan.
  */
 @Component({
   selector: 'siaf-process-menu-tree',
   standalone: true,
-  imports: [TextFieldComponent, TreeViewComponent],
+  imports: [IconComponent, TextFieldComponent, TreeViewComponent],
   template: `
     <aside
       class="flex h-[calc(100vh-56px)] w-screen flex-col bg-[var(--sys-color-bg-surfaces-field,var(--sys-color-bg-surfaces-surface))] text-text shadow-siaf-elevation-1 lg:max-w-[370px]"
@@ -73,15 +77,31 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
              que el resto de inputs. A diferencia de los buscadores de datos,
              este filtra la NAVEGACIÓN al teclear (paleta de comandos): el
              tecleo filtra en vivo y no hay viaje al servidor que ahorrar. -->
+        <!-- Lupa al inicio; con texto, al final aparece «Limpiar búsqueda» (Figma UI-KIT 19617:886). -->
         <siaf-input
           class="block w-full"
           [label]="placeholder"
           [value]="query()"
-          trailingIcon="search"
-          [trailingButtonLabel]="searchLabel"
+          leadingIcon="search"
+          [trailingIcon]="query() ? 'highlight_off' : ''"
+          trailingButtonLabel="Limpiar búsqueda"
           (valueChange)="onQuery($any($event))"
+          (trailingAction)="limpiar()"
+          (keydown.escape)="limpiar()"
         />
 
+        <!-- Región viva: el mensaje de «Sin resultados» se anuncia al aparecer. -->
+        <div role="status" aria-live="polite">
+          @if (sinResultados()) {
+            <div class="flex flex-col items-center gap-siaf-sm px-siaf-md pt-siaf-xl text-center text-[var(--sys-color-text-neutral-high)]">
+              <siaf-icon name="search_off" [size]="40" />
+              <p class="siaf-text-body-2-bold m-0">Sin resultados</p>
+              <p class="siaf-text-body-2 m-0 break-words">No hay coincidencias para "{{ query().trim() }}"</p>
+            </div>
+          }
+        </div>
+
+        @if (!sinResultados()) {
         <section class="flex w-full flex-col gap-siaf-md overflow-hidden pt-siaf-lg">
           <h3 class="siaf-text-body-2-bold m-0 px-siaf-md text-[var(--sys-color-text-neutral-medium)]">
             {{ subtitle }}
@@ -96,6 +116,7 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
             (nodeActivated)="activate($event)"
           />
         </section>
+        }
       </div>
     </aside>
   `,
@@ -105,6 +126,7 @@ export class ProcessMenuTreeComponent {
   @Input() title = 'Procesos';
   @Input() subtitle = 'Seleccionar proceso o procedimiento';
   @Input() placeholder = 'Buscar proceso o procedimiento';
+  /** @deprecated Sin efecto: la lupa pasó a ser ícono inicial y el botón final es «Limpiar búsqueda». */
   @Input() searchLabel = 'Buscar proceso o procedimiento';
 
   @Input() set nodes(value: ProcessMenuNode[] | null | undefined) {
@@ -117,6 +139,9 @@ export class ProcessMenuTreeComponent {
   }
 
   @Output() nodeSelected = new EventEmitter<ProcessMenuNode>();
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   readonly query = signal('');
   readonly selectedId = signal('');
@@ -131,6 +156,9 @@ export class ProcessMenuTreeComponent {
     return this.aArbol(nodos, true);
   });
 
+  /** Hay búsqueda y ningún proceso coincide. */
+  readonly sinResultados = computed(() => !!this.query().trim() && this.arbol().length === 0);
+
   constructor() {
     this.selectedId.set(this.buscarElegido(DEFAULT_PROCESS_TREE));
   }
@@ -144,6 +172,13 @@ export class ProcessMenuTreeComponent {
 
   onQuery(value: string): void {
     this.query.set(String(value ?? ''));
+  }
+
+  /** Vacía la búsqueda (botón «Limpiar búsqueda» o Escape): vuelve el árbol completo y el foco queda en el campo. */
+  limpiar(): void {
+    if (!this.query()) return;
+    this.query.set('');
+    afterNextRender(() => this.host.nativeElement.querySelector<HTMLInputElement>('siaf-input input')?.focus(), { injector: this.injector });
   }
 
   private aArbol(nodos: ProcessMenuNode[], raiz: boolean): TreeViewNode[] {

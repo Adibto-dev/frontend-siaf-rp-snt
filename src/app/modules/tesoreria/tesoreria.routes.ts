@@ -1,7 +1,22 @@
 import { Routes } from '@angular/router';
 
-/** Procesos de tesorería del taller: traslados (ejemplo) y saldos iniciales. Cada uno con su bandeja y su solicitud. */
+/** Procesos de tesorería del taller: traslados (ejemplo), saldos iniciales y autorizaciones. Cada uno con su bandeja y su solicitud. */
 export const TESORERIA_ROUTES: Routes = [
+  {
+    path: 'procesos/autorizaciones',
+    loadComponent: () =>
+      import('./autorizaciones/pages/documents/autorizaciones-documents.component').then((m) => m.AutorizacionesDocumentsComponent),
+  },
+  {
+    path: 'procesos/autorizaciones/solicitud',
+    loadComponent: () =>
+      import('./autorizaciones/pages/solicitud/autorizacion-request.component').then((m) => m.AutorizacionRequestComponent),
+  },
+  {
+    path: 'procesos/autorizaciones/solicitud/:id',
+    loadComponent: () =>
+      import('./autorizaciones/pages/solicitud/autorizacion-request.component').then((m) => m.AutorizacionRequestComponent),
+  },
   {
     path: 'procesos/registro-cuentas-bancarias',
     loadComponent: () =>

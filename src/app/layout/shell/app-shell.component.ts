@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 
 import { CREATE_DOCUMENT_OPTIONS, REQUEST_ROUTE } from '../../modules/tesoreria/cuentas-bancarias/config/cuentas-bancarias.rutas';
+import { REQUEST_ROUTE as AUTORIZACION_REQUEST_ROUTE } from '../../modules/tesoreria/autorizaciones/config/autorizaciones.rutas';
 import { REQUEST_ROUTE as SALDOS_REQUEST_ROUTE } from '../../modules/tesoreria/saldos-iniciales/config/saldos-iniciales.rutas';
 import { CreateDocumentAccepted, CreateDocumentComponent, CreateDocumentProcessOption } from '../../shared/components/create-document/create-document.component';
 import { CatalogosApiService, TipoDocumentoResponse } from '../../core/api/catalogos-api.service';
@@ -187,6 +188,10 @@ export class AppShellComponent implements OnInit {
       'saldos-iniciales': {
         processRoute: SALDOS_REQUEST_ROUTE,
         tipoRoutes: { RSIN: SALDOS_REQUEST_ROUTE },
+      },
+      autorizaciones: {
+        processRoute: AUTORIZACION_REQUEST_ROUTE,
+        tipoRoutes: { RAUT: AUTORIZACION_REQUEST_ROUTE },
       },
     };
 

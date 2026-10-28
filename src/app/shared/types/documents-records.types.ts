@@ -73,6 +73,12 @@ export type DocumentsRecordsRowAction = {
   disabled?: (row: DocumentsRecordsRow) => boolean;
 };
 
+/**
+ * `actionId` del ícono de historial de Registros con `recordHistoryKind: 'propio'`: la página no abre panel, emite
+ * `recordActionTriggered` con este id y el proceso muestra su propio historial.
+ */
+export const ACCION_HISTORIAL_REGISTRO = 'historial';
+
 export type DocumentsRecordsRowActionEvent = { actionId: string; row: DocumentsRecordsRow };
 
 export type DocumentsRecordsConfig = {
@@ -103,7 +109,7 @@ export type DocumentsRecordsConfig = {
   recordHistoryDocumentLabel: string;
   /** Variante del panel "Historial del registro" de la pestaña Registros:
    *  'cuenta' (default, plan de cuentas) o 'asiento' (asiento de ajuste). */
-  recordHistoryKind?: 'cuenta' | 'asiento' | 'documento';
+  recordHistoryKind?: 'cuenta' | 'asiento' | 'documento' | 'propio';
   /** Acciones de ícono por fila en Registros, antes del historial; la página las reemite en `recordActionTriggered`. */
   recordRowActions?: DocumentsRecordsRowAction[];
   /** Ruta del detalle de un registro: con ella, la fila entera de Registros abre esa página (salvo sus controles). */
@@ -135,6 +141,11 @@ export type DocumentsRecordsConfig = {
    * motor externo (p.ej. pedidos de contabilización).
    */
   modoConsulta?: boolean;
+  /**
+   * Flujo sin verificación ni aprobador (el creador autoriza en el formulario): sin acción principal en bloque y sin
+   * filtrar las filas por rol. A diferencia de `modoConsulta`, respeta `createDocumentOptions`.
+   */
+  flujoDirecto?: boolean;
   /**
    * Personaliza el "Historial del documento" de una fila: permite
    * aportar atributos propios y filas de historial pre-resueltas

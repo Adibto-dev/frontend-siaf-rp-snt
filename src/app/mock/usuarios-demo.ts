@@ -5,6 +5,7 @@ import type { PerfilItem } from '../core/api/auth-api.service';
  *
  * - Ana (creador) registra y verifica solicitudes.
  * - Luis (aprobador) aprueba, observa o rechaza lo verificado.
+ * - Rosa (creador autorizador) es la única que crea y autoriza documentos de autorización excepcional (RAUT).
  * - Carla tiene los dos perfiles: sirve para mostrar el cambio de perfil desde el menú del usuario.
  *
  * Son datos de ejemplo: no hay contraseñas reales ni se validan contra un servidor.
@@ -47,6 +48,12 @@ function perfil(id: string, rolCodigo: 'CREADOR' | 'APROBADOR', rol: string, per
   return { id, ...ENTIDAD, rol, rolCodigo, perfilFuncional };
 }
 
+/** Permisos del creador autorizador: los del creador más `authorization.create` (RAUT). */
+export const PERMISOS_CREADOR_AUTORIZADOR = [
+  'document.create', 'document.edit', 'document.delete', 'document.verify', 'document.read',
+  'chart_account.read', 'chart_account.create', 'authorization.create',
+];
+
 export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-ana',
@@ -82,6 +89,22 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
     perfiles: [
       perfil('perfil-carla-creador', 'CREADOR', 'Creador', 'Operador de cuentas bancarias'),
       perfil('perfil-carla-aprobador', 'APROBADOR', 'Aprobador', 'Aprobador de cuentas bancarias'),
+    ],
+  },
+  {
+    id: 'usr-rosa',
+    dni: '46153928',
+    email: 'rosa.quispe@taller.pe',
+    nombres: 'Rosa',
+    apellidoPaterno: 'Quispe',
+    apellidoMaterno: 'Huamán',
+    rol: 'Creador autorizador',
+    descripcion: 'Creador autorizador: crea y autoriza autorizaciones excepcionales',
+    perfiles: [
+      {
+        ...perfil('perfil-rosa-autorizador', 'CREADOR', 'Creador', 'Creador autorizador'),
+        permisos: PERMISOS_CREADOR_AUTORIZADOR,
+      },
     ],
   },
 ];

@@ -91,7 +91,7 @@ export const SALDOS_INICIALES_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   recordTrackKey: 'recordId',
   recordHistoryDocumentLabel: NOMBRE_DOCUMENTO,
   // El historial de un registro es el de la solicitud que lo creó.
-  recordHistoryKind: 'documento',
+  recordHistoryKind: 'propio',
   // Íconos del Figma antes del historial; el sustento es opcional, sin archivo queda deshabilitado.
   recordRowActions: [
     { id: ACCION_VER_SUSTENTO, icon: 'description', label: 'Ver documento de sustento', disabled: (row) => !row['sustento'] },

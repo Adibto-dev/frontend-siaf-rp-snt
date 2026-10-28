@@ -35,6 +35,8 @@ export type Permission =
   | 'document.reject'
   | 'document.annul'
   | 'document.read'
+  // Autorización excepcional (RAUT): crear y autorizar a la vez, solo perfiles con este permiso
+  | 'authorization.create'
   // Cuentas contables
   | 'chart_account.read'
   | 'chart_account.create'

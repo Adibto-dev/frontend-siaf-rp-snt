@@ -7,6 +7,7 @@ import type { SolicitudResponse } from '../core/api/solicitudes-api.service';
 import { APP_CONFIG } from '../core/config/app.config';
 import type { EstadoDocumento } from '../core/models/documento.model';
 import type { CuentaBancariaDatos } from '../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
+import { AutorizacionDatos, CODIGO_DOCUMENTO as CODIGO_AUTORIZACION, PERMISO_AUTORIZAR, PROCEDIMIENTOS, cuentaDeAutorizacion, errorVigencia, responsablePorUsuario } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { CODIGO_DOCUMENTO as CODIGO_SALDOS, SaldosInicialesDatos, calcularSaldo, cuentaPorNumero, entidadPorCodigo } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import {
   DatosTaller,
@@ -20,6 +21,7 @@ import {
   leerDatos,
   nuevoId,
   numeroDocumento,
+  registrarAutorizacion,
   registrarSaldos,
 } from './mock-db';
 import { CONTRASENA_DEMO, USUARIOS_DEMO, UsuarioDemo, buscarUsuarioPorPerfil } from './usuarios-demo';
@@ -150,6 +152,13 @@ const tiposDocumento: Manejador = () => ok([
     accionesPermitidas: [{ tipoAccion: 'creacion' }],
     proceso: { codigo: 'saldos-iniciales', nombre: 'Registro de saldos iniciales en libro bancos y libretas', modulo: 'tesoreria' },
   },
+  {
+    ...TIPOS_DOCUMENTO.find((t) => t.codigo === CODIGO_AUTORIZACION)!,
+    modulo: 'tesoreria',
+    esActivo: true,
+    accionesPermitidas: [{ tipoAccion: 'creacion' }, { tipoAccion: 'modificacion' }],
+    proceso: { codigo: 'autorizaciones', nombre: 'Documentos de autorización', modulo: 'tesoreria' },
+  },
 ]);
 
 // ─── Notificaciones ────────────────────────────────────────────────
@@ -249,6 +258,7 @@ const crearSolicitud: Manejador = ({ req, datos, sesion }) => {
   if (sesion.perfil.rolCodigo !== 'CREADOR') return error(403, 'Solo un creador puede registrar solicitudes.');
   const dto = (req.body ?? {}) as { tipoDocumentoId?: string; tipoAccion?: string; organoLinea?: string; justificacion?: string };
   const tipo = TIPOS_DOCUMENTO.find((t) => t.id === dto.tipoDocumentoId) ?? TIPO_DOCUMENTO;
+  if (tipo.codigo === CODIGO_AUTORIZACION && !puedeAutorizar(sesion)) return error(403, 'Su perfil no puede registrar autorizaciones excepcionales.');
   const ahora = new Date().toISOString();
   const id = nuevoId(datos, 'sol');
   const s: SolicitudResponse = {
@@ -323,6 +333,47 @@ const guardarSaldosIniciales: Manejador = ({ req, datos, params }) => {
   return ok({ message: 'Saldos guardados' });
 };
 
+/** Solo un perfil con `authorization.create` (creador autorizador) crea, graba y autoriza documentos RAUT. */
+const puedeAutorizar = (sesion: { perfil: { permisos?: string[] } } | null): boolean =>
+  !!sesion?.perfil.permisos?.includes(PERMISO_AUTORIZAR);
+
+const guardarAutorizacion: Manejador = ({ req, datos, params, sesion }) => {
+  const s = buscarSolicitud(datos, params[0]);
+  if (!s) return error(404, 'La solicitud no existe.');
+  if (s.catDocumento?.codigo !== CODIGO_AUTORIZACION) return error(409, 'La solicitud no es un documento de autorización.');
+  if (!puedeAutorizar(sesion)) return error(403, 'Su perfil no puede registrar autorizaciones excepcionales.');
+  if (!['NUEVO', 'ELABORADO'].includes(s.estado)) return error(409, 'La solicitud ya no admite cambios.');
+  const dto = req.body as AutorizacionDatos;
+  if (s.tipoAccion === 'modificacion') {
+    if (dto?.tipoModificacion !== 'vigencia') return error(400, 'Seleccione el tipo de modificación.');
+    const registro = datos.registrosAutorizacion.find((r) => r.id === dto.registroId);
+    if (!registro) return error(400, 'Seleccione la autorización a modificar.');
+    if (dto.estado === 'Activo') {
+      const problema = errorVigencia(dto.fechaDesde, dto.fechaHasta);
+      if (problema) return error(400, problema);
+    }
+    // La modificación de vigencia no cambia el procedimiento, el responsable ni la cuenta.
+    const activo = dto.estado === 'Activo';
+    s.detalleAutorizacion = {
+      documentoId: s.id, registroId: registro.id, tipoModificacion: 'vigencia',
+      procedimiento: registro.procedimiento, responsable: registro.responsable, cuentaBancaria: registro.cuentaBancaria,
+      estado: activo ? 'Activo' : 'Inactivo', fechaDesde: activo ? dto.fechaDesde : null, fechaHasta: activo ? dto.fechaHasta : null,
+    };
+  } else {
+    if (!PROCEDIMIENTOS.some((p) => p.value === dto?.procedimiento)) return error(400, 'Seleccione el procedimiento.');
+    if (!responsablePorUsuario(dto.responsable)) return error(400, 'Seleccione el responsable.');
+    if (!cuentaDeAutorizacion(dto.cuentaBancaria)) return error(400, 'Seleccione la cuenta bancaria.');
+    const problema = errorVigencia(dto.fechaDesde, dto.fechaHasta);
+    if (problema) return error(400, problema);
+    const repetida = datos.registrosAutorizacion.some((r) => r.estado === 'Activo' && r.procedimiento === dto.procedimiento && r.cuentaBancaria === dto.cuentaBancaria && r.responsable === dto.responsable);
+    if (repetida) return error(400, 'El responsable ya tiene esa autorización activa.');
+    s.detalleAutorizacion = { documentoId: s.id, ...dto, estado: 'Activo', registroId: null, tipoModificacion: null };
+  }
+  s.updatedAt = new Date().toISOString();
+  guardarDatos(datos);
+  return ok({ message: 'Autorización guardada' });
+};
+
 const subirSustento: Manejador = ({ req, datos, params }) => {
   const s = buscarSolicitud(datos, params[0]);
   if (!s) return error(404, 'La solicitud no existe.');
@@ -370,6 +421,12 @@ const TRANSICIONES: Record<'CREADOR' | 'APROBADOR', Partial<Record<EstadoDocumen
   },
 };
 
+/** RAUT: el creador autorizador graba (ELABORADO) o autoriza directo (APROBADO); sin verificar ni aprobador. */
+const TRANSICIONES_AUTORIZACION: Partial<Record<EstadoDocumento, EstadoDocumento[]>> = {
+  NUEVO: ['ELABORADO', 'APROBADO'],
+  ELABORADO: ['ELABORADO', 'APROBADO', 'ELIMINADO'],
+};
+
 const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
   if (!sesion) return error(401, 'Sesión expirada.');
   const s = buscarSolicitud(datos, params[0]);
@@ -377,7 +434,9 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
   const dto = (req.body ?? {}) as { estadoNuevo?: EstadoDocumento; comentario?: string; motivo?: string };
   const nuevo = dto.estadoNuevo;
   const rol = sesion.perfil.rolCodigo as 'CREADOR' | 'APROBADOR';
-  const permitidos = TRANSICIONES[rol]?.[s.estado] ?? [];
+  const esAutorizacion = s.catDocumento?.codigo === CODIGO_AUTORIZACION;
+  if (esAutorizacion && !puedeAutorizar(sesion)) return error(403, 'Su perfil no puede registrar autorizaciones excepcionales.');
+  const permitidos = (esAutorizacion ? TRANSICIONES_AUTORIZACION : TRANSICIONES[rol])?.[s.estado] ?? [];
   if (!nuevo || !permitidos.includes(nuevo)) {
     return error(409, `No se puede pasar de ${s.estado} a ${nuevo ?? '—'} con el perfil ${sesion.perfil.rol}.`);
   }
@@ -386,7 +445,10 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
   if (nuevo === 'ELIMINADO' && (s.historialEstados ?? []).some((h) => h.estadoNuevo === 'OBSERVADO')) {
     return error(409, 'No se puede eliminar una solicitud que fue observada.');
   }
-  if (nuevo === 'ELABORADO') {
+  if (esAutorizacion && (nuevo === 'ELABORADO' || nuevo === 'APROBADO')) {
+    // Sin sustento: basta con los datos de la autorización.
+    if (!s.detalleAutorizacion) return error(400, 'Registre los datos de la autorización.');
+  } else if (nuevo === 'ELABORADO') {
     if (s.catDocumento?.codigo === CODIGO_SALDOS) {
       // En saldos iniciales el sustento es opcional.
       if (!s.detalleSaldosIniciales?.saldos.length) return error(400, 'Agregue al menos un saldo inicial.');
@@ -398,7 +460,7 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
 
   const ahora = new Date().toISOString();
   const anterior = s.estado;
-  if (nuevo === 'ELABORADO' && !s.numero) {
+  if ((nuevo === 'ELABORADO' || nuevo === 'APROBADO') && !s.numero) {
     s.numero = numeroDocumento(datos, s.catDocumento?.codigo ?? TIPO_DOCUMENTO.codigo, new Date());
   }
   // Volver a grabar un ELABORADO no deja fila en el historial.
@@ -429,6 +491,8 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
 
   // Al aprobar saldos iniciales, cada saldo recibe su secuencia y pasa a los registros.
   if (nuevo === 'APROBADO') registrarSaldos(datos, s, ahora);
+  // Al aprobar una autorización, se crea o se modifica su registro.
+  if (nuevo === 'APROBADO') registrarAutorizacion(datos, s, ahora);
 
   notificar(datos, s, nuevo, comentario || null);
   guardarDatos(datos);
@@ -442,6 +506,9 @@ const registrosCuentas: Manejador = ({ datos, sesion }) =>
 
 const registrosSaldos: Manejador = ({ datos, sesion }) =>
   ok(datos.registrosSaldos.filter((r) => !sesion || r.entidadSiglas === sesion.perfil.entidadSiglas));
+
+const registrosAutorizacion: Manejador = ({ datos, sesion }) =>
+  ok(datos.registrosAutorizacion.filter((r) => !sesion || r.entidadSiglas === sesion.perfil.entidadSiglas));
 
 // ─── Enrutador ─────────────────────────────────────────────────────
 
@@ -466,6 +533,8 @@ const RUTAS: [string, RegExp, Manejador][] = [
   ['PATCH', /^\/solicitudes\/([^/]+)\/estado$/, cambiarEstado],
   ['POST', /^\/solicitudes\/([^/]+)\/cuenta-bancaria$/, guardarCuentaBancaria],
   ['POST', /^\/solicitudes\/([^/]+)\/saldos-iniciales$/, guardarSaldosIniciales],
+  ['POST', /^\/solicitudes\/([^/]+)\/autorizacion$/, guardarAutorizacion],
+  ['GET', /^\/autorizaciones$/, registrosAutorizacion],
   ['POST', /^\/solicitudes\/([^/]+)\/sustentos$/, subirSustento],
   ['GET', /^\/solicitudes\/([^/]+)\/sustentos$/, listarSustentos],
   ['DELETE', /^\/solicitudes\/([^/]+)\/sustentos\/([^/]+)$/, eliminarSustento],

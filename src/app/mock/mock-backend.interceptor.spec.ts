@@ -7,6 +7,7 @@ import type { LoginResponse } from '../core/api/auth-api.service';
 import type { SolicitudResponse } from '../core/api/solicitudes-api.service';
 import type { CuentaBancariaDatos, CuentaBancariaRegistro } from '../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
 import type { SaldoInicialRegistro, SaldosInicialesDatos } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
+import type { AutorizacionRegistro } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
 import { reiniciarDatosDemo } from './mock-db';
 import { CONTRASENA_DEMO } from './usuarios-demo';
@@ -182,6 +183,64 @@ describe('mockBackendInterceptor', () => {
         expect(suyo.length).toBe(s.estado === 'APROBADO' ? 1 : 0);
         if (suyo[0]) expect(suyo[0].movimiento).toBe('ASC002 - Ajuste del Saldo Inicial');
       }
+    }));
+  });
+
+  describe('documentos de autorización (RAUT)', () => {
+    const ROSA = '46153928';
+
+    function crearRaut(headers: HttpHeaders, tipoAccion: string): { id?: string; status?: number } {
+      const tipos = esperar(http.get<{ id: string; codigo: string; accionesPermitidas: { tipoAccion: string }[] }[]>(`${API}/tipos-documento`, { headers })).valor!;
+      const tipo = tipos.find((t) => t.codigo === 'RAUT')!;
+      expect(tipo.accionesPermitidas.map((a) => a.tipoAccion)).toEqual(['creacion', 'modificacion']);
+      const r = esperar(http.post<SolicitudResponse>(`${API}/solicitudes`, { tipoDocumentoId: tipo.id, tipoAccion }, { headers }));
+      return { id: r.valor?.id, status: r.error?.status };
+    }
+
+    const estado = (headers: HttpHeaders, id: string, estadoNuevo: string) =>
+      esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo }, { headers }));
+
+    it('solo el creador autorizador crea documentos RAUT', fakeAsync(() => {
+      expect(crearRaut(entrar('45872163'), 'creacion').status).toBe(403);
+      expect(crearRaut(entrar(ROSA), 'creacion').id).toBeTruthy();
+    }));
+
+    it('la vigencia exige ambas fechas y hasta ≥ desde', fakeAsync(() => {
+      const rosa = entrar(ROSA);
+      const id = crearRaut(rosa, 'creacion').id!;
+      const base = { procedimiento: 'ajuste-saldo', responsable: 'RU21657', cuentaBancaria: '19300456712000000002', estado: 'Activo' };
+      const guardar = (extra: object) => esperar(http.post(`${API}/solicitudes/${id}/autorizacion`, { ...base, ...extra }, { headers: rosa }));
+      expect(guardar({ fechaDesde: '2026-11-01', fechaHasta: null }).error?.status).toBe(400);
+      expect(guardar({ fechaDesde: '2026-11-10', fechaHasta: '2026-11-01' }).error?.status).toBe(400);
+      expect(guardar({ fechaDesde: '2026-11-01', fechaHasta: '2026-12-31' }).error).toBeUndefined();
+    }));
+
+    it('Grabar deja ELABORADO; Autorizar pasa a APROBADO sin sustento ni aprobador; la modificación de vigencia NO deja el registro Inactivo', fakeAsync(() => {
+      const rosa = entrar(ROSA);
+      const registros = () => esperar(http.get<AutorizacionRegistro[]>(`${API}/autorizaciones`, { headers: rosa })).valor!;
+      const antes = registros().length;
+
+      const creacion = crearRaut(rosa, 'creacion').id!;
+      const datos = { procedimiento: 'ajuste-saldo', responsable: 'RU21657', cuentaBancaria: '19300456712000000002', estado: 'Activo', fechaDesde: '2026-11-01', fechaHasta: '2026-12-31' };
+      expect(esperar(http.post(`${API}/solicitudes/${creacion}/autorizacion`, datos, { headers: rosa })).error).toBeUndefined();
+      expect(estado(rosa, creacion, 'ELABORADO').error).toBeUndefined();
+      // Otro creador no puede autorizarlo.
+      expect(estado(entrar('45872163'), creacion, 'APROBADO').error?.status).toBe(403);
+      expect(estado(rosa, creacion, 'APROBADO').error).toBeUndefined();
+      const nueva = registros().find((r) => r.documentoId === creacion)!;
+      expect(registros().length).toBe(antes + 1);
+      expect([nueva.estado, nueva.fechaDesde, nueva.fechaHasta]).toEqual(['Activo', '2026-11-01', '2026-12-31']);
+
+      // Modificación autorizada directo desde NUEVO.
+      const modificacion = crearRaut(rosa, 'modificacion').id!;
+      const vigenciaNo = { ...datos, estado: 'Inactivo', fechaDesde: null, fechaHasta: null, registroId: nueva.id, tipoModificacion: 'vigencia' };
+      expect(esperar(http.post(`${API}/solicitudes/${modificacion}/autorizacion`, vigenciaNo, { headers: rosa })).error).toBeUndefined();
+      expect(estado(rosa, modificacion, 'APROBADO').error).toBeUndefined();
+
+      const modificada = registros().find((r) => r.id === nueva.id)!;
+      expect(registros().length).toBe(antes + 1);
+      expect([modificada.estado, modificada.fechaDesde, modificada.documentoId]).toEqual(['Inactivo', null, modificacion]);
+      expect(modificada.documentos.map((d) => d.tipoAccion)).toEqual(['creacion', 'modificacion']);
     }));
   });
 

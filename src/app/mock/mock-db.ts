@@ -22,6 +22,13 @@ import {
   cuentasRegistroDe,
   redondear,
 } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
+import {
+  AutorizacionDatos,
+  AutorizacionRegistro,
+  CODIGO_DOCUMENTO as CODIGO_AUTORIZACION,
+  NOMBRE_DOCUMENTO as NOMBRE_AUTORIZACION,
+  TipoAccionAutorizacion,
+} from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
 
 /**
@@ -30,7 +37,7 @@ import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 8;
+const VERSION = 10;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -44,6 +51,8 @@ export interface DatosTaller {
   registros: CuentaBancariaRegistro[];
   /** Saldos iniciales aprobados (documentos RSIN). */
   registrosSaldos: SaldoInicialRegistro[];
+  /** Autorizaciones aprobadas (documentos RAUT). */
+  registrosAutorizacion: AutorizacionRegistro[];
   notificaciones: NotificacionMock[];
   /** Correlativo del número de documento, por código de documento (RTCR, RSIN). */
   correlativos: Record<string, number>;
@@ -57,7 +66,8 @@ export const TIPO_DOCUMENTO = { id: 'td-rtcr', codigo: CODIGO_DOCUMENTO, nombre:
 export const TIPO_SALDOS = { id: 'td-rsin', codigo: CODIGO_SALDOS, nombre: NOMBRE_SALDOS };
 /** Registro automático de saldos de apertura: lo crea el sistema; no aparece en «Crear documento». */
 export const TIPO_AUTOMATICO = { id: 'td-rasa', codigo: CODIGO_AUTOMATICO, nombre: NOMBRE_AUTOMATICO };
-export const TIPOS_DOCUMENTO = [TIPO_DOCUMENTO, TIPO_SALDOS, TIPO_AUTOMATICO];
+export const TIPO_AUTORIZACION = { id: 'td-raut', codigo: CODIGO_AUTORIZACION, nombre: NOMBRE_AUTORIZACION };
+export const TIPOS_DOCUMENTO = [TIPO_DOCUMENTO, TIPO_SALDOS, TIPO_AUTOMATICO, TIPO_AUTORIZACION];
 export const ENTIDAD_CREADORA = { id: 'ent-mef', codMef: '0001', siglas: 'MEF', nombre: 'Ministerio de Economía y Finanzas' };
 export const UNIDAD_CREADORA = { id: 'uo-oga', sigla: 'OGA', nombre: 'Oficina General de Administración' };
 
@@ -122,6 +132,42 @@ export function registrarSaldos(datos: DatosTaller, s: SolicitudResponse, fecha:
       automatico,
     });
   }
+}
+
+/**
+ * Al aprobar un RAUT: la creación agrega la autorización a los registros; la modificación cambia el responsable o el
+ * estado de la autorización elegida. En los dos casos el documento se suma al historial del registro.
+ */
+export function registrarAutorizacion(datos: DatosTaller, s: SolicitudResponse, fecha: string): void {
+  const d = s.detalleAutorizacion;
+  if (!d || datos.registrosAutorizacion.some((r) => r.documentos.some((x) => x.documentoId === s.id))) return;
+  const documento = { documentoId: s.id, numero: s.numero ?? '', tipoAccion: (s.tipoAccion === 'modificacion' ? 'modificacion' : 'creacion') as TipoAccionAutorizacion, fecha };
+  const existente = d.registroId ? datos.registrosAutorizacion.find((r) => r.id === d.registroId) : undefined;
+  if (documento.tipoAccion === 'modificacion' && existente) {
+    // La modificación es de vigencia: cambia el estado y las fechas.
+    existente.estado = d.estado;
+    existente.fechaDesde = d.estado === 'Activo' ? d.fechaDesde : null;
+    existente.fechaHasta = d.estado === 'Activo' ? d.fechaHasta : null;
+    existente.documentoId = s.id;
+    existente.numeroDocumento = documento.numero;
+    existente.fechaRegistro = fecha;
+    existente.documentos.push(documento);
+    return;
+  }
+  datos.registrosAutorizacion.push({
+    id: nuevoId(datos, 'aut'),
+    procedimiento: d.procedimiento,
+    responsable: d.responsable,
+    cuentaBancaria: d.cuentaBancaria,
+    estado: 'Activo',
+    fechaDesde: d.fechaDesde,
+    fechaHasta: d.fechaHasta,
+    entidadSiglas: s.entidadCreadora?.siglas ?? '',
+    documentoId: s.id,
+    numeroDocumento: documento.numero,
+    fechaRegistro: fecha,
+    documentos: [documento],
+  });
 }
 
 export function filaHistorial(
@@ -199,6 +245,7 @@ function crearDatosIniciales(): DatosTaller {
     solicitudes: [],
     registros: [],
     registrosSaldos: [],
+    registrosAutorizacion: [],
     notificaciones: [],
     correlativos: {},
     secuenciaSaldo: 0,
@@ -267,6 +314,7 @@ function crearDatosIniciales(): DatosTaller {
 
   crearSaldosIniciales(datos);
   crearAjustesSaldo(datos);
+  crearAutorizaciones(datos);
   crearSaldosApertura(datos);
 
   // Notificaciones: el aprobador tiene una solicitud por aprobar; el creador, una observada y otras ya leídas.
@@ -432,6 +480,84 @@ function crearAjustesSaldo(datos: DatosTaller): void {
     };
     datos.solicitudes.push(solicitud);
     if (semilla.estado === 'APROBADO') registrarSaldos(datos, solicitud, ultima);
+  }
+}
+
+// ─── Documentos de autorización (RAUT) ─────────────────────────────
+
+interface SemillaAutorizacion {
+  creada: string;
+  /** El creador autorizador graba (ELABORADO) o autoriza (APROBADO): no hay verificación ni aprobador. */
+  estado: 'ELABORADO' | 'APROBADO';
+  tipoAccion: TipoAccionAutorizacion;
+  /** En una creación, la autorización; en una modificación, el procedimiento y la cuenta del registro y la vigencia nueva. */
+  datos: Omit<AutorizacionDatos, 'registroId' | 'tipoModificacion'>;
+  justificacion: string;
+}
+
+const SEMILLAS_AUTORIZACION: SemillaAutorizacion[] = [
+  { creada: '2026-02-03', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la cuenta en dólares del BCRP.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21568', cuentaBancaria: '12073303572000000003', estado: 'Activo', fechaDesde: '2026-02-03', fechaHasta: '2026-12-31' } },
+  { creada: '2026-02-05', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de recursos ordinarios.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21574', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: '2026-02-05', fechaHasta: '2026-06-30' } },
+  { creada: '2026-03-02', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para ajustar el saldo inicial de la cuenta en dólares del BCRP.',
+    datos: { procedimiento: 'ajuste-saldo', responsable: 'RU21603', cuentaBancaria: '12073303572000000003', estado: 'Activo', fechaDesde: '2026-03-02', fechaHasta: '2026-12-31' } },
+  { creada: '2026-04-14', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la Cuenta Única del Tesoro.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21619', cuentaBancaria: '00000281794000000005', estado: 'Activo', fechaDesde: '2026-04-14', fechaHasta: '2026-12-31' } },
+  { creada: '2026-04-20', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para ajustar el saldo inicial de la Cuenta Única del Tesoro.',
+    datos: { procedimiento: 'ajuste-saldo', responsable: 'RU21642', cuentaBancaria: '00000281794000000005', estado: 'Activo', fechaDesde: '2026-04-20', fechaHasta: '2026-09-30' } },
+  { creada: '2026-06-29', estado: 'APROBADO', tipoAccion: 'modificacion', justificacion: 'Se amplía la vigencia hasta el cierre del ejercicio.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21574', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: '2026-07-01', fechaHasta: '2026-12-31' } },
+  { creada: '2026-08-18', estado: 'APROBADO', tipoAccion: 'modificacion', justificacion: 'Se desactiva la autorización: la cuenta pasó a otra unidad ejecutora.',
+    datos: { procedimiento: 'ajuste-saldo', responsable: 'RU21642', cuentaBancaria: '00000281794000000005', estado: 'Inactivo', fechaDesde: null, fechaHasta: null } },
+  { creada: '2026-09-22', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la cuenta de recaudación del BCP.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21657', cuentaBancaria: '19300456712000000002', estado: 'Activo', fechaDesde: '2026-09-22', fechaHasta: '2027-03-31' } },
+  { creada: '2026-10-06', estado: 'ELABORADO', tipoAccion: 'modificacion', justificacion: 'Se acorta la vigencia del ajuste de saldo inicial.',
+    datos: { procedimiento: 'ajuste-saldo', responsable: 'RU21603', cuentaBancaria: '12073303572000000003', estado: 'Activo', fechaDesde: '2026-10-06', fechaHasta: '2026-11-30' } },
+  { creada: '2026-10-21', estado: 'ELABORADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la cuenta de garantías.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21568', cuentaBancaria: '01100586230200000007', estado: 'Activo', fechaDesde: '2026-11-01', fechaHasta: '2026-12-31' } },
+];
+
+function crearAutorizaciones(datos: DatosTaller): void {
+  const rosa = USUARIOS_DEMO.find((u) => u.id === 'usr-rosa') ?? USUARIOS_DEMO[0];
+  for (const semilla of SEMILLAS_AUTORIZACION) {
+    const id = nuevoId(datos, 'sol');
+    const creada = enFecha(semilla.creada, 9);
+    const historial: HistorialItem[] = [
+      filaHistorial(datos, null, 'NUEVO', creada, rosa, ROL_CREADOR),
+      filaHistorial(datos, 'NUEVO', semilla.estado, enFecha(semilla.creada, 10), rosa, ROL_CREADOR),
+    ];
+    const ultima = historial[historial.length - 1].createdAt;
+    // La modificación apunta a la autorización registrada del mismo procedimiento y cuenta.
+    const registro = semilla.tipoAccion === 'modificacion'
+      ? datos.registrosAutorizacion.find((r) => r.procedimiento === semilla.datos.procedimiento && r.cuentaBancaria === semilla.datos.cuentaBancaria)
+      : undefined;
+    const solicitud: SolicitudResponse = {
+      id,
+      numero: numeroDocumento(datos, CODIGO_AUTORIZACION, new Date(creada)),
+      catDocumento: TIPO_AUTORIZACION,
+      tipoAccion: semilla.tipoAccion,
+      estado: semilla.estado,
+      asuntoMotivo: `[OFICINA GENERAL DE ADMINISTRACIÓN] ${semilla.justificacion}`,
+      entidadCreadora: ENTIDAD_CREADORA,
+      unidadCreadora: UNIDAD_CREADORA,
+      creador: { id: rosa.id, nombres: rosa.nombres, apellidoPaterno: rosa.apellidoPaterno, apellidoMaterno: rosa.apellidoMaterno },
+      fechaRegistro: creada,
+      createdAt: creada,
+      updatedAt: ultima,
+      itemsCuenta: [],
+      detalleAutorizacion: {
+        documentoId: id,
+        ...semilla.datos,
+        responsable: registro?.responsable ?? semilla.datos.responsable,
+        registroId: registro?.id ?? null,
+        tipoModificacion: semilla.tipoAccion === 'modificacion' ? 'vigencia' : null,
+      },
+      sustentos: [],
+      historialEstados: historial,
+    };
+    datos.solicitudes.push(solicitud);
+    if (semilla.estado === 'APROBADO') registrarAutorizacion(datos, solicitud, ultima);
   }
 }
 

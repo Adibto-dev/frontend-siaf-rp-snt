@@ -13,6 +13,7 @@ import { PaginationComponent } from '../../components/pagination/pagination.comp
 import { RecordsSearchToolbarComponent } from '../../components/records-search-toolbar/records-search-toolbar.component';
 import { RecordsTabItem, RecordsTabsComponent } from '../../components/records-tabs/records-tabs.component';
 import { TableControlsComponent } from '../../components/table-controls/table-controls.component';
+import { ACCION_HISTORIAL_REGISTRO } from '../../types/documents-records.types';
 import type { DocumentsQuery, DocumentsRecordsColumn, DocumentsRecordsConfig, DocumentsRecordsRow, DocumentsRecordsRowActionEvent, DocumentsRecordsTab } from '../../types/documents-records.types';
 import { AccountHistoryPanelComponent } from '../account-history-panel/account-history-panel.component';
 import { AsientoHistoryPanelComponent } from '../asiento-history-panel/asiento-history-panel.component';
@@ -428,6 +429,11 @@ export class DocumentsRecordsPageComponent implements OnChanges {
         createDocumentOptions: [],
         accionPrincipal: undefined,
       };
+    }
+    // Flujo directo (p.ej. autorización excepcional): sin verificar/aprobar en bloque ni filtro por rol; el proceso
+    // decide quién ve «Crear documento».
+    if (this.config.flujoDirecto) {
+      return { ...this.config, accionPrincipal: undefined };
     }
 
     const roleMode = this.documentsRecordsRoleMode;
@@ -1151,6 +1157,12 @@ export class DocumentsRecordsPageComponent implements OnChanges {
 
   openHistory(row: DocumentsRecordsRow): void {
     this.closeToolbarMenus();
+
+    // Con `recordHistoryKind: 'propio'` el proceso abre su propio historial.
+    if (this.activeTab === 'records' && this.effectiveConfig.recordHistoryKind === 'propio') {
+      this.recordActionTriggered.emit({ actionId: ACCION_HISTORIAL_REGISTRO, row });
+      return;
+    }
 
     // Con `recordHistoryKind: 'documento'`, el historial de un registro es el de la solicitud que lo creó (su `linkRoute`).
     if (this.activeTab === 'records' && this.effectiveConfig.recordHistoryKind !== 'documento') {
