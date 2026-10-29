@@ -152,6 +152,8 @@ export const formatoFecha = (iso: string): string => (iso ? iso.split('-').rever
 export interface ImporteLibreta {
   idCorrelativo: string;
   importe: number;
+  /** Solo en un ajuste: cada libreta suma (crédito) o resta (débito). */
+  naturaleza?: NaturalezaAjuste;
 }
 
 /** Un saldo inicial en libro bancos: una cuenta bancaria con los importes de sus libretas. */
@@ -177,6 +179,52 @@ export interface SaldoInicial {
 export interface SaldosInicialesDatos {
   entidadFinanciera: string;
   saldos: SaldoInicial[];
+}
+
+/** El saldo registrado que se ajusta. */
+export interface SaldoReferencia {
+  secuencia?: string | null;
+  importeCuenta: number;
+  libretas: ImporteLibreta[];
+}
+
+/** Importe y naturaleza escritos en una libreta del ajuste. */
+export interface MovimientoAjuste {
+  importe: number;
+  naturaleza: NaturalezaAjuste;
+}
+
+/** Libreta con su importe firmado: el débito resta. */
+export const importeFirmado = (l: { importe: number; naturaleza?: NaturalezaAjuste }): number => (l.naturaleza === 'Débito' ? -l.importe : l.importe);
+
+/**
+ * Arma un ajuste de saldo inicial: cada libreta tiene su naturaleza; el ajuste guarda el resultado neto (importe
+ * positivo y naturaleza Crédito si suma, Débito si resta).
+ */
+export function calcularAjuste(id: string, fechaOperacion: string, numeroCuenta: string, movimientos: Record<string, MovimientoAjuste>, referencia: SaldoReferencia): SaldoInicial {
+  const moneda = cuentaPorNumero(numeroCuenta)?.moneda ?? 'PEN';
+  const cambio = tipoCambio(moneda, fechaOperacion);
+  const libretas: ImporteLibreta[] = cuentasRegistroDe(numeroCuenta)
+    .map((c) => ({ idCorrelativo: c.idCorrelativo, importe: redondear(movimientos[c.idCorrelativo]?.importe ?? 0), naturaleza: movimientos[c.idCorrelativo]?.naturaleza ?? 'Crédito' }))
+    .filter((l) => l.importe > 0);
+  const neto = redondear(libretas.reduce((total, l) => total + importeFirmado(l), 0));
+  const importeCuenta = Math.abs(neto);
+  return {
+    id,
+    fechaOperacion,
+    cuentaBancaria: numeroCuenta,
+    moneda,
+    tipoCambio: cambio,
+    libretas,
+    importeCuenta,
+    importeNacional: redondear(importeCuenta * cambio),
+    ajuste: {
+      naturaleza: neto < 0 ? 'Débito' : 'Crédito',
+      secuenciaReferencia: referencia.secuencia ?? '',
+      saldoInicial: redondear(referencia.importeCuenta),
+      libretasIniciales: referencia.libretas.map((l) => ({ idCorrelativo: l.idCorrelativo, importe: l.importe })),
+    },
+  };
 }
 
 /** Un saldo aprobado: la pestaña Registros. */

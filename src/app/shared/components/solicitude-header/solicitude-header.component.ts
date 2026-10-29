@@ -63,17 +63,16 @@ const CREATOR_HEADER_CONFIG: Partial<Record<SolicitudeHeaderState, SolicitudeHea
     showVerify: true
   },
   edit: {
-    // En modo edición solo se muestran Cancelar y Grabar.
-    // Verificar aparece únicamente en el estado ELABORADO de solo lectura,
-    // una vez que el usuario haya grabado los cambios.
+    // En modo edición: Cancelar, Grabar y el botón primario (Verificar, o el que nombre `verifyLabel`). El primario
+    // graba los cambios pendientes y continúa; Grabar queda secundario.
     type: 'actions',
     showTag: true,
     tagLabel: 'Edición',
     tagTone: 'info',
-    saveVariant: 'accent',
+    saveVariant: 'secondary',
     showDelete: false,
     showEdit: false,
-    showVerify: false
+    showVerify: true
   },
   elaborated: {
     type: 'readonly',

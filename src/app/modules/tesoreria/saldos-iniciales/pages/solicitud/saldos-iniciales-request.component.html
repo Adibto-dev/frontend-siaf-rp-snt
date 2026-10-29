@@ -8,7 +8,7 @@
     secondaryText="Creación"
     [showReturn]="true"
     [saveDisabled]="!formValido() || saving()"
-    [verifyDisabled]="!puedeVerificar() || cargando()"
+    [verifyDisabled]="verificarDeshabilitado()"
     (returned)="regresar()"
     (canceled)="regresar()"
     (saved)="modalGrabar.set(true)"
@@ -28,6 +28,10 @@
         </div>
       </div>
     } @else {
+      <!-- Condición de vigencia del ajuste, arriba de la información del documento (Figma 24007:230045). -->
+      @if (esAjuste() && mensajeVigencia()) {
+        <siaf-alert tone="info" title="Condición de vigencia" [description]="mensajeVigencia()" />
+      }
       @if (elaborado()) {
         <section class="grid gap-siaf-md lg:grid-cols-[1fr_360px]">
           <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
@@ -37,17 +41,24 @@
         <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
       }
 
-      <!-- ── Tipo de operación del saldo (fijo) ── -->
+      <!-- ── Tipo de operación del saldo: con una autorización vigente se puede elegir el ajuste (Figma 24007:230045) ── -->
       <siaf-solicitude-form-card title="Tipo de operación del saldo">
         <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-          <siaf-input label="Tipo de operación del saldo" [value]="tipoOperacion" [disabled]="true" />
+          @if (tipoOperacionEditable()) {
+            <siaf-input label="Tipo de operación del saldo" type="select" [options]="opcionesTipoOperacion" [value]="tipoOperacionSel()" (valueChange)="cambiarTipoOperacion($event)" />
+          } @else {
+            <siaf-input label="Tipo de operación del saldo" [value]="tipoOperacionSel()" [disabled]="true" />
+          }
           <siaf-input label="Periodo" [value]="periodo" [disabled]="true" />
+          @if (esAjuste() && tipoOperacionEditable() && opcionesCuentaAjuste().length > 1) {
+            <siaf-input label="Cuenta bancaria autorizada" type="select" [options]="opcionesCuentaAjuste()" [value]="cuentaAjuste() ?? ''" (valueChange)="elegirCuentaAjuste($event)" />
+          }
         </div>
       </siaf-solicitude-form-card>
 
       <!-- ── Movimiento interno (fijo) ── -->
       <siaf-solicitude-form-card title="Movimiento interno">
-        <siaf-summary-card [fields]="camposMovimiento" [bordered]="true" [showClose]="false" />
+        <siaf-summary-card [fields]="esAjuste() ? camposMovimientoAjuste : camposMovimiento" [bordered]="true" [showClose]="false" />
       </siaf-solicitude-form-card>
 
       <!-- ── Entidad financiera ── -->
@@ -56,14 +67,14 @@
           <section class="grid gap-siaf-md">
             <div class="flex min-h-10 items-center justify-between gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Entidad financiera</h3>
-              @if (!soloLectura()) {
+              @if (!soloLectura() && !esAjuste()) {
                 <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Cambiar entidad financiera" (click)="abrirPanelEntidad()" />
               }
             </div>
             <siaf-summary-card
               [fields]="camposEntidadFinanciera()"
               [bordered]="true"
-              [showClose]="!soloLectura()"
+              [showClose]="!soloLectura() && !esAjuste()"
               [closeLabel]="'Quitar entidad financiera ' + e.sigla"
               (closed)="quitarEntidad()"
             />
@@ -73,8 +84,105 @@
         }
       </siaf-solicitude-form-card>
 
+      <!-- ── Ajuste: saldo inicial registrado de la cuenta autorizada (el formulario del ajuste llegará con su diseño) ── -->
+      @if (esAjuste() && !editorAbierto()) {
+        <siaf-solicitude-form-card title="Ajuste saldo inicial libro bancos">
+          <section class="grid gap-siaf-md">
+            @if (!soloLectura()) {
+              <siaf-table-controls
+                selectAllLabel="Seleccionar el saldo a ajustar"
+                [checked]="ajusteSeleccionado()"
+                [selectedCount]="ajusteSeleccionado() ? 1 : 0"
+                [showEditAction]="true"
+                [editDisabled]="!ajusteSeleccionado()"
+                editLabel="Ajustar Saldo inicial"
+                (edit)="ajustarSaldo()"
+                (selectionChange)="ajusteSeleccionado.set($event)"
+              />
+            }
+            <div class="siaf-table-shell">
+              <table class="siaf-table min-w-[1100px]">
+                <caption class="sr-only">Ajuste de saldo inicial libro bancos</caption>
+                <thead>
+                  <tr class="siaf-table-head-row">
+                    @if (!soloLectura()) {
+                      <th class="siaf-table-th w-12" rowspan="2"><span class="sr-only">Seleccionar</span></th>
+                    }
+                    <th class="siaf-table-th w-[120px]" rowspan="2">F. operación</th>
+                    <th class="siaf-table-th w-[100px]" rowspan="2">Sec. ref.</th>
+                    <th class="siaf-table-th text-center" colspan="2">Cuenta bancaria</th>
+                    <th class="siaf-table-th text-center" colspan="2">Libro bancos</th>
+                    <th class="siaf-table-th text-center" colspan="2">Saldo</th>
+                    <th class="siaf-table-th w-[96px]" rowspan="2"><span class="sr-only">Acciones</span></th>
+                  </tr>
+                  <tr class="siaf-table-head-row">
+                    <th class="siaf-table-th">Número</th>
+                    <th class="siaf-table-th w-[90px]">Moneda</th>
+                    <th class="siaf-table-th w-[150px] text-right">Imp. M. cuenta</th>
+                    <th class="siaf-table-th w-[150px] text-right">Imp. M. nacional</th>
+                    <th class="siaf-table-th w-[140px] text-right">Inicial</th>
+                    <th class="siaf-table-th w-[140px] text-right">Act.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (fila of filasAjuste(); track fila.id) {
+                    <tr class="siaf-table-row">
+                      @if (!soloLectura()) {
+                        <td class="siaf-table-td">
+                          <siaf-checkbox
+                            [label]="''"
+                            [checked]="ajusteSeleccionado()"
+                            [attr.aria-label]="'Seleccionar saldo de la cuenta ' + fila.cuentaBancaria"
+                            (checkedChange)="ajusteSeleccionado.set($event)"
+                          />
+                        </td>
+                      }
+                      <td class="siaf-table-td">{{ formatoFecha(fila.fechaOperacion) }}</td>
+                      <td class="siaf-table-td">{{ fila.secuenciaReferencia || '-' }}</td>
+                      <td class="siaf-table-td">{{ fila.cuentaBancaria }}</td>
+                      <td class="siaf-table-td">{{ fila.moneda }}</td>
+                      <td class="siaf-table-td text-right">{{ formatoImporte(fila.importeCuenta) }}</td>
+                      <td class="siaf-table-td text-right">{{ formatoImporte(fila.importeNacional) }}</td>
+                      <td class="siaf-table-td text-right">{{ formatoImporte(fila.saldoInicial) }}</td>
+                      <td class="siaf-table-td text-right">{{ formatoImporte(fila.saldoActual) }}</td>
+                      <td class="siaf-table-td">
+                        <div class="flex items-center justify-end gap-siaf-xxs">
+                          <siaf-button
+                            variant="text"
+                            size="sm"
+                            icon="description"
+                            [iconOnly]="true"
+                            [ariaLabel]="'Ver documento de sustento de ' + fila.cuentaBancaria"
+                            [siafTooltip]="'Ver documento de sustento'"
+                            [disabled]="!fila.sustento"
+                          />
+                          <siaf-button
+                            variant="text"
+                            size="sm"
+                            icon="table_view"
+                            [iconOnly]="true"
+                            [ariaLabel]="'Ver cuentas de registro de ' + fila.cuentaBancaria"
+                            [siafTooltip]="'Ver cuentas de registro'"
+                            [disabled]="!ajusteHecho()"
+                            (click)="ajusteHecho() && verLibretas(ajusteHecho()!)"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr class="siaf-table-row">
+                      <td class="siaf-table-td text-center" [attr.colspan]="soloLectura() ? 9 : 10">La cuenta no tiene saldo inicial registrado.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </siaf-solicitude-form-card>
+      }
+
       <!-- ── Saldos iniciales libro bancos (el formulario de un saldo la reemplaza mientras está abierto) ── -->
-      @if (!editorAbierto()) {
+      @if (!editorAbierto() && !esAjuste()) {
       <siaf-solicitude-form-card>
         <section class="grid gap-siaf-md">
           <div class="flex min-h-10 items-center justify-between gap-siaf-md">
@@ -207,13 +315,13 @@
           }
         </section>
       </siaf-solicitude-form-card>
-      } @else {
-      <!-- ── Agregar / editar saldo inicial libro bancos ── -->
+      } @else if (editorAbierto()) {
+      <!-- ── Agregar / editar saldo inicial libro bancos; en el ajuste, «Ajuste saldo inicial libro bancos» (Figma 24007:230222) ── -->
         <siaf-solicitude-form-card>
           <section class="grid gap-siaf-lg" aria-label="Agregar saldo inicial libro bancos">
             <div class="flex min-h-10 flex-wrap items-center justify-between gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">
-                {{ saldoEditado() ? 'Editar saldo inicial libro bancos' : 'Agregar saldo inicial libro bancos' }}
+                {{ esAjuste() ? 'Ajuste saldo inicial libro bancos' : saldoEditado() ? 'Editar saldo inicial libro bancos' : 'Agregar saldo inicial libro bancos' }}
               </h3>
               <div class="flex items-center gap-siaf-xs">
                 <siaf-button variant="outline" size="md" (click)="cerrarEditor()">Cancelar</siaf-button>
@@ -242,6 +350,9 @@
                 [value]="borrador().fechaOperacion"
                 (valueChange)="actualizarFecha($event)"
               />
+              @if (esAjuste()) {
+                <siaf-input label="Secuencia de referencia" [value]="referenciaAjuste()?.secuencia ?? ''" [disabled]="true" />
+              }
             </div>
 
             <!-- Cuenta bancaria -->
@@ -249,11 +360,14 @@
               <section class="grid gap-siaf-md">
                 <div class="flex min-h-10 items-center justify-between gap-siaf-md">
                   <h4 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h4>
-                  <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Cambiar cuenta bancaria" (click)="abrirPanelCuenta()" />
+                  @if (!esAjuste()) {
+                    <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Cambiar cuenta bancaria" (click)="abrirPanelCuenta()" />
+                  }
                 </div>
                 <siaf-summary-card
                   [fields]="camposCuenta()"
                   [bordered]="true"
+                  [showClose]="!esAjuste()"
                   [closeLabel]="'Quitar cuenta bancaria ' + c.numero"
                   (closed)="quitarCuenta()"
                 />
@@ -269,6 +383,18 @@
                 <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
                   <siaf-input label="Tipo de cotización" [value]="tipoCotizacion" [disabled]="true" />
                   <siaf-input label="Compra" [value]="tipoCambioBorrador() ? tipoCambioBorrador()!.toFixed(2) : ''" hint="Según la fecha de operación." [disabled]="true" />
+                </div>
+              </section>
+            }
+
+            <!-- Ajuste: saldo registrado, naturaleza neta y saldo resultante -->
+            @if (esAjuste()) {
+              <section class="grid gap-siaf-md">
+                <h4 class="m-0 text-sm font-bold uppercase text-text">Saldo inicial</h4>
+                <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
+                  <siaf-input label="Importe de saldo inicial" [value]="formatoImporte(referenciaAjuste()?.importeCuenta ?? 0)" [disabled]="true" />
+                  <siaf-input label="Naturaleza de la operación" [value]="naturalezaAjuste()" [disabled]="true" />
+                  <siaf-input label="Saldo actualizado" [value]="formatoImporte(saldoActualizadoBorrador())" [disabled]="true" />
                 </div>
               </section>
             }
@@ -310,13 +436,19 @@
               } @else {
                 <siaf-form-table-search placeholder="Buscar" [value]="busquedaLibretas()" (valueChange)="buscarLibretas($event)" />
                 <div class="siaf-table-shell">
-                  <table class="siaf-table min-w-[1080px]">
+                  <table class="siaf-table" [class.min-w-[1080px]]="!esAjuste()" [class.min-w-[1400px]]="esAjuste()">
                     <caption class="sr-only">Cuentas de registro de la cuenta {{ borrador().cuentaBancaria }}</caption>
                     <thead>
                       <tr class="siaf-table-head-row">
                         <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
                         <th class="siaf-table-th text-center" colspan="3">Cuenta de registro</th>
+                        @if (esAjuste()) {
+                          <th class="siaf-table-th w-[170px] min-w-[170px]" rowspan="2">Naturaleza</th>
+                        }
                         <th class="siaf-table-th text-center" colspan="2">Libretas</th>
+                        @if (esAjuste()) {
+                          <th class="siaf-table-th text-center" colspan="2">Saldo</th>
+                        }
                       </tr>
                       <tr class="siaf-table-head-row">
                         <th class="siaf-table-th w-[100px]">ID corr.</th>
@@ -324,6 +456,10 @@
                         <th class="siaf-table-th">Descripción</th>
                         <th class="siaf-table-th w-[190px]">Imp. M. cuenta</th>
                         <th class="siaf-table-th w-[180px]">Imp. M. nacional</th>
+                        @if (esAjuste()) {
+                          <th class="siaf-table-th w-[130px] text-right">Inicial</th>
+                          <th class="siaf-table-th w-[130px] text-right">Act.</th>
+                        }
                       </tr>
                     </thead>
                     <tbody>
@@ -333,6 +469,17 @@
                           <td class="siaf-table-td">{{ libreta.idCorrelativo }}</td>
                           <td class="siaf-table-td">{{ libreta.numero }}</td>
                           <td class="siaf-table-td">{{ libreta.descripcion }}</td>
+                          @if (esAjuste()) {
+                            <td class="siaf-table-td py-siaf-xs">
+                              <siaf-input
+                                label="Naturaleza"
+                                type="select"
+                                [options]="opcionesNaturaleza"
+                                [value]="naturalezaDe(libreta.idCorrelativo)"
+                                (valueChange)="cambiarNaturaleza(libreta.idCorrelativo, $event)"
+                              />
+                            </td>
+                          }
                           <td class="siaf-table-td py-siaf-xs">
                             <siaf-input
                               [label]="'Importe ' + libreta.idCorrelativo"
@@ -350,10 +497,14 @@
                               [disabled]="true"
                             />
                           </td>
+                          @if (esAjuste()) {
+                            <td class="siaf-table-td text-right">{{ formatoImporte(saldoInicialLibreta(libreta.idCorrelativo)) }}</td>
+                            <td class="siaf-table-td text-right">{{ formatoImporte(saldoActualLibreta(libreta.idCorrelativo)) }}</td>
+                          }
                         </tr>
                       } @empty {
                         <tr class="siaf-table-row">
-                          <td class="siaf-table-td text-center" colspan="6">No se encontraron cuentas de registro.</td>
+                          <td class="siaf-table-td text-center" [attr.colspan]="esAjuste() ? 9 : 6">No se encontraron cuentas de registro.</td>
                         </tr>
                       }
                     </tbody>

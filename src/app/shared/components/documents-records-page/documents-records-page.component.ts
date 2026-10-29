@@ -217,7 +217,9 @@ type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
             />
           </section>
 
-          <section class="relative p-siaf-md">
+          <section class="relative flex flex-col gap-siaf-md p-siaf-md">
+            <!-- Avisos del proceso sobre la tarjeta (p.ej. autorización vigente para ajustar el saldo inicial). -->
+            <ng-content select="[page-alerts]" />
             <article class="flex min-h-[458px] flex-col gap-siaf-md rounded-siaf-md bg-surface p-siaf-lg">
               <header class="flex flex-col gap-siaf-md md:flex-row md:items-center md:justify-between">
                 <h2 class="m-0 text-sm font-bold uppercase leading-normal text-text">

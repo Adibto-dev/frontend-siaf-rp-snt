@@ -1,4 +1,5 @@
 <div class="min-h-[calc(100vh-56px)] bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
+  <!-- Botonera estándar del header; «Verificar» se llama «Autorizar» (elabora, verifica el sistema y aprueba). -->
   <siaf-solicitude-page-layout
     [breadcrumbs]="breadcrumbs"
     role="creator"
@@ -6,27 +7,18 @@
     [loading]="cargando()"
     [heading]="heading"
     [secondaryText]="etiquetaAccion()"
-    [showReturn]="true"
-    [customActions]="true"
-    [showTag]="headerState() === 'new' || headerState() === 'edit'"
+    [showReturn]="!formulario()"
+    [showButtonGroup]="puedeAutorizar()"
+    verifyLabel="Autorizar"
+    [saveDisabled]="grabarDeshabilitado()"
+    [verifyDisabled]="autorizarDeshabilitado()"
     (returned)="regresar()"
+    (canceled)="regresar()"
+    (saved)="modalGrabar.set(true)"
+    (edited)="editar()"
+    (deleted)="modalEliminar.set(true)"
+    (verified)="abrirAutorizar()"
   >
-    <!-- Acciones del creador autorizador: no hay verificar ni aprobador. -->
-    <div actions class="contents">
-      @switch (modoAcciones()) {
-        @case ('edicion') {
-          <siaf-button variant="text" size="md" (click)="regresar()">Cancelar</siaf-button>
-          <siaf-button variant="outline" size="md" icon="save" [disabled]="grabarDeshabilitado()" (click)="modalGrabar.set(true)">Grabar</siaf-button>
-          <siaf-button variant="filled" size="md" icon="verified_user" [disabled]="autorizarDeshabilitado()" (click)="abrirAutorizar()">Autorizar</siaf-button>
-        }
-        @case ('elaborado') {
-          <siaf-button variant="text" size="md" icon="delete" (click)="modalEliminar.set(true)">Eliminar</siaf-button>
-          <siaf-button variant="outline" size="md" icon="edit" (click)="editar()">Editar</siaf-button>
-          <siaf-button variant="filled" size="md" icon="verified_user" [disabled]="saving()" (click)="abrirAutorizar()">Autorizar</siaf-button>
-        }
-      }
-    </div>
-
     @if (cargando()) {
       <div class="rounded-siaf-md bg-surface p-siaf-xl">
         <div class="grid grid-cols-3 gap-siaf-md">
@@ -49,16 +41,14 @@
         <siaf-alert tone="warning" title="Sin permiso" description="Su perfil no puede registrar autorizaciones excepcionales. Solo el creador autorizador puede hacerlo." />
       }
 
-      <!-- ── Autorización ── -->
-      <siaf-solicitude-form-card title="Autorización">
-        @if (esModificacion()) {
+      @if (esModificacion()) {
+        <!-- ── Modificación (Figma 24415:158502): tipo de modificación y autorización a modificar ── -->
+        <siaf-solicitude-form-card title="Tipo de modificación">
           @if (soloLectura()) {
-            <div class="grid gap-x-siaf-xl gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-              <readonly-field caption="Tipo de modificación" value="Vigencia" />
-            </div>
+            <readonly-field caption="Tipo de modificación" value="Vigencia" />
           } @else {
             <siaf-input
-              class="md:max-w-[360px]"
+              class="md:max-w-[448px]"
               label="Tipo de modificación"
               type="select"
               placeholder="Seleccione el tipo"
@@ -68,138 +58,118 @@
               (valueChange)="actualizar('tipoModificacion', $any($event))"
             />
           }
+        </siaf-solicitude-form-card>
+      }
 
-          @if (registroElegido()) {
-            <section class="grid gap-siaf-md">
-              <div class="flex min-h-10 items-center justify-between gap-siaf-md">
-                <h3 class="m-0 text-sm font-bold uppercase text-text">Autorización</h3>
-                @if (!soloLectura()) {
-                  <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Buscar autorización" (click)="abrirPanel('registro')" />
-                }
-              </div>
-              <div class="grid gap-x-siaf-xl gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                @for (campo of camposRegistro(); track campo.caption) {
-                  <readonly-field [caption]="campo.caption" [value]="campo.value" />
-                }
-              </div>
-            </section>
-          } @else {
-            <empty-section
-              title="Autorización"
-              [disabled]="soloLectura() || !form().tipoModificacion"
-              message="No se ha seleccionado ninguna autorización. Haga clic en el botón para buscarla."
-              (actionClicked)="abrirPanel('registro')"
-            />
-          }
+      <!-- ── Autorización (Figma 24792:62384) ── -->
+      <siaf-solicitude-form-card title="Autorización">
+        @if (esModificacion() && !soloLectura()) {
+          <siaf-button card-actions variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Buscar autorización" [disabled]="!form().tipoModificacion" (click)="abrirPanel('registro')" />
+        }
+        @if (esModificacion() && !registroElegido()) {
+          <message-box text="No se ha seleccionado ninguna autorización. Haga clic en el botón para buscarla." />
         } @else {
-          @if (soloLectura()) {
-            <readonly-field caption="Procedimiento" [value]="form().procedimiento ? procedimientoNombre() : '--'" />
-          } @else {
-            <siaf-input
-              label="Procedimiento"
-              type="select"
-              placeholder="Seleccione el procedimiento"
-              [required]="true"
-              [options]="procedimientos"
-              [value]="form().procedimiento"
-              (valueChange)="actualizar('procedimiento', $any($event))"
-            />
+          @if (esModificacion()) {
+            <!-- Autorización elegida: la ✕ la quita y la lupa la cambia por otra. -->
+            <siaf-summary-card [fields]="camposRegistro()" [bordered]="true" [showClose]="!soloLectura()" closeLabel="Quitar autorización" (closed)="quitar('registro')" />
+          }
+          <!-- En la modificación el procedimiento va en la card; responsable y cuenta, debajo y sin editar. -->
+          @if (!esModificacion()) {
+            @if (editaDatos()) {
+              <siaf-input
+                class="md:max-w-[640px]"
+                label="Procedimiento"
+                type="select"
+                placeholder="Seleccione el procedimiento"
+                [required]="true"
+                [options]="procedimientos"
+                [value]="form().procedimiento"
+                (valueChange)="actualizar('procedimiento', $any($event))"
+              />
+            } @else {
+              <readonly-field caption="Procedimiento" [value]="form().procedimiento ? procedimientoNombre() : '--'" />
+            }
           }
 
-          @if (camposResponsable().length) {
-            <section class="grid gap-siaf-md">
-              <div class="flex min-h-10 items-center justify-between gap-siaf-md">
-                <h3 class="m-0 flex items-center gap-siaf-xs text-sm font-bold uppercase text-text">
-                  Responsable
-                  <siaf-icon name="info" [size]="16" label="Usuario que podrá ejecutar el procedimiento" [decorative]="false" />
-                </h3>
-                @if (!soloLectura()) {
-                  <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Buscar responsable" (click)="abrirPanel('responsable')" />
-                }
-              </div>
-              <div class="grid gap-x-siaf-xl gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                @for (campo of camposResponsable(); track campo.caption) {
-                  <readonly-field [caption]="campo.caption" [value]="campo.value" />
-                }
-              </div>
-            </section>
-          } @else {
-            <empty-section
-              title="Responsable"
-              [disabled]="soloLectura()"
-              message="No se ha seleccionado ningún responsable. Haga clic en el botón para buscarlo."
-              (actionClicked)="abrirPanel('responsable')"
-            />
-          }
+          <section class="grid gap-siaf-sm">
+            <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+              <h3 class="m-0 flex items-center gap-siaf-xs text-sm font-bold uppercase text-text">
+                Responsable
+                <span class="inline-flex" tabindex="0" [siafTooltip]="ayudaResponsable" tooltipMode="always" [attr.aria-label]="ayudaResponsable">
+                  <siaf-icon name="info" [size]="18" />
+                </span>
+              </h3>
+              @if (editaDatos()) {
+                <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Buscar responsable" (click)="abrirPanel('responsable')" />
+              }
+            </div>
+            @if (camposResponsable().length) {
+              <siaf-summary-card [fields]="camposResponsable()" [bordered]="true" [showClose]="editaDatos()" closeLabel="Quitar responsable" (closed)="quitar('responsable')" />
+            } @else {
+              <message-box text="No se ha seleccionado ningún responsable. Haga clic en el botón para buscarlo." />
+            }
+          </section>
 
-          @if (camposCuenta().length) {
-            <section class="grid gap-siaf-md">
-              <div class="flex min-h-10 items-center justify-between gap-siaf-md">
-                <h3 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h3>
-                @if (!soloLectura()) {
-                  <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Buscar cuenta bancaria" (click)="abrirPanel('cuenta')" />
-                }
-              </div>
-              <div class="grid gap-x-siaf-xl gap-y-siaf-md md:grid-cols-2 xl:grid-cols-4">
-                @for (campo of camposCuenta(); track campo.caption) {
-                  <readonly-field [caption]="campo.caption" [value]="campo.value" />
-                }
-              </div>
-            </section>
-          } @else {
-            <empty-section
-              title="Cuenta bancaria"
-              [disabled]="soloLectura()"
-              message="No se ha seleccionado ninguna cuenta bancaria. Haga clic en el botón para buscarla."
-              (actionClicked)="abrirPanel('cuenta')"
-            />
-          }
+          <section class="grid gap-siaf-sm">
+            <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+              <h3 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h3>
+              @if (editaDatos()) {
+                <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Buscar cuenta bancaria" (click)="abrirPanel('cuenta')" />
+              }
+            </div>
+            @if (camposCuenta().length) {
+              <siaf-summary-card [fields]="camposCuenta()" [bordered]="true" [showClose]="editaDatos()" closeLabel="Quitar cuenta bancaria" (closed)="quitar('cuenta')" />
+            } @else {
+              <message-box text="No se ha seleccionado ninguna cuenta bancaria. Haga clic en el botón para buscarla." />
+            }
+          </section>
         }
       </siaf-solicitude-form-card>
 
-      <!-- ── Motivo ── -->
-      <siaf-solicitude-form-card title="Motivo de la autorización">
-        <text-area-control
-          placeholder="Describa el motivo de la autorización"
-          [required]="true"
-          [maxlength]="maxMotivo"
-          [minlength]="minCaracteresTexto"
-          [disabled]="soloLectura()"
-          [value]="motivo()"
-          (valueChange)="motivo.set($event)"
-        />
-      </siaf-solicitude-form-card>
-
-      <!-- ── Vigencia ── -->
+      <!-- ── Justificación: motivo y vigencia en la misma card ── -->
       @if (!esModificacion() || registroElegido()) {
-        <siaf-solicitude-form-card title="Vigencia">
-          @if (soloLectura()) {
-            <div class="grid gap-x-siaf-xl gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-              @for (campo of camposVigencia(); track campo.caption) {
-                <readonly-field [caption]="campo.caption" [value]="campo.value" />
-              }
-            </div>
-          } @else {
-            @if (!esModificacion()) {
-              <siaf-alert tone="info" description="La vigencia se establece automáticamente como activa al crear el registro." />
-            }
-            <siaf-radio-group
-              label="Vigente"
-              name="vigencia-autorizacion"
-              [inline]="true"
+        <siaf-solicitude-form-card title="Justificación">
+          @if (editaDatos()) {
+            <text-area-control
+              placeholder="Motivo de la autorización"
               [required]="true"
-              [disabled]="!esModificacion()"
-              [options]="opcionesVigencia"
-              [value]="form().vigente"
-              (valueChange)="cambiarVigencia($event)"
+              [maxlength]="maxMotivo"
+              [minlength]="minCaracteresTexto"
+              [value]="motivo()"
+              (valueChange)="motivo.set($event)"
             />
-            @if (form().vigente === 'si') {
+          } @else {
+            <readonly-field caption="Motivo de la autorización" [value]="motivo() || '--'" />
+          }
+
+          <section class="grid gap-siaf-sm">
+            <h3 class="m-0 text-sm font-bold uppercase text-text">Vigencia</h3>
+            @if (soloLectura()) {
               <div class="grid gap-x-siaf-xl gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
+                @for (campo of camposVigencia(); track campo.caption) {
+                  <readonly-field [caption]="campo.caption" [value]="campo.value" />
+                }
+              </div>
+            } @else {
+              @if (!esModificacion()) {
+                <siaf-alert tone="info" description="La vigencia se establece automáticamente como activa al crear el registro." />
+              }
+              <div class="grid items-start gap-x-siaf-xl gap-y-siaf-md md:grid-cols-3">
+                <siaf-radio-group
+                  name="vigencia-autorizacion"
+                  [inline]="true"
+                  [disabled]="!esModificacion()"
+                  [options]="opcionesVigencia"
+                  [value]="form().vigente"
+                  (valueChange)="cambiarVigencia($event)"
+                />
+                <!-- Modificación: la fecha desde es la de la creación (bloqueada); con NO, la fecha hasta también. -->
                 <siaf-date-time-picker
                   label="Fecha desde"
                   [required]="true"
                   [fullWidth]="true"
                   [defaultToToday]="false"
+                  [disabled]="esModificacion()"
                   [value]="form().fechaDesde"
                   (valueChange)="actualizar('fechaDesde', $event)"
                 />
@@ -208,16 +178,18 @@
                   [required]="true"
                   [fullWidth]="true"
                   [defaultToToday]="false"
+                  [disabled]="form().vigente === 'no'"
                   [minDate]="form().fechaDesde"
                   [error]="errorFechas()"
                   [value]="form().fechaHasta"
-                  (valueChange)="actualizar('fechaHasta', $event)"
+                  (valueChange)="cambiarFechaHasta($event)"
                 />
               </div>
-            } @else {
-              <siaf-alert tone="warning" description="Al autorizar, el registro quedará Inactivo." />
+              @if (form().vigente === 'no') {
+                <siaf-alert tone="warning" description="Al aprobarse, el registro de la autorización quedará Inactivo." />
+              }
             }
-          }
+          </section>
         </siaf-solicitude-form-card>
       }
 

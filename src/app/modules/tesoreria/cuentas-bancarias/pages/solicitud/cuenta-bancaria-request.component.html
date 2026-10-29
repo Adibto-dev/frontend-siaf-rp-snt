@@ -9,7 +9,7 @@
     secondaryText="Creación"
     [showReturn]="true"
     [saveDisabled]="!formValido() || saving()"
-    [verifyDisabled]="!puedeVerificar() || cargando()"
+    [verifyDisabled]="verificarDeshabilitado()"
     (returned)="regresar()"
     (canceled)="regresar()"
     (saved)="modalGrabar.set(true)"

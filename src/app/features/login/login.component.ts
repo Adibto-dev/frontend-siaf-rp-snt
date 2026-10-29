@@ -257,7 +257,7 @@ export class LoginComponent {
 
   // ── Taller: cuentas «guardadas en el navegador» (src/app/mock/usuarios-demo.ts) ──
   // Una página no puede escribir en el gestor de contraseñas del navegador: se simula su autocompletar.
-  readonly usuariosDemo: ListItem[] = USUARIOS_DEMO.map((u) => ({
+  readonly usuariosDemo: ListItem[] = USUARIOS_DEMO.filter((u) => !u.oculto).map((u) => ({
     id: u.dni,
     title: `${u.nombres} ${u.apellidoPaterno} ${u.apellidoMaterno}`,
     description: `${u.rol} · DNI ${u.dni} · ••••••••`,
@@ -270,7 +270,7 @@ export class LoginComponent {
   constructor() {
     // Recordar el último usuario: como un navegador que ya tiene la sesión guardada.
     const ultimo = leerUltimoUsuario();
-    if (ultimo && USUARIOS_DEMO.some((u) => u.dni === ultimo)) this.llenar(ultimo);
+    if (ultimo && USUARIOS_DEMO.some((u) => u.dni === ultimo && !u.oculto)) this.llenar(ultimo);
   }
 
   onSubmit(): void {

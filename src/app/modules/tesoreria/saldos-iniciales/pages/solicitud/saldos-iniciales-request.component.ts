@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 
 import { CatalogosApiService, TipoDocumentoResponse } from '../../../../../core/api/catalogos-api.service';
@@ -22,6 +22,7 @@ import { SolicitudeInfoCardComponent, SolicitudeInfoField } from '../../../../..
 import { SolicitudePageLayoutComponent } from '../../../../../shared/components/solicitude-page-layout/solicitude-page-layout.component';
 import { TableControlsComponent } from '../../../../../shared/components/table-controls/table-controls.component';
 import { ActionTrackerComponent, ActionTrackerSummary } from '../../../../../shared/ui/action-tracker/action-tracker.component';
+import { AlertComponent } from '../../../../../shared/ui/alert/alert.component';
 import { ButtonComponent } from '../../../../../shared/ui/button/button.component';
 import { CheckboxComponent } from '../../../../../shared/ui/checkbox/checkbox.component';
 import { DateTimePickerComponent } from '../../../../../shared/ui/date-time-picker/date-time-picker.component';
@@ -39,6 +40,8 @@ import { UploadSideNavComponent } from '../../../../../shared/ui/upload-side-nav
 import { UploadedFileCardComponent, UploadedFileInfo } from '../../../../../shared/ui/uploaded-file-card/uploaded-file-card.component';
 import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs.util';
 import { crearSnapshotFormulario, hayCambiosRespectoAlSnapshot } from '../../../../../shared/utils/form-snapshot.util';
+import { AutorizacionesApiService } from '../../../autorizaciones/api/autorizaciones-api.service';
+import { AutorizacionVigente, fechaCorta } from '../../../autorizaciones/models/autorizacion.model';
 import { SaldosInicialesApiService } from '../../api/saldos-iniciales-api.service';
 import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
 import { ADJUSTMENT_ROUTE, PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/saldos-iniciales.rutas';
@@ -55,6 +58,14 @@ import {
   SaldoInicial,
   TIPO_COTIZACION,
   TIPO_OPERACION,
+  TIPO_OPERACION_AJUSTE,
+  NaturalezaAjuste,
+  SaldoReferencia,
+  calcularAjuste,
+  importeFirmado,
+  saldoActualizado,
+  MOVIMIENTO_INTERNO_AJUSTE,
+  SaldoInicialRegistro,
   calcularSaldo,
   cuentaPorNumero,
   cuentasRegistroDe,
@@ -73,9 +84,26 @@ interface Borrador {
   importes: Record<string, string>;
   /** Documento de sustento del saldo (opcional). */
   sustento: UploadedFileInfo | null;
+  /** Solo en un ajuste: naturaleza de cada libreta (por id correlativo). */
+  naturalezas: Record<string, NaturalezaAjuste>;
 }
 
-const BORRADOR_VACIO: Borrador = { fechaOperacion: '', cuentaBancaria: '', importes: {}, sustento: null };
+const BORRADOR_VACIO: Borrador = { fechaOperacion: '', cuentaBancaria: '', importes: {}, sustento: null, naturalezas: {} };
+
+/** Una fila de «Ajuste saldo inicial libro bancos»: el saldo registrado o, ya ajustado, el ajuste. */
+interface FilaAjuste {
+  id: string;
+  fechaOperacion: string;
+  secuenciaReferencia: string;
+  cuentaBancaria: string;
+  moneda: string;
+  importeCuenta: number;
+  importeNacional: number;
+  saldoInicial: number;
+  saldoActual: number;
+  sustento: string | null;
+  libretas: SaldoInicial['libretas'];
+}
 
 /** Paginado en memoria de una tabla del formulario. */
 function paginar<T>(filas: T[], pagina: number, tamano: number): { filas: T[]; totalPaginas: number } {
@@ -99,6 +127,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
   selector: 'siaf-saldos-iniciales-request',
   standalone: true,
   imports: [
+    AlertComponent,
     SaldoLibretasPanelComponent,
     ActionTrackerComponent,
     ButtonComponent,
@@ -136,6 +165,130 @@ export class SaldosInicialesRequestComponent implements OnInit {
   private readonly solicitudesApi = inject(SolicitudesApiService);
   private readonly solicitudesFacade = inject(SolicitudesFacadeService);
   private readonly saldosApi = inject(SaldosInicialesApiService);
+  private readonly autorizacionesApi = inject(AutorizacionesApiService);
+
+  // ── Ajuste de saldo inicial (con autorización excepcional vigente) ──
+  /** Autorizaciones vigentes del usuario (una por cuenta); con alguna, el tipo de operación se habilita. */
+  readonly vigentes = signal<AutorizacionVigente[]>([]);
+  private readonly registrosSaldo = signal<SaldoInicialRegistro[]>([]);
+  readonly opcionesTipoOperacion = [
+    { label: TIPO_OPERACION, value: TIPO_OPERACION },
+    { label: TIPO_OPERACION_AJUSTE, value: TIPO_OPERACION_AJUSTE },
+  ];
+  readonly tipoOperacionSel = signal(TIPO_OPERACION);
+  readonly esAjuste = computed(() => this.tipoOperacionSel() === TIPO_OPERACION_AJUSTE);
+  /** Cuentas que se pueden ajustar ahora: vigentes y sin otro documento de ajuste en curso. */
+  private readonly vigentesLibres = computed(() => this.vigentes().filter((v) => !v.documentoEnCurso || v.documentoEnCurso === this.solicitudId));
+  readonly tipoOperacionEditable = computed(() => !this.elaborado() && this.vigentesLibres().length > 0);
+  readonly cuentaAjuste = signal<string | null>(null);
+  readonly opcionesCuentaAjuste = computed(() => this.vigentesLibres().map((v) => ({ label: v.cuentaBancaria, value: v.cuentaBancaria })));
+  readonly vigenteAjuste = computed(() => this.vigentes().find((v) => v.cuentaBancaria === this.cuentaAjuste()) ?? null);
+  readonly mensajeVigencia = computed(() => {
+    const v = this.vigenteAjuste();
+    return v
+      ? `Cuenta con una autorización vigente para registrar ajustes al saldo inicial de la cuenta bancaria ${v.cuentaBancaria} hasta el ${fechaCorta(v.fechaHasta)}. Durante este período podrá realizar los ajustes.`
+      : '';
+  });
+  /** El ajuste ya hecho en este documento (uno solo). */
+  readonly ajusteHecho = computed(() => this.saldos().find((x) => x.ajuste) ?? null);
+  /** Saldo registrado de la cuenta autorizada (sin ajustes): lo que se ajusta. */
+  private readonly saldoOriginal = computed(() =>
+    this.registrosSaldo().find((r) => r.estado === 'Activo' && !r.ajuste && r.cuentaBancaria === this.cuentaAjuste()) ?? null);
+  readonly referenciaAjuste = computed<SaldoReferencia | null>(() => {
+    const a = this.ajusteHecho()?.ajuste;
+    if (a) return { secuencia: a.secuenciaReferencia, importeCuenta: a.saldoInicial, libretas: a.libretasIniciales };
+    return this.saldoOriginal();
+  });
+  readonly filasAjuste = computed<FilaAjuste[]>(() => {
+    const hecho = this.ajusteHecho();
+    if (hecho?.ajuste) {
+      return [{
+        id: hecho.id, fechaOperacion: hecho.fechaOperacion, secuenciaReferencia: hecho.ajuste.secuenciaReferencia,
+        cuentaBancaria: hecho.cuentaBancaria, moneda: hecho.moneda, importeCuenta: hecho.importeCuenta, importeNacional: hecho.importeNacional,
+        saldoInicial: hecho.ajuste.saldoInicial, saldoActual: saldoActualizado(hecho.ajuste.saldoInicial, hecho.importeCuenta, hecho.ajuste.naturaleza),
+        sustento: hecho.sustento ?? null, libretas: hecho.libretas,
+      }];
+    }
+    const o = this.saldoOriginal();
+    return o ? [{
+      id: o.registroId, fechaOperacion: o.fechaOperacion, secuenciaReferencia: o.secuencia ?? '', cuentaBancaria: o.cuentaBancaria,
+      moneda: o.moneda, importeCuenta: o.importeCuenta, importeNacional: o.importeNacional, saldoInicial: o.importeCuenta,
+      saldoActual: o.importeCuenta, sustento: o.sustento ?? null, libretas: o.libretas,
+    }] : [];
+  });
+  readonly ajusteSeleccionado = signal(false);
+  readonly opcionesNaturaleza = [{ label: 'Crédito', value: 'Crédito' }, { label: 'Débito', value: 'Débito' }];
+
+  /** Abre «Ajuste saldo inicial libro bancos» sobre la cuenta autorizada (o el ajuste ya hecho). */
+  ajustarSaldo(): void {
+    const cuenta = this.cuentaAjuste();
+    if (!cuenta || !this.referenciaAjuste()) return;
+    const hecho = this.ajusteHecho();
+    this.saldoEditado.set(hecho?.id ?? null);
+    this.borrador.set({
+      fechaOperacion: hecho?.fechaOperacion ?? '',
+      cuentaBancaria: cuenta,
+      importes: Object.fromEntries((hecho?.libretas ?? []).map((l) => [l.idCorrelativo, l.importe.toFixed(2)])),
+      naturalezas: Object.fromEntries((hecho?.libretas ?? []).map((l) => [l.idCorrelativo, l.naturaleza ?? 'Crédito'])),
+      sustento: hecho?.sustento ? { name: hecho.sustento } : null,
+    });
+    this.ajusteSeleccionado.set(false);
+    this.abrirEditor();
+  }
+
+  naturalezaDe(idCorrelativo: string): NaturalezaAjuste {
+    return this.borrador().naturalezas[idCorrelativo] ?? 'Crédito';
+  }
+
+  cambiarNaturaleza(idCorrelativo: string, valor: string | number | string[]): void {
+    const naturaleza: NaturalezaAjuste = valor === 'Débito' ? 'Débito' : 'Crédito';
+    this.borrador.update((b) => ({ ...b, naturalezas: { ...b.naturalezas, [idCorrelativo]: naturaleza } }));
+  }
+
+  /** Suma firmada de las libretas del ajuste (el débito resta). */
+  readonly netoAjuste = computed(() => {
+    const b = this.borrador();
+    return redondear(Object.entries(b.importes).reduce((total, [id, v]) =>
+      total + importeFirmado({ importe: parseFloat(v) || 0, naturaleza: b.naturalezas[id] ?? 'Crédito' }), 0));
+  });
+  readonly naturalezaAjuste = computed<NaturalezaAjuste>(() => (this.netoAjuste() < 0 ? 'Débito' : 'Crédito'));
+  readonly saldoActualizadoBorrador = computed(() => redondear((this.referenciaAjuste()?.importeCuenta ?? 0) + this.netoAjuste()));
+
+  saldoInicialLibreta(idCorrelativo: string): number {
+    return this.referenciaAjuste()?.libretas.find((l) => l.idCorrelativo === idCorrelativo)?.importe ?? 0;
+  }
+
+  saldoActualLibreta(idCorrelativo: string): number {
+    const importe = parseFloat(this.borrador().importes[idCorrelativo]) || 0;
+    return redondear(this.saldoInicialLibreta(idCorrelativo) + importeFirmado({ importe, naturaleza: this.naturalezaDe(idCorrelativo) }));
+  }
+  readonly camposMovimientoAjuste: SummaryCardField[] = [
+    { label: 'Código', value: MOVIMIENTO_INTERNO_AJUSTE.codigo },
+    { label: 'Denominación', value: MOVIMIENTO_INTERNO_AJUSTE.denominacion },
+    { label: 'Naturaleza del movimiento', value: MOVIMIENTO_INTERNO_AJUSTE.naturaleza },
+    { label: 'Sigla', value: MOVIMIENTO_INTERNO_AJUSTE.sigla },
+  ];
+
+  cambiarTipoOperacion(valor: string | number | string[]): void {
+    const tipo = String(valor);
+    if (tipo === this.tipoOperacionSel()) return;
+    this.tipoOperacionSel.set(tipo);
+    this.cerrarEditor();
+    this.saldos.set([]);
+    if (tipo === TIPO_OPERACION_AJUSTE) {
+      this.elegirCuentaAjuste(this.vigentesLibres()[0]?.cuentaBancaria ?? null);
+    } else {
+      this.cuentaAjuste.set(null);
+      this.entidadCodigo.set(null);
+    }
+  }
+
+  /** Precarga la entidad financiera de la cuenta autorizada (fija en el ajuste). */
+  elegirCuentaAjuste(valor: string | number | string[] | null): void {
+    const cuenta = valor ? String(valor) : null;
+    this.cuentaAjuste.set(cuenta);
+    this.entidadCodigo.set(cuenta ? cuentaPorNumero(cuenta)?.entidadCodigo ?? null : null);
+  }
 
   readonly heading = NOMBRE_DOCUMENTO;
   readonly breadcrumbs: BreadcrumbItem[] = buildProcessBreadcrumbs(PROCESS_ID, PROCESS_ROUTE);
@@ -271,7 +424,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
     return c && this.borrador().fechaOperacion ? tipoCambio(c.moneda, this.borrador().fechaOperacion) : null;
   });
   readonly importeCuentaBorrador = computed(() =>
-    redondear(Object.values(this.borrador().importes).reduce((total, v) => total + (parseFloat(v) || 0), 0)),
+    this.esAjuste() ? Math.abs(this.netoAjuste()) : redondear(Object.values(this.borrador().importes).reduce((total, v) => total + (parseFloat(v) || 0), 0)),
   );
   readonly importeNacionalBorrador = computed(() => redondear(this.importeCuentaBorrador() * (this.tipoCambioBorrador() ?? 1)));
   readonly puedeAceptarSaldo = computed(() => !!this.borrador().fechaOperacion && !!this.cuentaBorrador() && this.importeCuentaBorrador() > 0);
@@ -315,6 +468,13 @@ export class SaldosInicialesRequestComponent implements OnInit {
     saldos: this.saldos().map((s) => ({ f: s.fechaOperacion, c: s.cuentaBancaria, l: s.libretas, s: s.sustento ?? null })),
   }));
   private readonly hayCambios = computed(() => hayCambiosRespectoAlSnapshot(this.fotoEdicion(), this.fotoActual()));
+
+  /** Verificar: en ELABORADO u OBSERVADO; al editar, con los datos completos (graba lo pendiente antes). */
+  readonly verificarDeshabilitado = computed(() => {
+    if (this.cargando() || this.saving()) return true;
+    if (this.editando()) return !this.entidad() || this.saldos().length === 0 || this.editorAbierto();
+    return !this.puedeVerificar();
+  });
 
   readonly formValido = computed(() =>
     !this.soloLectura() && !!this.entidad() && this.saldos().length > 0 && !this.editorAbierto() && this.hayCambios(),
@@ -363,7 +523,10 @@ export class SaldosInicialesRequestComponent implements OnInit {
   ngOnInit(): void {
     this.catalogosApi.listarTiposDocumento().subscribe((tipos) => (this.tiposDocumento = tipos));
     const id = this.route.snapshot.paramMap.get('id');
+    // La alerta de vigencia acompaña al ajuste hasta que se aprueba (también en un documento ya grabado).
+    this.autorizacionesApi.listarVigentes().subscribe((v) => this.vigentes.set(v));
     if (id) this.cargar(id);
+    else this.saldosApi.listarRegistros().subscribe((r) => this.registrosSaldo.set(r));
 
     const estadoNavegacion = history.state as { fromSave?: boolean } | null;
     if (estadoNavegacion?.fromSave) this.mostrarAviso('creation-elaborated');
@@ -448,6 +611,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
       cuentaBancaria: saldo.cuentaBancaria,
       importes: Object.fromEntries(saldo.libretas.map((l) => [l.idCorrelativo, l.importe.toFixed(2)])),
       sustento: saldo.sustento ? { name: saldo.sustento } : null,
+      naturalezas: {},
     });
     this.abrirEditor();
   }
@@ -471,7 +635,8 @@ export class SaldosInicialesRequestComponent implements OnInit {
     this.busquedaCuenta.set('');
     this.seleccionSaldos.set([]);
     this.saldoEditado.set(null);
-    this.borrador.set({ ...BORRADOR_VACIO, importes: {} });
+    this.ajusteSeleccionado.set(false);
+    this.borrador.set({ ...BORRADOR_VACIO, importes: {}, naturalezas: {} });
   }
 
   actualizarFecha(fecha: string): void {
@@ -521,6 +686,13 @@ export class SaldosInicialesRequestComponent implements OnInit {
     const b = this.borrador();
     const id = this.saldoEditado() ?? `nuevo-${this.siguienteSaldo++}`;
     const importes = Object.fromEntries(Object.entries(b.importes).map(([k, v]) => [k, parseFloat(v) || 0]));
+    const referencia = this.referenciaAjuste();
+    if (this.esAjuste() && referencia) {
+      const movimientos = Object.fromEntries(Object.entries(importes).map(([k, v]) => [k, { importe: v, naturaleza: this.naturalezaDe(k) }]));
+      this.saldos.set([{ ...calcularAjuste(id, b.fechaOperacion, b.cuentaBancaria, movimientos, referencia), sustento: b.sustento?.name ?? null }]);
+      this.cerrarEditor();
+      return;
+    }
     const saldo = { ...calcularSaldo(id, b.fechaOperacion, b.cuentaBancaria, importes), sustento: b.sustento?.name ?? null };
     this.saldos.update((lista) => (this.saldoEditado() ? lista.map((s) => (s.id === id ? saldo : s)) : [...lista, saldo]));
     this.cerrarEditor();
@@ -553,7 +725,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
   }
 
   // ── Grabar ────────────────────────────────────────────────────────
-  onConfirmarGrabar(): void {
+  onConfirmarGrabar(luegoVerificar = false): void {
     this.modalGrabar.set(false);
     const datos = { entidadFinanciera: this.entidadCodigo() ?? '', saldos: this.saldos() };
     const justificacion = `Registro de saldos iniciales en libro bancos: ${this.entidad()?.denominacion ?? ''}.`;
@@ -567,9 +739,13 @@ export class SaldosInicialesRequestComponent implements OnInit {
     if (this.solicitudId) {
       const id = this.solicitudId;
       this.solicitudesApi.actualizar(id, { justificacion, organoLinea: this.organo() })
-        .pipe(switchMap(() => guardarYElaborar(id)))
+        .pipe(
+          switchMap(() => guardarYElaborar(id)),
+          // Verificar desde edición: graba y luego verifica.
+          switchMap(() => (luegoVerificar ? this.solicitudesApi.cambiarEstado(id, { estadoNuevo: 'VERIFICADO' }) : of(null))),
+        )
         .subscribe({
-          next: () => { this.editando.set(false); this.mostrarAviso('creation-elaborated'); this.cargar(id); },
+          next: () => { this.editando.set(false); this.mostrarAviso(luegoVerificar ? 'creation-verified' : 'creation-elaborated'); this.cargar(id); },
           error: () => this.cargar(id),
         });
       return;
@@ -596,8 +772,14 @@ export class SaldosInicialesRequestComponent implements OnInit {
   }
 
   // ── Acciones de estado ────────────────────────────────────────────
+  /** Verificar; en edición con cambios pendientes, primero los graba. */
   onConfirmarVerificar(): void {
     this.modalVerificar.set(false);
+    if (this.editando() && this.hayCambios()) {
+      this.onConfirmarGrabar(true);
+      return;
+    }
+    this.editando.set(false);
     this.accion((id) => this.solicitudesApi.cambiarEstado(id, { estadoNuevo: 'VERIFICADO' }), 'creation-verified');
   }
 
@@ -658,12 +840,15 @@ export class SaldosInicialesRequestComponent implements OnInit {
     this.solicitudesApi.obtenerDetalle(id).subscribe({
       next: (s) => {
         // Un ajuste de saldo inicial (tipo de operación 2) tiene su propia vista de solo lectura.
-        if (s.detalleSaldosIniciales?.saldos.some((x) => x.ajuste)) {
+        const ajuste = s.detalleSaldosIniciales?.saldos.find((x) => x.ajuste);
+        if (ajuste && ['APROBADO', 'RECHAZADO', 'ELIMINADO'].includes(s.estado)) {
           void this.router.navigate([ADJUSTMENT_ROUTE, s.id], { replaceUrl: true });
           return;
         }
         this.solicitudId = s.id;
         this.solicitud.set(s);
+        this.tipoOperacionSel.set(ajuste ? TIPO_OPERACION_AJUSTE : TIPO_OPERACION);
+        this.cuentaAjuste.set(ajuste?.cuentaBancaria ?? null);
         this.editando.set(false);
         this.fotoEdicion.set(null);
         this.cerrarEditor();

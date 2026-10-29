@@ -24,6 +24,8 @@ export interface UsuarioDemo {
   /** Rol que se ve en las cuentas guardadas del login. */
   rol: string;
   perfiles: PerfilItem[];
+  /** Oculto en el panel de usuarios del login (sigue pudiendo entrar con su DNI). Quitarlo para volver a mostrarlo. */
+  oculto?: boolean;
 }
 
 const ENTIDAD = {
@@ -85,6 +87,7 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
     apellidoPaterno: 'Mendoza',
     apellidoMaterno: 'Ríos',
     rol: 'Creador y aprobador',
+    oculto: true,
     descripcion: 'Dos perfiles: creador y aprobador (cambia de perfil)',
     perfiles: [
       perfil('perfil-carla-creador', 'CREADOR', 'Creador', 'Operador de cuentas bancarias'),

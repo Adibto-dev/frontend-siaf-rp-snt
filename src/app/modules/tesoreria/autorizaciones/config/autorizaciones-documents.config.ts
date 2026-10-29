@@ -26,7 +26,7 @@ const documentColumns: DocumentsRecordsColumn[] = [
 const recordColumns: DocumentsRecordsColumn[] = [
   { key: 'procedimiento', label: 'Procedimiento', visibility: 'visible', group: 'default', widthClass: 'w-[260px]' },
   { key: 'usuario', label: 'Usuario', headerGroup: 'Responsable', visibility: 'visible', group: 'default', widthClass: 'w-[110px]' },
-  { key: 'dni', label: 'N° documento', headerGroup: 'Responsable', visibility: 'visible', group: 'default', widthClass: 'w-[120px]' },
+  { key: 'dni', label: 'N° documento', headerGroup: 'Responsable', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
   { key: 'nombres', label: 'Nombres y apellidos', headerGroup: 'Responsable', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
   { key: 'numeroCuenta', label: 'Número', headerGroup: 'Cuenta bancaria', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
   { key: 'denominacion', label: 'Denominación', headerGroup: 'Cuenta bancaria', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
@@ -56,7 +56,7 @@ export const AUTORIZACIONES_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   recordHistoryDocumentLabel: NOMBRE_DOCUMENTO,
   // El historial de un registro es el del último documento que lo creó o modificó.
   recordHistoryKind: 'documento',
-  statusFilterOptions: [ESTADO.ELABORADO, ESTADO.APROBADO],
+  statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.APROBADO],
   actionTypeFilterOptions: ACCIONES,
   filterCampoOptions: [
     { label: 'Documento', value: 'document' },
@@ -66,6 +66,7 @@ export const AUTORIZACIONES_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   ],
   filterValorOptions: [
     { label: ESTADO.ELABORADO, value: ESTADO.ELABORADO },
+    { label: ESTADO.VERIFICADO, value: ESTADO.VERIFICADO },
     { label: ESTADO.APROBADO, value: ESTADO.APROBADO },
     { label: 'Creación', value: 'Creación' },
     { label: 'Modificación', value: 'Modificación' },

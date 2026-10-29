@@ -12,11 +12,14 @@ import type {
   DocumentsRecordsRow,
   DocumentsRecordsRowActionEvent,
 } from '../../../../../shared/types/documents-records.types';
+import { AlertComponent } from '../../../../../shared/ui/alert/alert.component';
 import { SidePanelComponent } from '../../../../../shared/ui/side-panel/side-panel.component';
 import { UploadedFileCardComponent, UploadedFileInfo } from '../../../../../shared/ui/uploaded-file-card/uploaded-file-card.component';
 import { SaldoHistorialPanelComponent } from '../../components/saldo-historial-panel/saldo-historial-panel.component';
 import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
 import { createNewDocumentIdsSignal } from '../../../../../shared/utils/new-document-ids.util';
+import { AutorizacionesApiService } from '../../../autorizaciones/api/autorizaciones-api.service';
+import { AutorizacionVigente, mensajeAutorizacionVigente } from '../../../autorizaciones/models/autorizacion.model';
 import { SaldosInicialesApiService } from '../../api/saldos-iniciales-api.service';
 import { ACCION_VER_CUENTAS, ACCION_VER_SUSTENTO, SALDOS_INICIALES_DOCUMENTS_CONFIG } from '../../config/saldos-iniciales-documents.config';
 import { AUTOMATIC_ROUTE, RECORD_ROUTE, REQUEST_ROUTE } from '../../config/saldos-iniciales.rutas';
@@ -44,14 +47,23 @@ const TIPOS = [CODIGO_DOCUMENTO, CODIGO_AUTOMATICO];
 @Component({
   selector: 'siaf-saldos-iniciales-documents',
   standalone: true,
-  imports: [DocumentsRecordsPageComponent, SaldoHistorialPanelComponent, SaldoLibretasPanelComponent, SidePanelComponent, UploadedFileCardComponent],
+  imports: [AlertComponent, DocumentsRecordsPageComponent, SaldoHistorialPanelComponent, SaldoLibretasPanelComponent, SidePanelComponent, UploadedFileCardComponent],
   template: `
     <siaf-documents-records-page
       [config]="pageConfig()"
       [loading]="cargando()"
       (documentsQueryChange)="onDocumentsQuery($event)"
       (recordActionTriggered)="onRecordAction($event)"
-    />
+    >
+      <!-- Una alerta por cuenta con autorización vigente para ajustar el saldo inicial (Figma 24007:230449). -->
+      @if (vigentes().length) {
+        <div page-alerts class="flex flex-col gap-siaf-sm">
+          @for (v of vigentes(); track v.cuentaBancaria) {
+            <siaf-alert tone="info" title="Autorización para ajustar el saldo inicial" [description]="mensajeVigente(v)" />
+          }
+        </div>
+      }
+    </siaf-documents-records-page>
 
     <!-- Ver cuentas de registro: el mismo panel que en la solicitud -->
     <siaf-saldo-libretas-panel [saldo]="registroCuentas()" (closed)="registroCuentas.set(null)" />
@@ -73,6 +85,10 @@ export class SaldosInicialesDocumentsComponent implements OnInit {
   private readonly solicitudesFacade = inject(SolicitudesFacadeService);
   private readonly permissions = inject(PermissionService);
   private readonly saldosApi = inject(SaldosInicialesApiService);
+  private readonly autorizacionesApi = inject(AutorizacionesApiService);
+  /** Autorizaciones vigentes para ajustar el saldo inicial (el backend solo las devuelve al creador que ajusta). */
+  readonly vigentes = signal<AutorizacionVigente[]>([]);
+  readonly mensajeVigente = (v: AutorizacionVigente): string => mensajeAutorizacionVigente(v.cuentaBancaria, v.fechaHasta);
   private readonly destroyRef = inject(DestroyRef);
   private readonly nuevos = createNewDocumentIdsSignal();
 
@@ -98,6 +114,7 @@ export class SaldosInicialesDocumentsComponent implements OnInit {
     // Bandeja según el rol (el aprobador además refresca cada 30 s).
     // La primera página la resuelve el backend (simulado), igual que las siguientes.
     this.solicitudesFacade.iniciarBandeja(this.permissions.currentRole(), this.destroyRef, TIPOS, { page: 1, limit: FILAS_POR_PAGINA });
+    this.autorizacionesApi.listarVigentes().subscribe((vigentes) => this.vigentes.set(vigentes));
     this.saldosApi.listarRegistros().subscribe({
       next: (registros) => { this.registros.set(registros); this.cargando.set(false); },
       error: () => this.cargando.set(false),

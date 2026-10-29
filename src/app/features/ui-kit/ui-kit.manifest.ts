@@ -8830,7 +8830,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "layout",
     "importacion": "@siaf/layout/process-menu-tree/process-menu-tree.component",
     "archivo": "src/app/layout/process-menu-tree/process-menu-tree.component.ts",
-    "descripcion": "Árbol canónico de procesos del shell: el menú jerárquico que abre la opción \"Procesos\" del sidebar.\n\nSus datos por defecto son `DEFAULT_PROCESS_TREE` de `shared/utils/process-tree.util` (este archivo solo\nre-exporta el tipo y las utilidades). Es el único menú en árbol: el shell también lo usa para \"Ajustes\" con\n`ADMIN_MENU_TREE` y otros textos, así que un árbol nuevo es solo otro arreglo de nodos. El árbol es\n`siaf-tree-view` del kit (estados del Figma y teclado de árbol); este componente le suma el panel, los títulos y\nel buscador, que funciona como paleta de comandos: filtra la navegación en vivo, sin ir al servidor, y abre las\nramas con coincidencias. Los nodos `comingSoon` se ven deshabilitados y solo se abren: nunca emiten `nodeSelected`.",
+    "descripcion": "Árbol canónico de procesos del shell: el menú jerárquico que abre la opción \"Procesos\" del sidebar.\n\nSus datos por defecto son `DEFAULT_PROCESS_TREE` de `shared/utils/process-tree.util` (este archivo solo\nre-exporta el tipo y las utilidades). Es el único menú en árbol: el shell también lo usa para \"Ajustes\" con\n`ADMIN_MENU_TREE` y otros textos, así que un árbol nuevo es solo otro arreglo de nodos. El árbol es\n`siaf-tree-view` del kit (estados del Figma y teclado de árbol); este componente le suma el panel, los títulos y\nel buscador, que funciona como paleta de comandos: filtra la navegación en vivo por palabras, sin ir al servidor,\nabre las ramas con coincidencias y resalta en negrita lo encontrado (`highlight` de `siaf-tree-view`). Los nodos `comingSoon` se ven deshabilitados y solo se abren: nunca emiten `nodeSelected`.",
     "usaSesion": false,
     "proyectaContenido": false,
     "entradas": [
@@ -8879,7 +8879,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     ],
     "usar": "- Para el panel Procesos del armazón: `siaf-app-shell` lo abre desde el rail y navega a la `moduleRoute` o\n  `createRoute` del nodo emitido (plan de cuentas contables, catálogo de eventos, asientos de ajuste, apertura\n  contable…).\n- Para el menú Ajustes: el mismo componente con `ADMIN_MENU_TREE` y sus textos (`title`, `subtitle`, `placeholder`,\n  `searchLabel`), con gestión de usuarios, entidades y auditoría.\n- Para cualquier menú jerárquico nuevo del armazón: basta otro arreglo de `ProcessMenuNode`.",
     "evitar": "- Para envolverlo o copiarlo en otro componente de menú: por eso se retiró `siaf-admin-menu`; basta pasarle otros\n  `nodes` y textos.\n- Para un árbol dentro de una pantalla (plan de cuentas, clasificador): usar `siaf-tree-view` directamente.\n- Para buscar registros en el servidor: usar `siaf-form-table-search` (en Documentos y registros y la bandeja, su\n  variante `siaf-records-search-toolbar`); este buscador solo filtra la navegación en memoria.",
-    "teclado": "- **Tab**: pasa por el buscador (y, con texto, por «Limpiar búsqueda») y luego entra al árbol una sola vez (en el\n  nodo elegido o el primero).\n- **Escape** en el buscador o **Enter / Espacio** en «Limpiar búsqueda»: vacían la búsqueda, vuelve el árbol completo\n  y el foco queda en el campo.\n- **Escribir en el buscador**: filtra el árbol en vivo, sin distinguir tildes ni mayúsculas, y abre las ramas con\n  coincidencias.\n- **En el árbol**: ↓ / ↑ entre nodos, → abre o entra al primer hijo, ← cierra o sube al padre, Inicio / Fin, y\n  Enter / Espacio eligen el nodo (y abren o cierran su rama). Ver `siaf-tree-view`.",
+    "teclado": "- **Tab**: pasa por el buscador (y, con texto, por «Limpiar búsqueda») y luego entra al árbol una sola vez (en el\n  nodo elegido o el primero).\n- **Escape** en el buscador o **Enter / Espacio** en «Limpiar búsqueda»: vacían la búsqueda, vuelve el árbol completo\n  y el foco queda en el campo.\n- **Escribir en el buscador**: desde la 3.ª letra filtra el árbol en vivo por palabras (todas, en cualquier orden),\n  sin distinguir tildes ni mayúsculas e ignorando conectores (`de`, `la`, `en`…) y palabras de 1 o 2 letras; con\n  menos letras avisa «Escribe al menos 3 letras para buscar»; abre las ramas con coincidencias y pone en negrita cada palabra encontrada (Figma\n  24007:231131).\n- **En el árbol**: ↓ / ↑ entre nodos, → abre o entra al primer hijo, ← cierra o sube al padre, Inicio / Fin, y\n  Enter / Espacio eligen el nodo (y abren o cierran su rama). Ver `siaf-tree-view`.",
     "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `<aside>` con `h2` y `h3`; el árbol es `role=\"tree\"` con nivel y posición\n  de cada nodo (`siaf-tree-view`). Pendiente: el `aria-label` del `aside` es fijo («Menu de procesos») y también se\n  lee en Ajustes.\n- **1.4.1 Uso del color (A)**: el nodo elegido va con fondo `light-activated`, color azul y negrita.\n- **1.4.3 Contraste mínimo (AA)**: en claro, título `text-neutral-high` 16.29:1 y nodos `text-neutral-medium` 14.53:1\n  sobre blanco; en oscuro el panel usa `bg-surfaces-field` y falta medirlo.\n- **2.4.7 Foco visible (AA)**: el nodo con foco muestra la capa de foco y un contorno azul de 2 px.\n- **Pendiente · 2.4.3 Orden del foco (A)**: no toma el foco al abrirse ni cierra con Escape. El armazón lo pinta\n  después del rail: desde Procesos el Tab pasa antes por Ayuda y Ajustes, y si lo pide una página\n  (`ShellNavigationService`) queda antes que el botón que lo abrió.\n- **4.1.3 Mensajes de estado (AA)**: sin coincidencias muestra «Sin resultados» (Figma UI-KIT 19617:886) en una\n  región , que se anuncia. **Pendiente**: con coincidencias no se anuncia cuántos nodos quedan.",
     "figma": [],
     "aria": {
@@ -12309,6 +12309,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "porDefecto": "false",
         "requerida": false,
         "descripcion": null
+      },
+      {
+        "nombre": "verifyLabel",
+        "tipo": "string",
+        "porDefecto": "'Verificar'",
+        "requerida": false,
+        "descripcion": "Texto del botón principal del flujo («Autorizar» en la autorización excepcional)."
       }
     ],
     "eventos": [
@@ -14822,6 +14829,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": "Abre todas las ramas (p. ej. mientras hay una búsqueda); mientras está activo no se pueden cerrar."
       },
       {
+        "nombre": "highlight",
+        "tipo": "string | null | undefined",
+        "porDefecto": null,
+        "requerida": false,
+        "descripcion": "Texto buscado: cada palabra que aparece en una etiqueta va en negrita (sin distinguir tildes ni mayúsculas). No filtra: el filtrado lo hace quien arma los `nodes`."
+      },
+      {
         "nombre": "nodes",
         "tipo": "TreeViewNode[] | null | undefined",
         "porDefecto": null,
@@ -14849,7 +14863,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       }
     ],
     "usar": "- Para navegar o elegir dentro de una jerarquía: el menú de Procesos y Ajustes (`siaf-process-menu-tree`), un plan\n  de cuentas, un clasificador o una entidad con sus unidades.\n- Con `selectedId` para marcar el nodo actual y `(nodeActivated)` para reaccionar a la elección.\n- Con `icon` en los nodos cuando ayuda a distinguir el tipo (carpeta, entidad, documento).",
-    "evitar": "- Para una lista plana: `siaf-list`.\n- Para secciones plegables de contenido: `siaf-accordion` o `siaf-expansion-panel`.\n- Para un menú de acciones: `siaf-menu` o `siaf-cascading-menu`.",
+    "evitar": "- Para una lista plana: `siaf-list`.\n- Para secciones plegables de contenido: `siaf-accordion` o `siaf-expansion-panel`.\n- Para un menú de acciones: `siaf-menu` o `siaf-cascading-menu`.\n- Con `highlight` para poner en negrita las palabras buscadas (sin tildes ni mayúsculas) cuando quien arma los\n  `nodes` los filtra: el árbol no filtra.",
     "teclado": "- **Tab**: entra al árbol una sola vez, en el nodo elegido (o el primero); otro Tab sale del árbol.\n- **↓ / ↑**: siguiente o anterior nodo visible.\n- **→**: abre la rama; si ya está abierta, va al primer hijo.\n- **←**: cierra la rama; si está cerrada o es una hoja, va al padre.\n- **Inicio / Fin**: primer o último nodo visible.\n- **Enter / Espacio**: abre o cierra la rama y elige el nodo (si no está deshabilitado).",
     "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `role=\"tree\"` con `treeitem` y `group` anidados en `ul`/`li`; cada ítem\n  publica `aria-level`, `aria-setsize` y `aria-posinset`, así que el lector anuncia nivel y posición.\n- **4.1.2 Nombre, función y valor (A)**: las ramas publican `aria-expanded`, el elegido `aria-selected=\"true\"` y los\n  deshabilitados `aria-disabled`. El árbol se nombra con `ariaLabel`. Los íconos son decorativos.\n- **2.4.7 Foco visible (AA)**: el ítem con foco muestra la capa `light-focus` y un contorno azul de 2 px\n  (`border-states-focus`, 5.35:1 claro / 10.15:1 oscuro); la capa gris sola no llega a 3:1.\n- **1.4.1 Uso del color (A)**: el elegido se distingue también por el peso (Bold), no solo por el color.\n- **1.4.3 Contraste mínimo (AA)**: texto `text-neutral-medium` (14.53:1 / 12.87:1) y el elegido en\n  `text-neutral-activated`; el deshabilitado está exento.",
     "figma": [

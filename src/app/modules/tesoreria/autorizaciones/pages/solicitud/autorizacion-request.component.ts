@@ -23,17 +23,20 @@ import { AlertComponent } from '../../../../../shared/ui/alert/alert.component';
 import { ButtonComponent } from '../../../../../shared/ui/button/button.component';
 import { DateTimePickerComponent } from '../../../../../shared/ui/date-time-picker/date-time-picker.component';
 import { DocumentSummaryCardComponent } from '../../../../../shared/ui/document-summary-card/document-summary-card.component';
-import { EmptySectionComponent } from '../../../../../shared/ui/empty-section/empty-section.component';
+import { MessageBoxComponent } from '../../../../../shared/ui/message-box/message-box.component';
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { FlowStatus } from '../../../../../shared/ui/flow-status-tag/flow-status-tag.component';
 import { RadioComponent } from '../../../../../shared/ui/radio/radio.component';
 import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
+import { SummaryCardComponent, SummaryCardField } from '../../../../../shared/ui/summary-card/summary-card.component';
+import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { SnackbarVariant } from '../../../../../shared/ui/snackbar/snackbar.component';
 import { TextAreaControlComponent } from '../../../../../shared/ui/text-area-control/text-area-control.component';
 import { TextFieldComponent } from '../../../../../shared/ui/text-field/text-field.component';
 import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs.util';
 import { crearSnapshotFormulario, hayCambiosRespectoAlSnapshot } from '../../../../../shared/utils/form-snapshot.util';
 import { MIN_CARACTERES_TEXTO_LIBRE, cumpleMinimoTextoLibre } from '../../../../../shared/utils/texto-libre.util';
+import { SaldosInicialesApiService } from '../../../saldos-iniciales/api/saldos-iniciales-api.service';
 import { AutorizacionesApiService } from '../../api/autorizaciones-api.service';
 import { PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/autorizaciones.rutas';
 import {
@@ -48,6 +51,8 @@ import {
   TIPOS_MODIFICACION,
   TipoAccionAutorizacion,
   cuentaDeAutorizacion,
+  documentoResponsable,
+  errorAmpliacion,
   errorVigencia,
   etiquetaTipoAccion,
   fechaCorta,
@@ -69,37 +74,49 @@ interface Formulario {
   tipoModificacion: string;
 }
 
+/** El procedimiento viene preseleccionado: por ahora hay uno solo. */
 const FORMULARIO_VACIO: Formulario = {
-  procedimiento: '', responsable: '', cuentaBancaria: '', vigente: 'si', fechaDesde: '', fechaHasta: '', registroId: '', tipoModificacion: '',
+  procedimiento: PROCEDIMIENTOS[0].value, responsable: '', cuentaBancaria: '', vigente: 'si', fechaDesde: '', fechaHasta: '', registroId: '', tipoModificacion: '',
 };
 
 type Panel = 'responsable' | 'cuenta' | 'registro';
 type Fila = Record<string, string>;
 type Campo = { caption: string; value: string };
 
+export const AYUDA_RESPONSABLE = 'Los datos del responsable se obtienen del Gestor de identidades.';
+
 const COLUMNAS: Record<Panel, SelectionColumn<Fila>[]> = {
+  // Figma 24415:156428: usuario, documento (tipo y número), nombres y correo institucional.
   responsable: [
-    { key: 'usuario', label: 'Usuario', widthClass: 'w-[110px]' },
-    { key: 'dni', label: 'N° documento', widthClass: 'w-[120px]' },
+    { key: 'usuario', label: 'Usuario', widthClass: 'w-[100px]' },
+    { key: 'tipoDocumento', label: 'Tipo de documento', widthClass: 'w-[110px]' },
+    { key: 'dni', label: 'N° documento', widthClass: 'w-[130px]' },
     { key: 'nombres', label: 'Nombres y apellidos' },
+    { key: 'correo', label: 'Correo institucional', widthClass: 'w-[200px]' },
   ],
   cuenta: [
-    { key: 'numero', label: 'N° cuenta', widthClass: 'w-[200px]', cellClass: 'font-mono' },
+    // Figma 24415:138420: número, denominación, moneda y entidad financiera.
+    { key: 'numero', label: 'Número de cuenta', widthClass: 'w-[200px]', cellClass: 'font-mono' },
     { key: 'denominacion', label: 'Denominación' },
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[90px]' },
+    { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[260px]' },
   ],
+  // Figma 27100:46397: procedimiento, responsable (usuario y nombres) y cuenta bancaria.
   registro: [
-    { key: 'procedimiento', label: 'Procedimiento' },
-    { key: 'responsable', label: 'Responsable', widthClass: 'w-[200px]' },
-    { key: 'cuenta', label: 'N° cuenta', widthClass: 'w-[190px]', cellClass: 'font-mono' },
-    { key: 'estado', label: 'Estado', widthClass: 'w-[90px]' },
+    { key: 'procedimiento', label: 'Procedimiento', widthClass: 'w-[260px]' },
+    { key: 'usuario', label: 'Usuario', widthClass: 'w-[100px]' },
+    { key: 'nombres', label: 'Nombres y apellidos', widthClass: 'w-[200px]' },
+    { key: 'cuenta', label: 'Número de cuenta', widthClass: 'w-[190px]', cellClass: 'font-mono' },
+    { key: 'denominacion', label: 'Denominación', widthClass: 'w-[180px]' },
+    { key: 'moneda', label: 'Moneda', widthClass: 'w-[80px]' },
+    { key: 'entidad', label: 'Entidad', widthClass: 'w-[220px]' },
   ],
 };
 
 const TITULOS: Record<Panel, string> = {
-  responsable: 'Buscar responsable',
-  cuenta: 'Buscar cuenta bancaria',
-  registro: 'Buscar autorización',
+  responsable: 'Seleccionar responsable del Gestor de identidades',
+  cuenta: 'Seleccionar cuenta bancaria',
+  registro: 'Seleccionar autorización',
 };
 
 /**
@@ -122,7 +139,7 @@ const TITULOS: Record<Panel, string> = {
     DateTimePickerComponent,
     DetailHistoryTabsComponent,
     DocumentSummaryCardComponent,
-    EmptySectionComponent,
+    MessageBoxComponent,
     IconComponent,
     RadioComponent,
     ReadonlyFieldComponent,
@@ -131,8 +148,10 @@ const TITULOS: Record<Panel, string> = {
     SolicitudeFormCardComponent,
     SolicitudeInfoCardComponent,
     SolicitudePageLayoutComponent,
+    SummaryCardComponent,
     TextAreaControlComponent,
     TextFieldComponent,
+    TooltipDirective,
   ],
   templateUrl: './autorizacion-request.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -146,11 +165,15 @@ export class AutorizacionRequestComponent implements OnInit {
   private readonly solicitudesApi = inject(SolicitudesApiService);
   private readonly solicitudesFacade = inject(SolicitudesFacadeService);
   private readonly api = inject(AutorizacionesApiService);
+  private readonly saldosApi = inject(SaldosInicialesApiService);
+  /** Cuentas con saldo inicial registrado: solo esas se pueden autorizar para ajuste. */
+  private readonly cuentasConSaldo = signal<Set<string>>(new Set());
 
   readonly heading = NOMBRE_DOCUMENTO;
   readonly breadcrumbs: BreadcrumbItem[] = buildProcessBreadcrumbs(PROCESS_ID, PROCESS_ROUTE, 'Configuración de autorización');
   readonly minCaracteresTexto = MIN_CARACTERES_TEXTO_LIBRE;
   readonly maxMotivo = MAX_MOTIVO;
+  readonly ayudaResponsable = AYUDA_RESPONSABLE;
   readonly procedimientos = PROCEDIMIENTOS;
   readonly tiposModificacion = TIPOS_MODIFICACION;
   readonly opcionesVigencia = [
@@ -175,8 +198,15 @@ export class AutorizacionRequestComponent implements OnInit {
   readonly puedeAutorizar = computed(() => this.permissions.can(PERMISO_AUTORIZAR));
   readonly elaborado = computed(() => this.estado() !== 'NUEVO');
   readonly soloLectura = computed(() => !this.puedeAutorizar() || (this.elaborado() && !this.editando()));
+  /** Procedimiento, responsable, cuenta y motivo solo se editan en la creación; la modificación solo cambia la vigencia. */
+  readonly editaDatos = computed(() => !this.soloLectura() && !this.esModificacion());
   readonly numeroDocumento = computed(() => this.solicitud()?.numero ?? '');
-  /** Botones del header: Cancelar / Grabar / Autorizar al editar; Eliminar / Editar / Autorizar en un ELABORADO. */
+  /**
+   * Botones del header (todo lo hace el creador autorizador, sin aprobador):
+   * - Nuevo / edición: Cancelar, Grabar (→ ELABORADO con número) y Autorizar.
+   * - ELABORADO: Eliminar, Editar y Autorizar.
+   * Autorizar elabora, el sistema verifica y queda APROBADO en un solo paso (crea o modifica el registro).
+   */
   readonly modoAcciones = computed<'edicion' | 'elaborado' | 'ninguna'>(() => {
     if (!this.puedeAutorizar() || this.cargando()) return 'ninguna';
     if (this.estado() === 'NUEVO' || this.editando()) return 'edicion';
@@ -187,6 +217,7 @@ export class AutorizacionRequestComponent implements OnInit {
     if (this.editando()) return 'edit';
     switch (this.estado()) {
       case 'APROBADO': return 'approved';
+      case 'VERIFICADO': return 'verified';
       case 'ELIMINADO': return 'deleted';
       case 'ELABORADO': return 'elaborated';
       default: return 'new';
@@ -194,7 +225,7 @@ export class AutorizacionRequestComponent implements OnInit {
   });
 
   readonly estadoDocumento = computed<FlowStatus>(() => {
-    const etiquetas: Record<string, FlowStatus> = { APROBADO: ESTADO.APROBADO, ELIMINADO: ESTADO.ELIMINADO };
+    const etiquetas: Record<string, FlowStatus> = { APROBADO: ESTADO.APROBADO, VERIFICADO: ESTADO.VERIFICADO, ELIMINADO: ESTADO.ELIMINADO };
     return etiquetas[this.estado()] ?? ESTADO.ELABORADO;
   });
 
@@ -214,38 +245,32 @@ export class AutorizacionRequestComponent implements OnInit {
   readonly procedimientoNombre = computed(() => nombreProcedimiento(this.form().procedimiento));
   readonly registroElegido = computed(() => this.registros().find((r) => r.id === this.form().registroId) ?? null);
 
-  readonly camposResponsable = computed<Campo[]>(() => {
+  /** Card del responsable elegido (Figma 24792:62384). */
+  readonly camposResponsable = computed<SummaryCardField[]>(() => {
     const r = responsablePorUsuario(this.form().responsable);
     return r ? [
-      { caption: 'Usuario', value: r.usuario },
-      { caption: 'N° documento', value: r.dni },
-      { caption: 'Nombres y apellidos', value: r.nombres },
+      { label: 'Usuario', value: r.usuario },
+      { label: 'N° Documento', value: documentoResponsable(r) },
+      { label: 'Nombres y apellidos', value: r.nombres },
     ] : [];
   });
 
-  readonly camposCuenta = computed<Campo[]>(() => {
+  /** Card de la cuenta bancaria elegida. */
+  readonly camposCuenta = computed<SummaryCardField[]>(() => {
     const numero = this.form().cuentaBancaria;
     const c = cuentaDeAutorizacion(numero);
     return c ? [
-      { caption: 'N° cuenta', value: c.numero },
-      { caption: 'Denominación', value: c.denominacion },
-      { caption: 'Moneda', value: c.moneda },
-      { caption: 'Entidad financiera', value: nombreEntidadDeCuenta(numero) || '--' },
+      { label: 'Número de cuenta', value: c.numero },
+      { label: 'Denominación', value: c.denominacion },
+      { label: 'Moneda', value: c.moneda },
+      { label: 'Entidad financiera', value: nombreEntidadDeCuenta(numero) || '--' },
     ] : [];
   });
 
-  /** Modificación: la autorización elegida, tal como está registrada. */
-  readonly camposRegistro = computed<Campo[]>(() => {
+  /** Modificación: card de la autorización elegida; solo el procedimiento (responsable y cuenta van debajo). */
+  readonly camposRegistro = computed<SummaryCardField[]>(() => {
     const r = this.registroElegido();
-    if (!r) return [];
-    const responsable = responsablePorUsuario(r.responsable);
-    return [
-      { caption: 'Procedimiento', value: nombreProcedimiento(r.procedimiento) },
-      { caption: 'Responsable', value: `${r.responsable} · ${responsable?.nombres ?? ''}` },
-      { caption: 'N° cuenta', value: r.cuentaBancaria },
-      { caption: 'Estado actual', value: r.estado },
-      { caption: 'Vigencia actual', value: r.estado === 'Activo' ? `${fechaCorta(r.fechaDesde)} – ${fechaCorta(r.fechaHasta)}` : '--' },
-    ];
+    return r ? [{ label: 'Procedimiento', value: nombreProcedimiento(r.procedimiento) }] : [];
   });
 
   /** Vigencia registrada en el documento, en solo lectura. */
@@ -259,16 +284,32 @@ export class AutorizacionRequestComponent implements OnInit {
     ];
   });
 
+  /** Modificación con vigencia SÍ: la fecha hasta debe cambiar respecto de la registrada. */
+  private readonly fechaHastaSinCambio = computed(() => {
+    const f = this.form();
+    const r = this.registroElegido();
+    return this.esModificacion() && !this.soloLectura() && f.vigente === 'si' && !!r && f.fechaHasta === (r.fechaHasta ?? '');
+  });
+
+  /** Creación: hasta 3 días de vigencia. Modificación: hasta 2 días más que la fecha hasta registrada. */
+  private readonly problemaVigencia = computed(() => {
+    const f = this.form();
+    return this.esModificacion() ? errorAmpliacion(this.registroElegido()?.fechaHasta, f.fechaHasta) : errorVigencia(f.fechaDesde, f.fechaHasta);
+  });
+
   readonly errorFechas = computed(() => {
     const f = this.form();
     if (f.vigente === 'no' || !f.fechaDesde || !f.fechaHasta) return '';
-    return errorVigencia(f.fechaDesde, f.fechaHasta) ?? '';
+    if (this.fechaHastaSinCambio()) return this.editadoFechaHasta() ? 'Ingrese una fecha hasta distinta a la registrada.' : '';
+    return this.problemaVigencia() ?? '';
   });
+  /** Para no mostrar el error apenas se elige la autorización (la fecha viene igual a la registrada). */
+  private readonly editadoFechaHasta = signal(false);
 
   private readonly formularioCompleto = computed(() => {
     const f = this.form();
-    const vigenciaOk = f.vigente === 'no' || !errorVigencia(f.fechaDesde, f.fechaHasta);
-    if (this.esModificacion()) return !!f.tipoModificacion && !!this.registroElegido() && vigenciaOk;
+    const vigenciaOk = f.vigente === 'no' || !this.problemaVigencia();
+    if (this.esModificacion()) return !!f.tipoModificacion && !!this.registroElegido() && vigenciaOk && !this.fechaHastaSinCambio();
     return !!f.procedimiento && !!f.responsable && !!f.cuentaBancaria && vigenciaOk;
   });
 
@@ -279,7 +320,10 @@ export class AutorizacionRequestComponent implements OnInit {
 
   /** Grabar: solo con cambios. Autorizar: con datos válidos (en un ELABORADO sin editar, siempre). */
   readonly grabarDeshabilitado = computed(() => this.saving() || !this.datosValidos() || !this.hayCambios());
+  /** Autorizar: con datos válidos (en un ELABORADO sin editar, siempre). */
   readonly autorizarDeshabilitado = computed(() => this.saving() || (this.modoAcciones() === 'edicion' && !this.datosValidos()));
+  /** Nuevo o en edición: se muestra como formulario (sin ← regresar; se sale con Cancelar). */
+  readonly formulario = computed(() => this.estado() === 'NUEVO' || this.editando());
 
   // ── Paneles de búsqueda ───────────────────────────────────────────
   readonly panel = signal<Panel | null>(null);
@@ -293,13 +337,17 @@ export class AutorizacionRequestComponent implements OnInit {
     const filas: Fila[] = this.panel() === 'responsable'
       ? RESPONSABLES.map((r) => ({ ...r }))
       : this.panel() === 'cuenta'
-        ? CUENTAS_BANCARIAS.map((c) => ({ numero: c.numero, denominacion: c.denominacion, moneda: c.moneda }))
-        : this.registros().map((r) => ({
+        ? CUENTAS_BANCARIAS.filter((c) => this.cuentasConSaldo().has(c.numero)).map((c) => ({ numero: c.numero, denominacion: c.denominacion, moneda: c.moneda, entidad: nombreEntidadDeCuenta(c.numero) || '--' }))
+        // Solo las autorizaciones activas: una inactiva ya fue dada de baja.
+        : this.registros().filter((r) => r.estado === 'Activo').map((r) => ({
           id: r.id,
           procedimiento: nombreProcedimiento(r.procedimiento),
-          responsable: responsablePorUsuario(r.responsable)?.nombres ?? r.responsable,
+          usuario: r.responsable,
+          nombres: responsablePorUsuario(r.responsable)?.nombres ?? '--',
           cuenta: r.cuentaBancaria,
-          estado: r.estado,
+          denominacion: cuentaDeAutorizacion(r.cuentaBancaria)?.denominacion ?? '--',
+          moneda: cuentaDeAutorizacion(r.cuentaBancaria)?.moneda ?? '--',
+          entidad: nombreEntidadDeCuenta(r.cuentaBancaria) || '--',
         }));
     const texto = this.busqueda().trim().toLowerCase();
     return texto ? filas.filter((f) => Object.values(f).some((v) => v.toLowerCase().includes(texto))) : filas;
@@ -324,7 +372,7 @@ export class AutorizacionRequestComponent implements OnInit {
       const nombre = h?.creador ? `${h.creador.nombres} ${h.creador.apellidoPaterno} ${h.creador.apellidoMaterno}` : '';
       return { label, actionBy: nombre.toUpperCase(), date: h ? new Date(h.createdAt).toLocaleString('es-PE') : '' };
     };
-    return [quien('ELABORADO', 'Elaborado por'), quien('APROBADO', 'Autorizado por')];
+    return [quien('ELABORADO', 'Elaborado por'), quien('VERIFICADO', 'Verificado por'), quien('APROBADO', 'Aprobado por')];
   });
 
   // ── Modales y avisos ──────────────────────────────────────────────
@@ -338,6 +386,9 @@ export class AutorizacionRequestComponent implements OnInit {
   ngOnInit(): void {
     this.catalogosApi.listarTiposDocumento().subscribe((tipos) => (this.tiposDocumento = tipos));
     this.api.listarRegistros().subscribe((registros) => this.registros.set(registros));
+    this.saldosApi.listarRegistros().subscribe((saldos) =>
+      this.cuentasConSaldo.set(new Set(saldos.filter((r) => r.estado === 'Activo').map((r) => r.cuentaBancaria))),
+    );
     if (this.route.snapshot.queryParamMap.get('actionType') === 'modificacion') {
       this.tipoAccion.set('modificacion');
       this.actualizar('tipoModificacion', 'vigencia');
@@ -355,8 +406,17 @@ export class AutorizacionRequestComponent implements OnInit {
   }
 
   /** Vigencia NO (solo en modificación): el registro queda Inactivo y no lleva fechas. */
+  /** Vigencia NO (solo en modificación): la fecha hasta vuelve a la registrada y se bloquea; al aprobar queda Inactivo. */
   cambiarVigencia(valor: string): void {
-    this.form.update((f) => (valor === 'no' ? { ...f, vigente: 'no', fechaDesde: '', fechaHasta: '' } : { ...f, vigente: 'si' }));
+    const r = this.registroElegido();
+    this.form.update((f) => (valor === 'no'
+      ? { ...f, vigente: 'no', fechaDesde: r?.fechaDesde ?? f.fechaDesde, fechaHasta: r?.fechaHasta ?? f.fechaHasta }
+      : { ...f, vigente: 'si' }));
+  }
+
+  cambiarFechaHasta(valor: string): void {
+    this.editadoFechaHasta.set(true);
+    this.actualizar('fechaHasta', valor);
   }
 
   // ── Paneles ───────────────────────────────────────────────────────
@@ -380,10 +440,12 @@ export class AutorizacionRequestComponent implements OnInit {
     this.panel.set(null);
   }
 
-  /** Modificación: al elegir la autorización, la vigencia parte de la registrada. */
+  /** Modificación: al elegir la autorización se traen sus datos y la justificación de la creación; solo cambia la vigencia. */
   private elegirRegistro(id: string): void {
     const r = this.registros().find((x) => x.id === id);
     if (!r) return;
+    this.editadoFechaHasta.set(false);
+    this.motivo.set(r.motivo ?? '');
     this.form.update((f) => ({
       ...f,
       registroId: r.id,
@@ -394,6 +456,16 @@ export class AutorizacionRequestComponent implements OnInit {
       fechaDesde: r.fechaDesde ?? '',
       fechaHasta: r.fechaHasta ?? '',
     }));
+  }
+
+  /** ✕ de la card: quita la selección. */
+  quitar(panel: Panel): void {
+    if (panel === 'responsable') this.actualizar('responsable', '');
+    if (panel === 'cuenta') this.actualizar('cuentaBancaria', '');
+    if (panel === 'registro') {
+      this.form.update((f) => ({ ...FORMULARIO_VACIO, tipoModificacion: f.tipoModificacion }));
+      this.motivo.set('');
+    }
   }
 
   // ── Navegación ────────────────────────────────────────────────────
@@ -423,9 +495,12 @@ export class AutorizacionRequestComponent implements OnInit {
     this.modalAutorizar.set(true);
   }
 
+  /**
+   * Autorizar: desde NUEVO (sin grabar) o al editar, guarda y aprueba; desde un ELABORADO sin cambios, aprueba. El
+   * backend deja elaborado, verificado (sistema) y aprobado, y crea o modifica el registro.
+   */
   onConfirmarAutorizar(): void {
     this.modalAutorizar.set(false);
-    // Un ELABORADO sin editar se autoriza tal cual; si se está editando, primero se guarda lo cambiado.
     if (this.solicitudId && !this.editando()) {
       this.accion((id) => this.solicitudesApi.cambiarEstado(id, { estadoNuevo: 'APROBADO' }), 'creation-approved');
       return;
@@ -483,8 +558,7 @@ export class AutorizacionRequestComponent implements OnInit {
     ).subscribe({
       next: (id) => {
         this.saving.set(false);
-        const estado = estadoNuevo === 'APROBADO' ? { fromAuthorize: true } : { fromSave: true };
-        void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, id], { state: estado });
+        void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, id], { state: estadoNuevo === 'APROBADO' ? { fromAuthorize: true } : { fromSave: true } });
       },
       error: () => {
         this.saving.set(false);

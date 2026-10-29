@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { APP_CONFIG } from '../../../../core/config/app.config';
-import { AutorizacionDatos, AutorizacionRegistro } from '../models/autorizacion.model';
+import { AutorizacionDatos, AutorizacionRegistro, AutorizacionVigente } from '../models/autorizacion.model';
 
 /** Endpoints del proceso de autorizaciones. En el taller los responde el backend simulado. */
 @Injectable({ providedIn: 'root' })
@@ -19,5 +19,10 @@ export class AutorizacionesApiService {
   /** Autorizaciones aprobadas: pestaña Registros y selector de la modificación. */
   listarRegistros(): Observable<AutorizacionRegistro[]> {
     return this.http.get<AutorizacionRegistro[]>(`${this.base}/autorizaciones`);
+  }
+
+  /** Autorizaciones vigentes para ajustar el saldo inicial del usuario en sesión (una por cuenta). */
+  listarVigentes(): Observable<AutorizacionVigente[]> {
+    return this.http.get<AutorizacionVigente[]>(`${this.base}/autorizaciones/vigentes`);
   }
 }

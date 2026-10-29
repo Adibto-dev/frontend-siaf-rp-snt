@@ -200,6 +200,13 @@ export class CuentaBancariaRequestComponent implements OnInit {
   }));
   private readonly hayCambios = computed(() => hayCambiosRespectoAlSnapshot(this.fotoEdicion(), this.fotoActual()));
 
+  /** Verificar: en ELABORADO u OBSERVADO; al editar, con los datos completos (graba lo pendiente antes). */
+  readonly verificarDeshabilitado = computed(() => {
+    if (this.cargando() || this.saving()) return true;
+    if (this.editando()) return !(this.formularioCompleto() && cumpleMinimoTextoLibre(this.justificacion()) && !!this.sustento());
+    return !this.puedeVerificar();
+  });
+
   readonly formValido = computed(() =>
     !this.soloLectura() && this.formularioCompleto() && cumpleMinimoTextoLibre(this.justificacion()) && !!this.sustento() && this.hayCambios(),
   );
@@ -295,7 +302,7 @@ export class CuentaBancariaRequestComponent implements OnInit {
   }
 
   // ── Grabar ────────────────────────────────────────────────────────
-  onConfirmarGrabar(): void {
+  onConfirmarGrabar(luegoVerificar = false): void {
     this.modalGrabar.set(false);
     const f = this.form();
     const datos: CuentaBancariaDatos = {
@@ -319,9 +326,13 @@ export class CuentaBancariaRequestComponent implements OnInit {
     if (this.solicitudId) {
       const id = this.solicitudId;
       this.solicitudesApi.actualizar(id, { justificacion: this.justificacion(), organoLinea: this.organo() })
-        .pipe(switchMap(() => guardarYElaborar(id)))
+        .pipe(
+          switchMap(() => guardarYElaborar(id)),
+          // Verificar desde edición: graba y luego verifica.
+          switchMap(() => (luegoVerificar ? this.solicitudesApi.cambiarEstado(id, { estadoNuevo: 'VERIFICADO' }) : of(null))),
+        )
         .subscribe({
-          next: () => { this.editando.set(false); this.mostrarAviso('creation-elaborated'); this.cargar(id); },
+          next: () => { this.editando.set(false); this.mostrarAviso(luegoVerificar ? 'creation-verified' : 'creation-elaborated'); this.cargar(id); },
           error: () => this.cargar(id),
         });
       return;
@@ -348,8 +359,14 @@ export class CuentaBancariaRequestComponent implements OnInit {
   }
 
   // ── Acciones de estado ────────────────────────────────────────────
+  /** Verificar; en edición con cambios pendientes, primero los graba. */
   onConfirmarVerificar(): void {
     this.modalVerificar.set(false);
+    if (this.editando() && this.hayCambios()) {
+      this.onConfirmarGrabar(true);
+      return;
+    }
+    this.editando.set(false);
     this.accion((id) => this.solicitudesApi.cambiarEstado(id, { estadoNuevo: 'VERIFICADO' }), 'creation-verified');
   }
 

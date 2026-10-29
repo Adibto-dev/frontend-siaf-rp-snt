@@ -28,6 +28,8 @@ import {
   CODIGO_DOCUMENTO as CODIGO_AUTORIZACION,
   NOMBRE_DOCUMENTO as NOMBRE_AUTORIZACION,
   TipoAccionAutorizacion,
+  USUARIO_AJUSTE_SALDO,
+  mensajeAutorizacionVigente,
 } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
 
@@ -37,7 +39,7 @@ import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 10;
+const VERSION = 18;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -104,11 +106,18 @@ export function nuevoId(datos: DatosTaller, prefijo: string): string {
   return `${prefijo}-${datos.secuencia}`;
 }
 
-/** Siguiente número de documento para su tipo: PCB-<código>-<correlativo>-<año>-MEF-OGA. */
-export function numeroDocumento(datos: DatosTaller, codigo: string, fecha: Date): string {
-  const correlativo = (datos.correlativos[codigo] ?? 0) + 1;
-  datos.correlativos[codigo] = correlativo;
-  return `PCB-${codigo}-${String(correlativo).padStart(5, '0')}-${fecha.getFullYear()}-MEF-OGA`;
+/** Saldos iniciales, ajustes y saldos de apertura comparten numeración: SI-DRSI-<correlativo>-<año>-<entidad>-<unidad>. */
+export const PREFIJO_SALDOS = 'SI-DRSI';
+
+/**
+ * Siguiente número de documento: PCB-<código>-<correlativo>-<año>-<entidad>-<unidad>. Los de saldos (RSIN y RASA)
+ * usan el prefijo SI-DRSI y un solo correlativo.
+ */
+export function numeroDocumento(datos: DatosTaller, codigo: string, fecha: Date, entidad = ENTIDAD_CREADORA.siglas, unidad = UNIDAD_CREADORA.sigla): string {
+  const prefijo = codigo === CODIGO_SALDOS || codigo === CODIGO_AUTOMATICO ? PREFIJO_SALDOS : `PCB-${codigo}`;
+  const correlativo = (datos.correlativos[prefijo] ?? 0) + 1;
+  datos.correlativos[prefijo] = correlativo;
+  return `${prefijo}-${String(correlativo).padStart(5, '0')}-${fecha.getFullYear()}-${entidad}-${unidad}`;
 }
 
 /** Al aprobar un RSIN (o al procesarse un RASA): cada saldo recibe su secuencia y pasa a los registros. */
@@ -144,10 +153,9 @@ export function registrarAutorizacion(datos: DatosTaller, s: SolicitudResponse, 
   const documento = { documentoId: s.id, numero: s.numero ?? '', tipoAccion: (s.tipoAccion === 'modificacion' ? 'modificacion' : 'creacion') as TipoAccionAutorizacion, fecha };
   const existente = d.registroId ? datos.registrosAutorizacion.find((r) => r.id === d.registroId) : undefined;
   if (documento.tipoAccion === 'modificacion' && existente) {
-    // La modificación es de vigencia: cambia el estado y las fechas.
+    // La modificación es de vigencia: SÍ cambia la fecha hasta; NO da de baja (Inactivo) y conserva las fechas.
     existente.estado = d.estado;
-    existente.fechaDesde = d.estado === 'Activo' ? d.fechaDesde : null;
-    existente.fechaHasta = d.estado === 'Activo' ? d.fechaHasta : null;
+    if (d.estado === 'Activo') existente.fechaHasta = d.fechaHasta;
     existente.documentoId = s.id;
     existente.numeroDocumento = documento.numero;
     existente.fechaRegistro = fecha;
@@ -162,12 +170,38 @@ export function registrarAutorizacion(datos: DatosTaller, s: SolicitudResponse, 
     estado: 'Activo',
     fechaDesde: d.fechaDesde,
     fechaHasta: d.fechaHasta,
+    motivo: (s.asuntoMotivo ?? '').replace(/^\[[^\]]*\]\s*/, ''),
     entidadSiglas: s.entidadCreadora?.siglas ?? '',
     documentoId: s.id,
     numeroDocumento: documento.numero,
     fechaRegistro: fecha,
     documentos: [documento],
   });
+}
+
+/**
+ * Al aprobarse una autorización excepcional activa, se avisa al creador que hará el ajuste del saldo inicial (Ana):
+ * la notificación abre el documento de autorización.
+ */
+export function avisarAutorizacionAjuste(datos: DatosTaller, s: SolicitudResponse, fecha: string, leida = false): void {
+  const d = s.detalleAutorizacion;
+  if (!d || d.estado !== 'Activo') return;
+  datos.notificaciones.push({
+    id: nuevoId(datos, 'not'),
+    tipo: 'AUTORIZACION_AJUSTE_SALDO',
+    titulo: 'Autorización para ajustar el saldo inicial',
+    mensaje: mensajeAutorizacionVigente(d.cuentaBancaria, d.fechaHasta),
+    leida,
+    leidaEn: leida ? fecha : null,
+    createdAt: fecha,
+    documento: { id: s.id, numero: s.numero, catDocumento: TIPO_AUTORIZACION },
+    paraUsuarioId: USUARIO_AJUSTE_SALDO,
+  });
+}
+
+/** Cuentas bancarias con saldo inicial registrado: las únicas que se pueden autorizar para ajuste. */
+export function cuentasConSaldoInicial(datos: DatosTaller): Set<string> {
+  return new Set(datos.registrosSaldos.filter((r) => r.estado === 'Activo').map((r) => r.cuentaBancaria));
 }
 
 export function filaHistorial(
@@ -189,6 +223,10 @@ export function filaHistorial(
     perfil: { cfgPerfil: { rol } },
   };
 }
+
+/** El sistema «SIAF RP»: registra y procesa los documentos automáticos y verifica las autorizaciones excepcionales. */
+export const USUARIO_SISTEMA: UsuarioDemo = { ...USUARIOS_DEMO[0], id: 'sistema', nombres: 'SIAF RP', apellidoPaterno: '', apellidoMaterno: '' };
+export const ROL_SISTEMA = { codigo: 'SISTEMA', nombre: 'Sistema' };
 
 // ─── Datos iniciales ───────────────────────────────────────────────
 
@@ -431,7 +469,7 @@ interface SemillaAjuste {
 const SEMILLAS_AJUSTE: SemillaAjuste[] = [
   { creada: '2026-03-17', estado: 'APROBADO', cuenta: '12073303572000000003', fecha: '2026-03-16', naturaleza: 'Crédito', total: 5000, sustento: 'Autorización de ajuste 001-2026.pdf' },
   { creada: '2026-05-06', estado: 'APROBADO', cuenta: '00000281794000000005', fecha: '2026-05-05', naturaleza: 'Débito', total: 150000, sustento: 'Autorización de ajuste 002-2026.pdf' },
-  { creada: '2026-10-20', estado: 'VERIFICADO', cuenta: '11040103570200000000', fecha: '2026-10-19', naturaleza: 'Crédito', total: 20000, sustento: 'Autorización de ajuste 003-2026.pdf' },
+  { creada: '2026-10-20', estado: 'APROBADO', cuenta: '11040103570200000000', fecha: '2026-10-19', naturaleza: 'Crédito', total: 20000, sustento: 'Autorización de ajuste 003-2026.pdf' },
 ];
 
 /** Ajustes sobre saldos ya registrados: cada uno ajusta una sola cuenta bancaria; el saldo original no cambia. */
@@ -487,7 +525,7 @@ function crearAjustesSaldo(datos: DatosTaller): void {
 
 interface SemillaAutorizacion {
   creada: string;
-  /** El creador autorizador graba (ELABORADO) o autoriza (APROBADO): no hay verificación ni aprobador. */
+  /** Grabado (ELABORADO) o autorizado: elaborado y aprobado por el creador autorizador, verificado por el sistema. */
   estado: 'ELABORADO' | 'APROBADO';
   tipoAccion: TipoAccionAutorizacion;
   /** En una creación, la autorización; en una modificación, el procedimiento y la cuenta del registro y la vigencia nueva. */
@@ -499,23 +537,23 @@ const SEMILLAS_AUTORIZACION: SemillaAutorizacion[] = [
   { creada: '2026-02-03', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la cuenta en dólares del BCRP.',
     datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21568', cuentaBancaria: '12073303572000000003', estado: 'Activo', fechaDesde: '2026-02-03', fechaHasta: '2026-12-31' } },
   { creada: '2026-02-05', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de recursos ordinarios.',
-    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21574', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: '2026-02-05', fechaHasta: '2026-06-30' } },
-  { creada: '2026-03-02', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para ajustar el saldo inicial de la cuenta en dólares del BCRP.',
-    datos: { procedimiento: 'ajuste-saldo', responsable: 'RU21603', cuentaBancaria: '12073303572000000003', estado: 'Activo', fechaDesde: '2026-03-02', fechaHasta: '2026-12-31' } },
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU15846', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: '2026-02-05', fechaHasta: '2026-06-30' } },
+  { creada: '2026-03-02', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la cuenta en dólares del BCRP.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU22471', cuentaBancaria: '12073303572000000003', estado: 'Activo', fechaDesde: '2026-03-02', fechaHasta: '2026-12-31' } },
   { creada: '2026-04-14', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la Cuenta Única del Tesoro.',
-    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21619', cuentaBancaria: '00000281794000000005', estado: 'Activo', fechaDesde: '2026-04-14', fechaHasta: '2026-12-31' } },
-  { creada: '2026-04-20', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para ajustar el saldo inicial de la Cuenta Única del Tesoro.',
-    datos: { procedimiento: 'ajuste-saldo', responsable: 'RU21642', cuentaBancaria: '00000281794000000005', estado: 'Activo', fechaDesde: '2026-04-20', fechaHasta: '2026-09-30' } },
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU10538', cuentaBancaria: '00000281794000000005', estado: 'Activo', fechaDesde: '2026-04-14', fechaHasta: '2026-12-31' } },
+  { creada: '2026-04-20', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la Cuenta Única del Tesoro.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU38192', cuentaBancaria: '00000281794000000005', estado: 'Activo', fechaDesde: '2026-04-20', fechaHasta: '2026-09-30' } },
   { creada: '2026-06-29', estado: 'APROBADO', tipoAccion: 'modificacion', justificacion: 'Se amplía la vigencia hasta el cierre del ejercicio.',
-    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21574', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: '2026-07-01', fechaHasta: '2026-12-31' } },
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU15846', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: '2026-02-05', fechaHasta: '2026-12-31' } },
   { creada: '2026-08-18', estado: 'APROBADO', tipoAccion: 'modificacion', justificacion: 'Se desactiva la autorización: la cuenta pasó a otra unidad ejecutora.',
-    datos: { procedimiento: 'ajuste-saldo', responsable: 'RU21642', cuentaBancaria: '00000281794000000005', estado: 'Inactivo', fechaDesde: null, fechaHasta: null } },
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU38192', cuentaBancaria: '00000281794000000005', estado: 'Inactivo', fechaDesde: '2026-04-20', fechaHasta: '2026-09-30' } },
   { creada: '2026-09-22', estado: 'APROBADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la cuenta de recaudación del BCP.',
-    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21657', cuentaBancaria: '19300456712000000002', estado: 'Activo', fechaDesde: '2026-09-22', fechaHasta: '2027-03-31' } },
-  { creada: '2026-10-06', estado: 'ELABORADO', tipoAccion: 'modificacion', justificacion: 'Se acorta la vigencia del ajuste de saldo inicial.',
-    datos: { procedimiento: 'ajuste-saldo', responsable: 'RU21603', cuentaBancaria: '12073303572000000003', estado: 'Activo', fechaDesde: '2026-10-06', fechaHasta: '2026-11-30' } },
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU27654', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: '2026-09-22', fechaHasta: '2027-03-31' } },
+  { creada: '2026-10-06', estado: 'ELABORADO', tipoAccion: 'modificacion', justificacion: 'Se acorta la vigencia de la autorización.',
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU22471', cuentaBancaria: '12073303572000000003', estado: 'Activo', fechaDesde: '2026-03-02', fechaHasta: '2026-11-30' } },
   { creada: '2026-10-21', estado: 'ELABORADO', tipoAccion: 'creacion', justificacion: 'Autorización para registrar los saldos iniciales de la cuenta de garantías.',
-    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21568', cuentaBancaria: '01100586230200000007', estado: 'Activo', fechaDesde: '2026-11-01', fechaHasta: '2026-12-31' } },
+    datos: { procedimiento: 'saldos-iniciales', responsable: 'RU21568', cuentaBancaria: '00000281794000000005', estado: 'Activo', fechaDesde: '2026-11-01', fechaHasta: '2026-12-31' } },
 ];
 
 function crearAutorizaciones(datos: DatosTaller): void {
@@ -525,12 +563,16 @@ function crearAutorizaciones(datos: DatosTaller): void {
     const creada = enFecha(semilla.creada, 9);
     const historial: HistorialItem[] = [
       filaHistorial(datos, null, 'NUEVO', creada, rosa, ROL_CREADOR),
-      filaHistorial(datos, 'NUEVO', semilla.estado, enFecha(semilla.creada, 10), rosa, ROL_CREADOR),
+      filaHistorial(datos, 'NUEVO', 'ELABORADO', enFecha(semilla.creada, 10), rosa, ROL_CREADOR),
     ];
+    if (semilla.estado === 'APROBADO') {
+      historial.push(filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10), USUARIO_SISTEMA, ROL_SISTEMA));
+      historial.push(filaHistorial(datos, 'VERIFICADO', 'APROBADO', enFecha(semilla.creada, 10), rosa, ROL_CREADOR));
+    }
     const ultima = historial[historial.length - 1].createdAt;
-    // La modificación apunta a la autorización registrada del mismo procedimiento y cuenta.
+    // La modificación apunta a la autorización registrada del mismo procedimiento, cuenta y responsable.
     const registro = semilla.tipoAccion === 'modificacion'
-      ? datos.registrosAutorizacion.find((r) => r.procedimiento === semilla.datos.procedimiento && r.cuentaBancaria === semilla.datos.cuentaBancaria)
+      ? datos.registrosAutorizacion.find((r) => r.procedimiento === semilla.datos.procedimiento && r.cuentaBancaria === semilla.datos.cuentaBancaria && r.responsable === semilla.datos.responsable)
       : undefined;
     const solicitud: SolicitudResponse = {
       id,
@@ -538,7 +580,8 @@ function crearAutorizaciones(datos: DatosTaller): void {
       catDocumento: TIPO_AUTORIZACION,
       tipoAccion: semilla.tipoAccion,
       estado: semilla.estado,
-      asuntoMotivo: `[OFICINA GENERAL DE ADMINISTRACIÓN] ${semilla.justificacion}`,
+      // La modificación lleva la justificación de la creación.
+      asuntoMotivo: `[OFICINA GENERAL DE ADMINISTRACIÓN] ${registro?.motivo || semilla.justificacion}`,
       entidadCreadora: ENTIDAD_CREADORA,
       unidadCreadora: UNIDAD_CREADORA,
       creador: { id: rosa.id, nombres: rosa.nombres, apellidoPaterno: rosa.apellidoPaterno, apellidoMaterno: rosa.apellidoMaterno },
@@ -559,13 +602,14 @@ function crearAutorizaciones(datos: DatosTaller): void {
     datos.solicitudes.push(solicitud);
     if (semilla.estado === 'APROBADO') registrarAutorizacion(datos, solicitud, ultima);
   }
+  // Demo: los registros de ejemplo quedan inactivos, sin alertas de ajuste al empezar. La autorización que se crea en
+  // la clase es la única activa (y la que se puede modificar).
+  for (const r of datos.registrosAutorizacion) r.estado = 'Inactivo';
 }
 
 // ─── Registro automático de saldos de apertura (RASA) ──────────────
 
-/** El sistema: registra y procesa los documentos automáticos. */
-const SISTEMA: UsuarioDemo = { ...USUARIOS_DEMO[0], id: 'sistema', nombres: 'SIAF RP', apellidoPaterno: '', apellidoMaterno: '' };
-const ROL_SISTEMA = { codigo: 'SISTEMA', nombre: 'Sistema' };
+const SISTEMA = USUARIO_SISTEMA;
 
 interface SemillaApertura {
   /** Día del registro (yyyy-mm-dd), a las 00:00:00. */
