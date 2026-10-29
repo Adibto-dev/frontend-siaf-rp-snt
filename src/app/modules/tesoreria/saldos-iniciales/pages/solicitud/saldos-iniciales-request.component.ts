@@ -43,6 +43,7 @@ import { crearSnapshotFormulario, hayCambiosRespectoAlSnapshot } from '../../../
 import { AutorizacionesApiService } from '../../../autorizaciones/api/autorizaciones-api.service';
 import { AutorizacionVigente, fechaCorta } from '../../../autorizaciones/models/autorizacion.model';
 import { SaldosInicialesApiService } from '../../api/saldos-iniciales-api.service';
+import { SaldosCargaMasivaComponent } from '../../components/saldos-carga-masiva/saldos-carga-masiva.component';
 import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
 import { ADJUSTMENT_ROUTE, PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/saldos-iniciales.rutas';
 import {
@@ -127,6 +128,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
   selector: 'siaf-saldos-iniciales-request',
   standalone: true,
   imports: [
+    SaldosCargaMasivaComponent,
     AlertComponent,
     SaldoLibretasPanelComponent,
     ActionTrackerComponent,
@@ -446,6 +448,25 @@ export class SaldosInicialesRequestComponent implements OnInit {
   readonly cuentasUsadas = computed(() =>
     this.saldos().filter((s) => s.id !== this.saldoEditado()).map((s) => s.cuentaBancaria),
   );
+
+  // ── Carga masiva ──────────────────────────────────────────────────
+  readonly cargaMasivaAbierta = signal(false);
+  /** Cuentas de la entidad que aún no están en el documento: las que ofrece la plantilla precargada. */
+  readonly cuentasParaCarga = computed(() =>
+    CUENTAS_BANCARIAS.filter((c) => c.entidadCodigo === this.entidadCodigo() && !this.saldos().some((s) => s.cuentaBancaria === c.numero)));
+  readonly cuentasEnDocumento = computed(() => this.saldos().map((s) => s.cuentaBancaria));
+  readonly nuevoIdSaldo = (): string => `nuevo-${this.siguienteSaldo++}`;
+  /** Texto del snackbar cuando no es uno de los avisos de flujo. */
+  readonly avisoMensaje = signal('');
+
+  /** Los saldos del Excel se suman a la tabla del documento. */
+  onCargaMasiva(saldos: SaldoInicial[]): void {
+    this.saldos.update((lista) => [...lista, ...saldos]);
+    this.cargaMasivaAbierta.set(false);
+    this.avisoMensaje.set(`Se cargaron ${saldos.length} items correctamente.`);
+    this.aviso.set('custom');
+    this.avisoAbierto.set(true);
+  }
 
   readonly busquedaLibretas = signal('');
   readonly paginaLibretas = signal(1);

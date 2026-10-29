@@ -189,8 +189,16 @@
             <h3 class="m-0 text-sm font-bold uppercase text-text">Saldos iniciales libro bancos</h3>
             @if (!soloLectura()) {
               <div class="flex items-center gap-siaf-xs">
-                <!-- Carga masiva: aún no disponible. -->
-                <siaf-button variant="outline" size="md" icon="file_upload" [iconOnly]="true" ariaLabel="Carga masiva de saldos (no disponible)" [disabled]="true" />
+                <siaf-button
+                  variant="outline"
+                  size="md"
+                  icon="file_upload"
+                  [iconOnly]="true"
+                  ariaLabel="Carga masiva de saldos"
+                  siafTooltip="Carga masiva"
+                  [disabled]="!entidad() || editorAbierto()"
+                  (click)="cargaMasivaAbierta.set(true)"
+                />
                 <siaf-button
                   variant="accent"
                   size="md"
@@ -600,6 +608,16 @@
     (closed)="modalCambioEntidad.set(false)"
   />
 
+  <siaf-saldos-carga-masiva
+    [open]="cargaMasivaAbierta()"
+    [entidadCodigo]="entidadCodigo() ?? ''"
+    [cuentasDisponibles]="cuentasParaCarga()"
+    [cuentasUsadas]="cuentasEnDocumento()"
+    [nuevoId]="nuevoIdSaldo"
+    (closed)="cargaMasivaAbierta.set(false)"
+    (loaded)="onCargaMasiva($event)"
+  />
+
   <siaf-request-approval-modals
     [saveOpen]="modalGrabar()"
     [verifyOpen]="modalVerificar()"
@@ -612,6 +630,7 @@
     [rejectReasonType]="motivoRechazo()"
     [rejectReasonTypeOptions]="motivosRechazo"
     [snackbarVariant]="aviso()"
+    [snackbarMessage]="avisoMensaje()"
     [snackbarOpen]="avisoAbierto()"
     requestType="creación"
     [requestNumber]="numeroDocumento()"
