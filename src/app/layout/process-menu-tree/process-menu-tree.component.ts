@@ -4,6 +4,7 @@ import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { TextFieldComponent } from '../../shared/ui/text-field/text-field.component';
 import { TreeViewComponent, TreeViewNode } from '../../shared/ui/tree-view/tree-view.component';
 import { DEFAULT_PROCESS_TREE, ProcessMenuNode } from '../../shared/utils/process-tree.util';
+import { contieneTodas, palabrasDeBusqueda } from '../../shared/utils/resaltado-busqueda.util';
 
 // El árbol/tipo/utilidad de búsqueda viven en shared/utils/process-tree.util
 // (shared no puede depender de layout). Se re-exportan acá para no romper a
@@ -18,8 +19,8 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
  * re-exporta el tipo y las utilidades). Es el único menú en árbol: el shell también lo usa para "Ajustes" con
  * `ADMIN_MENU_TREE` y otros textos, así que un árbol nuevo es solo otro arreglo de nodos. El árbol es
  * `siaf-tree-view` del kit (estados del Figma y teclado de árbol); este componente le suma el panel, los títulos y
- * el buscador, que funciona como paleta de comandos: filtra la navegación en vivo, sin ir al servidor, y abre las
- * ramas con coincidencias. Los nodos `comingSoon` se ven deshabilitados y solo se abren: nunca emiten `nodeSelected`.
+ * el buscador, que funciona como paleta de comandos: filtra la navegación en vivo por palabras, sin ir al servidor,
+ * abre las ramas con coincidencias y resalta en negrita lo encontrado (`highlight` de `siaf-tree-view`). Los nodos `comingSoon` se ven deshabilitados y solo se abren: nunca emiten `nodeSelected`.
  *
  * @usar
  * - Para el panel Procesos del armazón: `siaf-app-shell` lo abre desde el rail y navega a la `moduleRoute` o
@@ -39,8 +40,10 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
  *   nodo elegido o el primero).
  * - **Escape** en el buscador o **Enter / Espacio** en «Limpiar búsqueda»: vacían la búsqueda, vuelve el árbol completo
  *   y el foco queda en el campo.
- * - **Escribir en el buscador**: filtra el árbol en vivo, sin distinguir tildes ni mayúsculas, y abre las ramas con
- *   coincidencias.
+ * - **Escribir en el buscador**: desde la 3.ª letra filtra el árbol en vivo por palabras (todas, en cualquier orden),
+ *   sin distinguir tildes ni mayúsculas e ignorando conectores (`de`, `la`, `en`…) y palabras de 1 o 2 letras; con
+ *   menos letras avisa «Escribe al menos 3 letras para buscar»; abre las ramas con coincidencias y pone en negrita cada palabra encontrada (Figma
+ *   24007:231131).
  * - **En el árbol**: ↓ / ↑ entre nodos, → abre o entra al primer hijo, ← cierra o sube al padre, Inicio / Fin, y
  *   Enter / Espacio eligen el nodo (y abren o cierran su rama). Ver `siaf-tree-view`.
  * @accesibilidad
@@ -92,6 +95,9 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
 
         <!-- Región viva: el mensaje de «Sin resultados» se anuncia al aparecer. -->
         <div role="status" aria-live="polite">
+          @if (faltanLetras()) {
+            <p class="siaf-text-caption-1 m-0 px-siaf-md pt-siaf-xs text-[var(--sys-color-text-neutral-medium)]">Escribe al menos 3 letras para buscar</p>
+          }
           @if (sinResultados()) {
             <div class="flex flex-col items-center gap-siaf-sm px-siaf-md pt-siaf-xl text-center text-[var(--sys-color-text-neutral-high)]">
               <siaf-icon name="search_off" [size]="40" />
@@ -111,7 +117,8 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
             class="pb-siaf-md"
             [nodes]="arbol()"
             [selectedId]="selectedId()"
-            [expandAll]="!!query()"
+            [expandAll]="palabras().length > 0"
+            [highlight]="query()"
             [ariaLabel]="subtitle"
             (nodeActivated)="activate($event)"
           />
@@ -150,14 +157,18 @@ export class ProcessMenuTreeComponent {
 
   /** Nodos filtrados por la búsqueda y convertidos al árbol del kit. */
   readonly arbol = computed<TreeViewNode[]>(() => {
-    const busqueda = this.normalize(this.query());
-    const nodos = busqueda ? this.filterNodes(this.nodosSig(), busqueda) : this.nodosSig();
+    const palabras = this.palabras();
+    const nodos = palabras.length ? this.filterNodes(this.nodosSig(), palabras) : this.nodosSig();
     this.originales.clear();
     return this.aArbol(nodos, true);
   });
 
   /** Hay búsqueda y ningún proceso coincide. */
-  readonly sinResultados = computed(() => !!this.query().trim() && this.arbol().length === 0);
+  /** Palabras que filtran (sin conectores ni palabras cortas): vacías, el árbol queda completo. */
+  readonly palabras = computed(() => palabrasDeBusqueda(this.query()));
+  /** Hay texto escrito pero todavía no alcanza para buscar (menos de 3 letras o solo conectores). */
+  readonly faltanLetras = computed(() => !!this.query().trim() && this.palabras().length === 0);
+  readonly sinResultados = computed(() => this.palabras().length > 0 && this.arbol().length === 0);
 
   constructor() {
     this.selectedId.set(this.buscarElegido(DEFAULT_PROCESS_TREE));
@@ -204,12 +215,13 @@ export class ProcessMenuTreeComponent {
     return '';
   }
 
-  private filterNodes(nodes: ProcessMenuNode[], search: string): ProcessMenuNode[] {
+  /** Deja los nodos cuya etiqueta tiene todas las palabras y los ancestros de esos nodos. */
+  private filterNodes(nodes: ProcessMenuNode[], palabras: string[]): ProcessMenuNode[] {
     const result: ProcessMenuNode[] = [];
 
     for (const node of nodes) {
-      const children = node.children ? this.filterNodes(node.children, search) : [];
-      const matches = this.normalize(node.label).includes(search);
+      const children = node.children ? this.filterNodes(node.children, palabras) : [];
+      const matches = contieneTodas(node.label, palabras);
 
       if (!matches && children.length === 0) {
         continue;
@@ -219,13 +231,5 @@ export class ProcessMenuTreeComponent {
     }
 
     return result;
-  }
-
-  private normalize(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .trim();
   }
 }

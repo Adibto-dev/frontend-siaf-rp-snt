@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 
+import { palabrasDeBusqueda, tramosResaltados } from '../../utils/resaltado-busqueda.util';
 import { IconComponent } from '../icon/icon.component';
 
 export interface TreeViewNode {
@@ -41,6 +42,8 @@ interface NodoVisible {
  * - Para una lista plana: `siaf-list`.
  * - Para secciones plegables de contenido: `siaf-accordion` o `siaf-expansion-panel`.
  * - Para un menú de acciones: `siaf-menu` o `siaf-cascading-menu`.
+ * - Con `highlight` para poner en negrita las palabras buscadas (sin tildes ni mayúsculas) cuando quien arma los
+ *   `nodes` los filtra: el árbol no filtra.
  * @teclado
  * - **Tab**: entra al árbol una sola vez, en el nodo elegido (o el primero); otro Tab sale del árbol.
  * - **↓ / ↑**: siguiente o anterior nodo visible.
@@ -97,7 +100,8 @@ interface NodoVisible {
             @if (node.icon) {
               <siaf-icon class="siaf-tree-icono flex shrink-0" [name]="node.icon" [size]="20" />
             }
-            <span class="min-w-0 flex-1" [class]="node.id === elegidoSig() ? 'siaf-text-body-2-bold' : 'siaf-text-body-2'">{{ node.label }}</span>
+            <!-- En una sola línea: un salto entre tramos agregaría espacios al texto -->
+            <span class="min-w-0 flex-1" [class]="node.id === elegidoSig() ? 'siaf-text-body-2-bold' : 'siaf-text-body-2'">@for (tramo of tramos(node.label); track $index) {@if (tramo.marca) {<mark class="siaf-text-body-2-bold bg-transparent text-inherit">{{ tramo.texto }}</mark>} @else {<span>{{ tramo.texto }}</span>}}</span>
           </div>
 
           @if (tieneHijos(node) && abierto(node)) {
@@ -199,6 +203,20 @@ export class TreeViewComponent {
 
   /** Nombre del árbol para el lector de pantalla. */
   @Input() ariaLabel = '';
+
+  /**
+   * Texto buscado: cada palabra que aparece en una etiqueta va en negrita (sin distinguir tildes ni mayúsculas).
+   * No filtra: el filtrado lo hace quien arma los `nodes`.
+   */
+  @Input() set highlight(value: string | null | undefined) {
+    this.palabrasSig.set(palabrasDeBusqueda(value ?? ''));
+  }
+  private readonly palabrasSig = signal<string[]>([]);
+
+  /** Parte la etiqueta en tramos marcados y sin marcar según `highlight`. */
+  tramos(label: string): { texto: string; marca: boolean }[] {
+    return tramosResaltados(label, this.palabrasSig());
+  }
 
   /** Se elige un nodo habilitado (clic, Enter o Espacio). */
   @Output() nodeActivated = new EventEmitter<TreeViewNode>();

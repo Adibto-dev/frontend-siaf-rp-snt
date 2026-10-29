@@ -115,6 +115,20 @@ describe('TreeViewComponent', () => {
     expect(item('a2').getAttribute('aria-selected')).toBeNull();
   });
 
+  it('highlight marca en negrita cada palabra buscada, sin tildes ni mayúsculas, y no cambia el texto', () => {
+    fixture.componentRef.setInput('highlight', 'PLAN cuentas');
+    fixture.detectChanges();
+    const marcas = Array.from(item('a1').querySelectorAll('mark')).map((m) => m.textContent);
+    expect(marcas).toEqual(['Plan', 'cuentas']);
+    expect(fila('a1').textContent!.trim()).toBe('Plan de cuentas');
+    expect(getComputedStyle(item('a1').querySelector('mark')!).fontWeight).toBe('700');
+    expect(item('b').querySelector('mark')).withContext('sin coincidencias').toBeNull();
+
+    fixture.componentRef.setInput('highlight', 'tesoreria');
+    fixture.detectChanges();
+    expect(item('b').querySelector('mark')!.textContent).toBe('Tesorería');
+  });
+
   it('expandAll abre todas las ramas y no deja cerrarlas; las ramas recuerdan su estado al cambiar los nodos', () => {
     fixture.componentRef.setInput('expandAll', true);
     fixture.detectChanges();
