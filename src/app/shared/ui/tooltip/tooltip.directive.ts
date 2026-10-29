@@ -230,7 +230,8 @@ export class TooltipDirective implements AfterViewInit, OnDestroy {
     const soloSiTruncado =
       this.tooltipMode === 'truncated' || (this.tooltipMode === 'auto' && !this.texto);
     // +1px de tolerancia: el redondeo subpíxel puede dar diferencias de 0.5
-    if (soloSiTruncado && el.scrollWidth <= el.clientWidth + 1) return;
+    // Cortado a lo ancho (truncate) o a lo alto (line-clamp de varias líneas).
+    if (soloSiTruncado && el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1) return;
 
     const tip = this.doc.createElement('div');
     tip.setAttribute('role', 'tooltip');

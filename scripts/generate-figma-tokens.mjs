@@ -9,7 +9,6 @@ const outputPath = resolve(rootDir, 'src/styles/tokens/figma.css');
 
 const tokens = JSON.parse(readFileSync(inputPath, 'utf8'));
 const entries = [];
-const lightEntries = [];
 const deviceEntries = new Map();
 
 function toKebab(value) {
@@ -72,17 +71,20 @@ function walk(node, path = []) {
 
 walk(tokens);
 
-const lightPath = resolve(deviceDir, 'Light.tokens.json');
-if (existsSync(lightPath)) {
-  const lightTokens = JSON.parse(readFileSync(lightPath, 'utf8'));
-  const lightTokenMap = buildTokenMap(lightTokens);
-  const walkLight = (node, path = []) => {
+/** Colores de un tema (Light / Dark) exportado de Figma: nombre kebab y valor resuelto. */
+function readThemeColors(file) {
+  const themePath = resolve(deviceDir, file);
+  if (!existsSync(themePath)) {
+    return [];
+  }
+
+  const themeTokens = JSON.parse(readFileSync(themePath, 'utf8'));
+  const themeTokenMap = buildTokenMap(themeTokens);
+  const out = [];
+  const walkTheme = (node, path = []) => {
     if (node && typeof node === 'object' && '$type' in node && '$value' in node) {
       if (node.$type === 'color') {
-        lightEntries.push({
-          name: path.map(toKebab).join('-'),
-          value: colorValue(resolveReference(node.$value, lightTokenMap))
-        });
+        out.push({ name: path.map(toKebab).join('-'), value: colorValue(resolveReference(node.$value, themeTokenMap)) });
       }
 
       return;
@@ -93,15 +95,14 @@ if (existsSync(lightPath)) {
     }
 
     for (const [key, value] of Object.entries(node)) {
-      if (key.startsWith('$')) {
-        continue;
+      if (!key.startsWith('$')) {
+        walkTheme(value, [...path, key]);
       }
-
-      walkLight(value, [...path, key]);
     }
   };
 
-  walkLight(lightTokens);
+  walkTheme(themeTokens);
+  return out;
 }
 
 function buildTokenMap(node, path = [], out = new Map()) {
@@ -211,7 +212,10 @@ for (const device of ['Desktop', 'Tablet', 'Mobile']) {
 const sortedEntries = entries
   .filter((entry) => entry.value)
   .sort((first, second) => first.name.localeCompare(second.name));
-const sortedLightEntries = lightEntries
+const sortedLightEntries = readThemeColors('Light.tokens.json')
+  .filter((entry) => entry.value)
+  .sort((first, second) => first.name.localeCompare(second.name));
+const sortedDarkEntries = readThemeColors('Dark.tokens.json')
   .filter((entry) => entry.value)
   .sort((first, second) => first.name.localeCompare(second.name));
 
@@ -220,7 +224,7 @@ function themeName(name) {
 }
 
 const css = [
-  '/* Generated from src/tokens/Value.tokens.json and src/tokens/Device/*.tokens.json. Do not edit manually. */',
+  '/* Generated from src/tokens/Value.tokens.json and src/tokens/Device/*.tokens.json (Light, Dark, Desktop, Tablet, Mobile). Do not edit manually. */',
   '@theme {',
   ...sortedEntries.map((entry) => {
     if (entry.value.startsWith('#') || entry.value.startsWith('rgb')) {
@@ -235,9 +239,14 @@ const css = [
   ...sortedEntries.map((entry) => `  --figma-${entry.name}: ${entry.value};`),
   ...sortedLightEntries.map((entry) => `  --figma-light-${entry.name}: ${entry.value};`),
   ...sortedLightEntries.map((entry) => `  --${entry.name}: var(--figma-light-${entry.name});`),
+  ...sortedDarkEntries.map((entry) => `  --figma-dark-${entry.name}: ${entry.value};`),
   ...(deviceEntries.get('desktop') || []).map((entry) => `  --figma-device-${entry.name}: ${entry.value};`),
   '}',
   '',
+  // Modo oscuro: los mismos tokens sys con los valores de Dark.tokens.json. themes/dark.css suma lo que Figma no trae.
+  ...(sortedDarkEntries.length
+    ? ['[data-theme="dark"] {', ...sortedDarkEntries.map((entry) => `  --${entry.name}: var(--figma-dark-${entry.name});`), '}', '']
+    : []),
   '@media (max-width: 1023px) {',
   '  :root {',
   ...(deviceEntries.get('tablet') || []).map((entry) => `    --figma-device-${entry.name}: ${entry.value};`),
@@ -254,4 +263,4 @@ const css = [
 
 writeFileSync(outputPath, css);
 const deviceTokenCount = Array.from(deviceEntries.values()).reduce((total, values) => total + values.length, 0);
-console.log(`Generated ${sortedEntries.length} value tokens, ${sortedLightEntries.length} light tokens and ${deviceTokenCount} device tokens at ${outputPath}`);
+console.log(`Generated ${sortedEntries.length} value tokens, ${sortedLightEntries.length} light tokens, ${sortedDarkEntries.length} dark tokens and ${deviceTokenCount} device tokens at ${outputPath}`);

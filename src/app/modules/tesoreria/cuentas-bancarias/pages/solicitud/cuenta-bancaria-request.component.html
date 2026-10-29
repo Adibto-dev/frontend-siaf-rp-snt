@@ -134,7 +134,7 @@
           </div>
 
           @if (sustento()) {
-            <siaf-uploaded-file-card [file]="sustento()" [readonly]="soloLectura()" (replace)="panelSustentoAbierto.set(true)" (removed)="sustento.set(null)" />
+            <siaf-uploaded-file-card [file]="sustento()" [readonly]="soloLectura()" (removed)="sustento.set(null)" />
           } @else {
             <div class="flex min-h-[49px] items-center rounded-siaf-md bg-[var(--sys-color-bg-surfaces-surface-low)] px-siaf-md py-siaf-sm">
               <p class="siaf-text-body-2 m-0 text-[var(--sys-color-text-neutral-medium)]">No se han adjuntado archivos. Haga clic en el botón para subir un archivo (PDF).</p>

@@ -27,7 +27,8 @@ export interface UploadItem {
  *
  * Dos variantes: `extended` (por defecto: ícono de nube, texto y `hint`) y `compact`, una sola fila
  * de 48 px con el botón «Elegir archivo» y «o soltar archivo», para formularios con poco alto.
- * Ambas aceptan soltar archivos y muestran las mismas tarjetas de progreso debajo.
+ * Ambas aceptan soltar archivos y muestran las mismas tarjetas de progreso debajo; el nombre ocupa hasta 2
+ * líneas y, si no entra, la segunda termina en «…» (completo en el tooltip).
  *
  * Rara vez se usa suelto: vive dentro de `siaf-upload-side-nav`, que es el panel de carga que usan las
  * request-pages y la puerta de entrada normal. Ir directo a él solo para una carga embebida en página.
@@ -47,7 +48,7 @@ export interface UploadItem {
  * - Para mostrar el avance real de una subida al servidor: el progreso es simulado con un temporizador.
  * @teclado
  * - **Tab**: enfoca el selector de archivos (el `input type="file"` oculto dentro de «elige archivo» o «Elegir
- *   archivo») y después los botones de cada tarjeta (Pausar, Reintentar, Cancelar).
+ *   archivo») y después los botones de cada tarjeta (Pausar mientras sube y Cancelar).
  * - **Enter / Espacio**: en el selector abren el diálogo de archivos del sistema; en los botones, ejecutan la acción.
  * @accesibilidad
  * - **2.1.1 Teclado (A)**: soltar archivos es opcional; el `input type="file"` nativo permite elegirlos con teclado.
@@ -61,7 +62,7 @@ export interface UploadItem {
  * - **Pendiente · 3.3.2 Etiquetas o instrucciones (A)**: la ayuda (`hint`) no se asocia al selector y `compact` no la
  *   muestra.
  * - **4.1.2 Nombre, función y valor (A)**: el selector se nombra con el texto de su `label`; los botones de cada
- *   tarjeta tienen `aria-label` (Pausar, Reintentar, Cancelar) y los íconos son decorativos.
+ *   tarjeta tienen `aria-label` (Pausar, Cancelar) y los íconos son decorativos.
  * - **Pendiente · 1.4.3 Contraste mínimo (AA)**: «elige archivo» usa la clase `text-brand-primary`, que pinta con
  *   `bg-brand-primary`: 8.79:1 en claro, pero 2.66:1 en oscuro. El resto cumple: texto `text-neutral-high` 16.29:1,
  *   ayuda y peso `text-neutral-low` 5.01:1 y error `text-feedback-danger` 9.84:1.
@@ -151,7 +152,8 @@ export interface UploadItem {
             [class.text-[var(--sys-color-text-feedback-danger)]]="item.state === 'failed'"
             [class.text-text]="item.state !== 'failed'"
           >
-            <span class="siaf-text-body-2-bold truncate" siafTooltip>
+            <!-- Nombre en hasta 2 líneas; si no entra, la segunda termina en «…» y el completo sale en el tooltip -->
+            <span class="siaf-text-body-2-bold line-clamp-2 [overflow-wrap:anywhere]" siafTooltip>
               {{ item.state === 'uploading' ? 'Subiendo...' : item.file.name }}
             </span>
             <span
@@ -174,18 +176,6 @@ export interface UploadItem {
             @if (item.state === 'uploading') {
               <button class="inline-flex size-6 items-center justify-center rounded-siaf-sm transition hover:bg-surface-muted" type="button" aria-label="Pausar" (click)="pauseItem(item)">
                 <siaf-icon name="pause_circle" [size]="24" class="text-text-muted" />
-              </button>
-            } @else if (!item.error) {
-              <!-- Sin botón de reintentar cuando el archivo fue rechazado por
-                   validación: reintentar el mismo archivo inválido nunca va a
-                   funcionar (hay que elegir otro). -->
-              <button class="inline-flex size-6 items-center justify-center rounded-siaf-sm transition hover:bg-surface-muted" type="button" aria-label="Reintentar" (click)="retryItem(item)">
-                <siaf-icon
-                  name="repeat"
-                  [size]="24"
-                  [class.text-[var(--sys-color-text-feedback-danger)]]="item.state === 'failed'"
-                  [class.text-text-muted]="item.state === 'done'"
-                />
               </button>
             }
             <button class="inline-flex size-6 items-center justify-center rounded-siaf-sm transition hover:bg-surface-muted" type="button" aria-label="Cancelar" (click)="removeItem(item)">
@@ -263,19 +253,6 @@ export class UploaderComponent implements OnDestroy {
       clearInterval(item.timer);
       item.timer = null;
     }
-  }
-
-  retryItem(item: UploadItem): void {
-    // Defensa en profundidad: aunque el botón no se renderiza para archivos
-    // rechazados en validación, nunca reintentar uno inválido.
-    const error = this.validarArchivo(item.file);
-    if (error) {
-      item.error = error;
-      item.state = 'failed';
-      this.uploads.update((l) => [...l]);
-      return;
-    }
-    this.startTimer(item);
   }
 
   removeItem(item: UploadItem): void {

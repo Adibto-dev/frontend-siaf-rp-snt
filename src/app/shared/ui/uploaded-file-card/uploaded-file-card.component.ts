@@ -8,8 +8,8 @@ import { iconoDeArchivo } from '../../utils/archivo.util';
 export type UploadedFileInfo = File | { name: string; size?: number };
 
 /**
- * Tarjeta de un archivo ya adjunto: ícono por formato, nombre truncado con tooltip, peso y
- * acciones de reemplazar/quitar.
+ * Tarjeta de un archivo ya adjunto: ícono por formato, nombre en hasta 2 líneas (la segunda termina en «…») con tooltip, peso y
+ * acción de quitar (para cambiarlo, se quita y se vuelve a subir).
  *
  * Usarlo para mostrar el sustento PDF ya cargado de una solicitud; con `[readonly]` en modo consulta,
  * donde el adjunto se ve pero no se toca. Para elegir el archivo va `siaf-upload-side-nav`.
@@ -22,7 +22,6 @@ export type UploadedFileInfo = File | { name: string; size?: number };
  * - Para el documento de sustento ya adjunto en las solicitudes: cuenta contable, carga masiva, clase de ajuste, tipo
  *   de asiento, asiento de ajuste, evento, evento contable y apertura contable.
  * - Con `[readonly]` en modo consulta o en un detalle, donde el adjunto se ve pero no se reemplaza ni se quita.
- * - Para el Excel ya cargado de la carga masiva de eventos, con `(replace)` que vuelve a abrir el panel de carga.
  * - Con `[error]` cuando el archivo adjunto no se pudo cargar.
  * @evitar
  * - Para elegir o arrastrar el archivo: usar `siaf-upload-side-nav` (o `siaf-uploader` embebido); esta tarjeta solo
@@ -31,11 +30,11 @@ export type UploadedFileInfo = File | { name: string; size?: number };
  *   solicitudes.
  * - Para el avance de una subida en curso: usar las tarjetas de progreso de `siaf-uploader`.
  * @teclado
- * - **Tab**: recorre «Reemplazar archivo» y «Quitar archivo»; con `readonly` la tarjeta no recibe foco.
+ * - **Tab**: pasa por «Quitar archivo»; con `readonly` la tarjeta no recibe foco.
  * - **Enter / Espacio**: ejecutan la acción del botón enfocado.
  * @accesibilidad
- * - **4.1.2 Nombre, función y valor (A)**: las acciones son `<button>` nativos con `aria-label` («Reemplazar archivo»,
- *   «Quitar archivo»); los íconos son decorativos.
+ * - **4.1.2 Nombre, función y valor (A)**: «Quitar archivo» es un `<button>` nativo con `aria-label`; los íconos son
+ *   decorativos.
  * - **4.1.3 Mensajes de estado (AA)**: el mensaje de error va con `role="alert"` y se anuncia al aparecer.
  * - **1.4.1 Uso del color (A)**: el estado fallido, además del rojo, muestra el mensaje en lugar del peso.
  * - **Pendiente · 2.1.1 Teclado (A)**: un nombre largo se corta y el completo solo aparece con el mouse o una pulsación
@@ -70,7 +69,8 @@ export type UploadedFileInfo = File | { name: string; size?: number };
           [class.text-text]="!fallido"
           [class.text-[var(--sys-color-text-feedback-danger)]]="fallido"
         >
-          <span class="siaf-text-body-2-bold truncate" siafTooltip>{{ file.name }}</span>
+          <!-- Nombre en hasta 2 líneas; si no entra, la segunda termina en «…» y el completo sale en el tooltip -->
+          <span class="siaf-text-body-2-bold line-clamp-2 [overflow-wrap:anywhere]" siafTooltip>{{ file.name }}</span>
           @if (fallido) {
             <span class="siaf-text-caption-1" role="alert">{{ error }}</span>
           } @else {
@@ -79,14 +79,6 @@ export type UploadedFileInfo = File | { name: string; size?: number };
         </div>
         @if (!readonly) {
           <div class="flex shrink-0 items-center gap-1">
-            <button
-              class="inline-flex size-6 items-center justify-center rounded-siaf-sm transition hover:bg-surface-muted"
-              type="button"
-              aria-label="Reemplazar archivo"
-              (click)="replace.emit()"
-            >
-              <siaf-icon name="repeat" [size]="24" [class.text-text-muted]="!fallido" [class.text-[var(--sys-color-text-feedback-danger)]]="fallido" />
-            </button>
             <button
               class="inline-flex size-6 items-center justify-center rounded-siaf-sm transition hover:bg-surface-muted"
               type="button"
@@ -108,7 +100,6 @@ export class UploadedFileCardComponent {
   /** Mensaje de error del archivo (ej. «No se pudo cargar el archivo»). Si trae texto, la tarjeta se muestra fallida. */
   @Input() error = '';
 
-  @Output() replace = new EventEmitter<void>();
   @Output() removed = new EventEmitter<void>();
 
   get fallido(): boolean {

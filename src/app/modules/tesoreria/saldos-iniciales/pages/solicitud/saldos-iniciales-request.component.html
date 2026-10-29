@@ -541,7 +541,7 @@
                 <siaf-button variant="accent" size="md" icon="file_upload" [iconOnly]="true" ariaLabel="Subir documento de sustento del saldo" (click)="panelSustentoAbierto.set(true)" />
               </div>
               @if (borrador().sustento) {
-                <siaf-uploaded-file-card [file]="borrador().sustento" (replace)="panelSustentoAbierto.set(true)" (removed)="quitarSustento()" />
+                <siaf-uploaded-file-card [file]="borrador().sustento" (removed)="quitarSustento()" />
               } @else {
                 <message-box text="No se ha adjuntado ningún archivo. Esta acción no es obligatoria." />
               }
