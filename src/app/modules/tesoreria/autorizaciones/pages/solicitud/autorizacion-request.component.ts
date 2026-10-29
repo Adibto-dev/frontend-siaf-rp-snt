@@ -234,7 +234,7 @@ export class AutorizacionRequestComponent implements OnInit {
     return [
       { label: 'Fecha', value: '' },
       { label: 'Ente rector', value: 'DIRECCIÓN GENERAL DEL TESORO PÚBLICO' },
-      { label: 'Entidad', value: (usuario.entidadSiglas ?? usuario.office).toUpperCase() },
+      { label: 'Entidad', value: (this.solicitud()?.entidadCreadora?.nombre ?? usuario.entidad ?? usuario.entidadSiglas ?? usuario.office).toUpperCase() },
     ];
   });
 

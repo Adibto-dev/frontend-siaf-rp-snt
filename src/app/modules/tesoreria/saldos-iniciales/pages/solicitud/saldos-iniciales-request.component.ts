@@ -353,7 +353,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
   readonly camposEntidad = computed<SolicitudeInfoField[]>(() => [
     { label: 'Fecha', value: '' },
     { label: 'Ente rector', value: ENTE_RECTOR.toUpperCase() },
-    { label: 'Entidad', value: (this.solicitud()?.entidadCreadora?.nombre ?? this.currentUser.user().office).toUpperCase() },
+    { label: 'Entidad', value: (this.solicitud()?.entidadCreadora?.nombre ?? this.currentUser.user().entidad ?? this.currentUser.user().office).toUpperCase() },
   ]);
 
   // ── Entidad financiera ────────────────────────────────────────────

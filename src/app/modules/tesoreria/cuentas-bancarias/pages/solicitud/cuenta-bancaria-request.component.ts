@@ -170,7 +170,7 @@ export class CuentaBancariaRequestComponent implements OnInit {
     return [
       { label: 'Fecha', value: '' },
       { label: 'Unidad orgánica', value: (usuario.unidad ?? '').toUpperCase() },
-      { label: 'Entidad', value: (usuario.entidadSiglas ?? usuario.office).toUpperCase() },
+      { label: 'Entidad', value: (this.solicitud()?.entidadCreadora?.nombre ?? usuario.entidad ?? usuario.entidadSiglas ?? usuario.office).toUpperCase() },
     ];
   });
 
