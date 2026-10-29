@@ -77,6 +77,7 @@ import {
   tipoCambio,
 } from '../../models/saldo-inicial.model';
 
+import { fechaElaboracion } from '../../../../../shared/utils/fecha.util';
 /** Lo que se está llenando en «Agregar saldo inicial libro bancos». */
 interface Borrador {
   fechaOperacion: string;
@@ -351,7 +352,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
   });
 
   readonly camposEntidad = computed<SolicitudeInfoField[]>(() => [
-    { label: 'Fecha', value: '' },
+    { label: 'Fecha', value: fechaElaboracion(this.solicitud()?.historialEstados) },
     { label: 'Ente rector', value: ENTE_RECTOR.toUpperCase() },
     { label: 'Entidad', value: (this.solicitud()?.entidadCreadora?.nombre ?? this.currentUser.user().entidad ?? this.currentUser.user().office).toUpperCase() },
   ]);

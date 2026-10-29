@@ -62,6 +62,7 @@ import {
 } from '../../models/autorizacion.model';
 import { CUENTAS_BANCARIAS } from '../../../saldos-iniciales/models/saldo-inicial.model';
 
+import { fechaElaboracion } from '../../../../../shared/utils/fecha.util';
 interface Formulario {
   procedimiento: string;
   responsable: string;
@@ -232,7 +233,7 @@ export class AutorizacionRequestComponent implements OnInit {
   readonly camposEntidad = computed<SolicitudeInfoField[]>(() => {
     const usuario = this.currentUser.user();
     return [
-      { label: 'Fecha', value: '' },
+      { label: 'Fecha', value: fechaElaboracion(this.solicitud()?.historialEstados) },
       { label: 'Ente rector', value: 'DIRECCIÓN GENERAL DEL TESORO PÚBLICO' },
       { label: 'Entidad', value: (this.solicitud()?.entidadCreadora?.nombre ?? usuario.entidad ?? usuario.entidadSiglas ?? usuario.office).toUpperCase() },
     ];

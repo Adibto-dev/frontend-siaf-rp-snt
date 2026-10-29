@@ -263,6 +263,24 @@ input[type="checkbox"]:disabled:checked {
     text-transform: uppercase;
   }
 
+  /* Cabecera agrupada (Figma «Saldos-iniciales-cuentas-bancarias»): el título del grupo va centrado y con línea abajo,
+     que lo separa de sus columnas; el grupo se delimita con líneas verticales solo en la cabecera. En la segunda fila,
+     la primera columna del grupo lleva --grupo-inicio y la última --grupo-fin. */
+  .siaf-table-th--grupo {
+    text-align: center;
+    border-bottom: var(--sys-border-linear-thin) solid var(--sys-color-border-states-enabled);
+  }
+
+  .siaf-table-th--grupo,
+  .siaf-table-th--grupo-inicio {
+    border-left: var(--sys-border-linear-thin) solid var(--sys-color-border-states-enabled);
+  }
+
+  .siaf-table-th--grupo,
+  .siaf-table-th--grupo-fin {
+    border-right: var(--sys-border-linear-thin) solid var(--sys-color-border-states-enabled);
+  }
+
   .siaf-table-row {
     border-bottom: var(--sys-border-linear-thin) solid var(--sys-color-divider-default);
     background-color: var(--sys-color-bg-surfaces-surface);

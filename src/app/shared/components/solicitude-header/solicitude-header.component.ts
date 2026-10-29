@@ -254,7 +254,7 @@ const MOBILE_PRIMARY_ACTION_CLASS =
  * - Para mostrar el estado del documento en el flujo: usar `siaf-flow-status-tag`; esta etiqueta solo marca «Nuevo» o
  *   «Edición».
  * @teclado
- * - **Tab**: recorre Regresar (si `showReturn`) y los botones visibles en su orden; en móvil, la barra fija inferior va
+ * - **Tab**: recorre Regresar (si `showReturn` y no está la botonera de edición) y los botones visibles en su orden; en móvil, la barra fija inferior va
  *   en el DOM justo después del encabezado. Los deshabilitados no reciben foco.
  * - **Enter / Espacio**: activan cada botón y emiten su evento (`returned`, `canceled`, `saved`, `verified`, `edited`,
  *   `deleted`, `approved`, `observed` o `rejected`). Los botones siguen `siaf-button`.
@@ -288,7 +288,7 @@ const MOBILE_PRIMARY_ACTION_CLASS =
       [ngClass]="containerClass"
     >
       <div class="flex min-w-0 flex-1 items-start gap-siaf-xs">
-        @if (showReturn) {
+        @if (muestraRegresar) {
           <button
             class="inline-flex size-10 shrink-0 items-center justify-center rounded-siaf-md text-text-muted transition hover:bg-surface-muted hover:text-text focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
             type="button"
@@ -458,6 +458,19 @@ export class SolicitudeHeaderComponent {
 
   get tagClass(): string {
     return this.resolvedTagTone === 'info' ? 'bg-brand-primary' : 'bg-[var(--sys-color-bg-brand-accent)]';
+  }
+
+  /**
+   * Botonera de edición a la vista: Cancelar, Grabar y Verificar (nuevo o en edición, con los botones estándar). Con
+   * acciones propias (`customActions`), sin botonera o cargando, no cuenta aunque el estado sea de edición.
+   */
+  get enEdicion(): boolean {
+    return !this.loading && !this.customActions && this.showButtonGroup && this.resolvedType === 'actions';
+  }
+
+  /** «Regresar» se oculta solo mientras está la botonera de edición: ahí se sale con Cancelar. */
+  get muestraRegresar(): boolean {
+    return this.showReturn && !this.enEdicion;
   }
 
   get resolvedType(): SolicitudeHeaderType {

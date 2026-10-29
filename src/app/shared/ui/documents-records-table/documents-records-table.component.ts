@@ -53,7 +53,7 @@ export type DocumentsRecordsSelectionChange = {
  *   `rowActionTriggered`. Una acción deshabilitada queda fuera del Tab.
  * @accesibilidad
  * - **1.3.1 Información y relaciones (A)**: `<table>` con `<thead>` y un `<th scope="col">` por columna; los grupos
- *   (`headerGroup`) van en una primera fila con `<th scope="colgroup">` y `colspan`, y las columnas sueltas y las del
+ *   (`headerGroup`) van en una primera fila con `<th scope="colgroup">` y `colspan` (línea abajo y a los lados del grupo, solo en la cabecera), y las columnas sueltas y las del
  *   checkbox e historial ocupan las dos filas (`rowspan`). Las del checkbox y del historial tienen el `<th>` vacío. No
  *   ordena columnas, así que no aplica `aria-sort`.
  * - **Pendiente · 4.1.2 Nombre, función y valor (A)**: el checkbox de cada fila no tiene nombre (ni `aria-label` ni
@@ -89,7 +89,7 @@ export type DocumentsRecordsSelectionChange = {
                 <!-- MFD RF-01: al superponer el mouse se muestra el texto completo de la columna -->
                 <th class="truncate px-siaf-md py-siaf-sm" scope="col" siafTooltip [attr.rowspan]="conGrupos ? 2 : null" [ngClass]="[column.widthClass || 'w-[180px]', column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left']">{{ column.label }}</th>
               } @else {
-                <th class="truncate border-b border-[var(--sys-color-divider-strong)] px-siaf-md py-siaf-sm text-center" scope="colgroup" siafTooltip [attr.colspan]="celda.span">{{ celda.grupo }}</th>
+                <th class="siaf-table-th--grupo truncate px-siaf-md py-siaf-sm" scope="colgroup" siafTooltip [attr.colspan]="celda.span">{{ celda.grupo }}</th>
               }
             }
             <th class="sticky right-0 w-14 rounded-r-siaf-sm border-l border-[var(--sys-color-divider-strong)] bg-surface-high px-siaf-sm py-siaf-sm" [attr.rowspan]="conGrupos ? 2 : null"></th>
@@ -97,7 +97,7 @@ export type DocumentsRecordsSelectionChange = {
           @if (conGrupos) {
             <tr class="siaf-text-caption-1-bold-caps h-10 bg-surface-high text-text">
               @for (column of columnasAgrupadas; track column.key) {
-                <th class="truncate px-siaf-md py-siaf-sm" scope="col" siafTooltip [ngClass]="[column.widthClass || 'w-[180px]', column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left']">{{ column.label }}</th>
+                <th class="truncate px-siaf-md py-siaf-sm" scope="col" siafTooltip [class.siaf-table-th--grupo-inicio]="bordesDeGrupo.inicio.has(column.key)" [class.siaf-table-th--grupo-fin]="bordesDeGrupo.fin.has(column.key)" [ngClass]="[column.widthClass || 'w-[180px]', column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left']">{{ column.label }}</th>
               }
             </tr>
           }
@@ -189,6 +189,8 @@ export class DocumentsRecordsTableComponent {
   cabeceraSuperior: { clave: string; columna?: DocumentsRecordsColumn; grupo?: string; span?: number }[] = [];
   /** Segunda fila: las columnas que están dentro de un grupo, en orden. */
   columnasAgrupadas: DocumentsRecordsColumn[] = [];
+  /** Primera y última columna de cada grupo: llevan la línea vertical que cierra el grupo en la cabecera. */
+  bordesDeGrupo = { inicio: new Set<string>(), fin: new Set<string>() };
 
   private armarCabecera(): void {
     const superior: typeof this.cabeceraSuperior = [];
@@ -205,6 +207,14 @@ export class DocumentsRecordsTableComponent {
     this.cabeceraSuperior = superior;
     this.columnasAgrupadas = this._columns.filter((c) => c.headerGroup);
     this.conGrupos = this.columnasAgrupadas.length > 0;
+    const inicio = new Set<string>();
+    const fin = new Set<string>();
+    this._columns.forEach((c, i) => {
+      if (!c.headerGroup) return;
+      if (this._columns[i - 1]?.headerGroup !== c.headerGroup) inicio.add(c.key);
+      if (this._columns[i + 1]?.headerGroup !== c.headerGroup) fin.add(c.key);
+    });
+    this.bordesDeGrupo = { inicio, fin };
   }
   @Input() rows: DocumentsRecordsRow[] = [];
   @Input() minWidthClass = '';

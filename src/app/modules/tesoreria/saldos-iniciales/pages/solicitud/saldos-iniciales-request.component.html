@@ -110,18 +110,18 @@
                     }
                     <th class="siaf-table-th w-[120px]" rowspan="2">F. operación</th>
                     <th class="siaf-table-th w-[100px]" rowspan="2">Sec. ref.</th>
-                    <th class="siaf-table-th text-center" colspan="2">Cuenta bancaria</th>
-                    <th class="siaf-table-th text-center" colspan="2">Libro bancos</th>
-                    <th class="siaf-table-th text-center" colspan="2">Saldo</th>
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Cuenta bancaria</th>
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libro bancos</th>
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Saldo</th>
                     <th class="siaf-table-th w-[96px]" rowspan="2"><span class="sr-only">Acciones</span></th>
                   </tr>
                   <tr class="siaf-table-head-row">
-                    <th class="siaf-table-th">Número</th>
-                    <th class="siaf-table-th w-[90px]">Moneda</th>
-                    <th class="siaf-table-th w-[150px] text-right">Imp. M. cuenta</th>
-                    <th class="siaf-table-th w-[150px] text-right">Imp. M. nacional</th>
-                    <th class="siaf-table-th w-[140px] text-right">Inicial</th>
-                    <th class="siaf-table-th w-[140px] text-right">Act.</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio">Número</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[90px]">Moneda</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[150px] text-right">Imp. M. cuenta</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[150px] text-right">Imp. M. nacional</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[140px] text-right">Inicial</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[140px] text-right">Act.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -243,15 +243,15 @@
                       <th class="siaf-table-th w-12" rowspan="2"><span class="sr-only">Seleccionar</span></th>
                     }
                     <th class="siaf-table-th w-[140px]" rowspan="2">F. operación</th>
-                    <th class="siaf-table-th text-center" colspan="2">Cuenta bancaria</th>
-                    <th class="siaf-table-th text-center" colspan="2">Libro bancos</th>
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Cuenta bancaria</th>
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libro bancos</th>
                     <th class="siaf-table-th w-[104px]" rowspan="2"><span class="sr-only">Acciones</span></th>
                   </tr>
                   <tr class="siaf-table-head-row">
-                    <th class="siaf-table-th">Número</th>
-                    <th class="siaf-table-th w-[110px]">Moneda</th>
-                    <th class="siaf-table-th w-[170px] text-right">Imp. M. cuenta</th>
-                    <th class="siaf-table-th w-[170px] text-right">Imp. M. nacional</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio">Número</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[110px]">Moneda</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right">Imp. M. cuenta</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right">Imp. M. nacional</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -449,24 +449,24 @@
                     <thead>
                       <tr class="siaf-table-head-row">
                         <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
-                        <th class="siaf-table-th text-center" colspan="3">Cuenta de registro</th>
+                        <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
                         @if (esAjuste()) {
                           <th class="siaf-table-th w-[170px] min-w-[170px]" rowspan="2">Naturaleza</th>
                         }
-                        <th class="siaf-table-th text-center" colspan="2">Libretas</th>
+                        <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libretas</th>
                         @if (esAjuste()) {
-                          <th class="siaf-table-th text-center" colspan="2">Saldo</th>
+                          <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Saldo</th>
                         }
                       </tr>
                       <tr class="siaf-table-head-row">
-                        <th class="siaf-table-th w-[100px]">ID corr.</th>
+                        <th class="siaf-table-th siaf-table-th--grupo-inicio w-[100px]">ID corr.</th>
                         <th class="siaf-table-th">Número</th>
-                        <th class="siaf-table-th">Descripción</th>
-                        <th class="siaf-table-th w-[190px]">Imp. M. cuenta</th>
-                        <th class="siaf-table-th w-[180px]">Imp. M. nacional</th>
+                        <th class="siaf-table-th siaf-table-th--grupo-fin">Descripción</th>
+                        <th class="siaf-table-th siaf-table-th--grupo-inicio w-[190px]">Imp. M. cuenta</th>
+                        <th class="siaf-table-th siaf-table-th--grupo-fin w-[180px]">Imp. M. nacional</th>
                         @if (esAjuste()) {
-                          <th class="siaf-table-th w-[130px] text-right">Inicial</th>
-                          <th class="siaf-table-th w-[130px] text-right">Act.</th>
+                          <th class="siaf-table-th siaf-table-th--grupo-inicio w-[130px] text-right">Inicial</th>
+                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[130px] text-right">Act.</th>
                         }
                       </tr>
                     </thead>
@@ -580,7 +580,7 @@
 
   <siaf-selection-side-nav
     [open]="panelCuenta()"
-    title="Buscar cuenta bancaria"
+    title="Seleccionar cuenta bancaria"
     mode="single"
     idKey="numero"
     [rows]="cuentasDeEntidad()"

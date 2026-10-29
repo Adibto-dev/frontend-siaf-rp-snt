@@ -84,4 +84,37 @@ describe('SolicitudeHeaderComponent', () => {
     configurar({ loading: false, role: 'approver', state: 'approved' });
     expect(barraMovil()).toBeNull();
   });
+  describe('Regresar', () => {
+    const regresar = () => (fixture.nativeElement as HTMLElement).querySelector('button[aria-label="Regresar"]');
+
+    it('se oculta solo con la botonera de edición (Cancelar, Grabar, Verificar): nuevo y edición', () => {
+      configurar({ showReturn: true, role: 'creator', state: 'new' });
+      expect(regresar()).toBeNull();
+      configurar({ state: 'edit' });
+      expect(regresar()).toBeNull();
+    });
+
+    it('se ve en consulta y en los demás estados del flujo', () => {
+      for (const state of ['elaborated', 'verified', 'observed', 'deleted']) {
+        configurar({ showReturn: true, role: 'creator', state });
+        expect(regresar()).withContext(state).not.toBeNull();
+      }
+      configurar({ role: 'approver', state: 'verified' });
+      expect(regresar()).not.toBeNull();
+    });
+
+    it('con acciones propias, sin botonera o cargando se ve aunque el estado sea de edición', () => {
+      configurar({ showReturn: true, role: 'creator', state: 'new', customActions: true });
+      expect(regresar()).withContext('acciones propias').not.toBeNull();
+      configurar({ customActions: false, showButtonGroup: false });
+      expect(regresar()).withContext('sin botonera').not.toBeNull();
+      configurar({ showButtonGroup: true, loading: true });
+      expect(regresar()).withContext('cargando').not.toBeNull();
+    });
+
+    it('showReturn en false lo apaga siempre', () => {
+      configurar({ showReturn: false, role: 'creator', state: 'elaborated' });
+      expect(regresar()).toBeNull();
+    });
+  });
 });

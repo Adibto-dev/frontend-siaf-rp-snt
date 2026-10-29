@@ -108,6 +108,14 @@ describe('DocumentsRecordsTableComponent — cabecera agrupada', () => {
     expect(arriba).toEqual([['Sec.', 2, 1], ['Cuenta bancaria', 1, 2], ['', 2, 1]]);
     expect(Array.from(filas[1].cells).map((c) => c.textContent!.trim())).toEqual(['Número', 'Moneda']);
     expect(filas[0].cells[1].getAttribute('scope')).toBe('colgroup');
+    // Líneas del grupo, solo en la cabecera: abajo y a los lados del título, y a los lados de sus columnas.
+    const grupo = filas[0].cells[1];
+    expect(grupo.classList).toContain('siaf-table-th--grupo');
+    const [numero, moneda] = Array.from(filas[1].cells);
+    expect(numero.classList).toContain('siaf-table-th--grupo-inicio');
+    expect(numero.classList).not.toContain('siaf-table-th--grupo-fin');
+    expect(moneda.classList).toContain('siaf-table-th--grupo-fin');
+    expect(filas[0].cells[0].className).not.toContain('siaf-table-th--grupo');
     expect(fixture.nativeElement.querySelectorAll('tbody td').length).withContext('3 columnas + historial').toBe(4);
   });
 

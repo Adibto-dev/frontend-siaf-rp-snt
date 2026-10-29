@@ -134,15 +134,15 @@ function fechaHora(iso: string | null | undefined): string {
                     <tr class="siaf-table-head-row">
                       <th class="siaf-table-th w-[100px]" rowspan="2">Sec.</th>
                       <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
-                      <th class="siaf-table-th text-center" colspan="2">Cuenta bancaria</th>
-                      <th class="siaf-table-th text-center" colspan="2">Libro bancos</th>
+                      <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Cuenta bancaria</th>
+                      <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libro bancos</th>
                       <th class="siaf-table-th w-[64px]" rowspan="2"><span class="sr-only">Acciones</span></th>
                     </tr>
                     <tr class="siaf-table-head-row">
-                      <th class="siaf-table-th">Número</th>
-                      <th class="siaf-table-th w-[100px]">Moneda</th>
-                      <th class="siaf-table-th w-[170px] text-right">Imp. M. cuenta</th>
-                      <th class="siaf-table-th w-[170px] text-right">Imp. M. nacional</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-inicio">Número</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-fin w-[100px]">Moneda</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right">Imp. M. cuenta</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right">Imp. M. nacional</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -49,6 +49,7 @@ import {
   nombreTipoCuenta,
 } from '../../models/cuenta-bancaria.model';
 
+import { fechaElaboracion } from '../../../../../shared/utils/fecha.util';
 /** Los campos de la cuenta mientras se llenan (vacíos al empezar). */
 interface Formulario {
   bancoCodigo: string;
@@ -168,7 +169,7 @@ export class CuentaBancariaRequestComponent implements OnInit {
   readonly camposEntidad = computed<SolicitudeInfoField[]>(() => {
     const usuario = this.currentUser.user();
     return [
-      { label: 'Fecha', value: '' },
+      { label: 'Fecha', value: fechaElaboracion(this.solicitud()?.historialEstados) },
       { label: 'Unidad orgánica', value: (usuario.unidad ?? '').toUpperCase() },
       { label: 'Entidad', value: (this.solicitud()?.entidadCreadora?.nombre ?? usuario.entidad ?? usuario.entidadSiglas ?? usuario.office).toUpperCase() },
     ];

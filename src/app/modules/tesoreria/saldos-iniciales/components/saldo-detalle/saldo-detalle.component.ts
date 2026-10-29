@@ -168,18 +168,18 @@ interface Dato {
                   <thead>
                     <tr class="siaf-table-head-row">
                       <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
-                      <th class="siaf-table-th text-center" colspan="3">Cuenta de registro</th>
-                      <th class="siaf-table-th text-center" colspan="2">{{ r.ajuste ? r.ajuste.naturaleza : 'Libretas' }}</th>
+                      <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
+                      <th class="siaf-table-th siaf-table-th--grupo" colspan="2">{{ r.ajuste ? r.ajuste.naturaleza : 'Libretas' }}</th>
                       @if (r.ajuste) {
                         <th class="siaf-table-th w-[150px] text-right" rowspan="2">Saldo act.</th>
                       }
                     </tr>
                     <tr class="siaf-table-head-row">
-                      <th class="siaf-table-th w-[100px]">ID corr.</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[100px]">ID corr.</th>
                       <th class="siaf-table-th">Número</th>
-                      <th class="siaf-table-th">Descripción</th>
-                      <th class="siaf-table-th w-[170px] text-right">Imp. M. cuenta</th>
-                      <th class="siaf-table-th w-[170px] text-right">Imp. M. nacional</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-fin">Descripción</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right">Imp. M. cuenta</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right">Imp. M. nacional</th>
                     </tr>
                   </thead>
                   <tbody>

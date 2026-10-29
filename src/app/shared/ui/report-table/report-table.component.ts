@@ -87,6 +87,7 @@ interface CeldaCabecera {
                 [attr.colspan]="celda.colspan > 1 ? celda.colspan : null"
                 [attr.rowspan]="celda.rowspan > 1 ? celda.rowspan : null"
                 [attr.scope]="celda.rowspan === 2 ? 'col' : 'colgroup'"
+                [class.siaf-table-th--grupo]="hayGrupos && celda.rowspan === 1"
                 [style.width.px]="celda.width"
                 [style.min-width.px]="celda.width"
                 data-cabecera-superior
@@ -103,6 +104,8 @@ interface CeldaCabecera {
                   [class.text-right]="columna.align === 'right'"
                   [class]="columna.fixed ? claseFijaCabecera : ''"
                   scope="col"
+                  [class.siaf-table-th--grupo-inicio]="esInicioDeGrupo(columna)"
+                  [class.siaf-table-th--grupo-fin]="esFinDeGrupo(columna)"
                   [style.width.px]="columna.width ?? null"
                   [style.min-width.px]="columna.width ?? null"
                   data-cabecera-columna
@@ -208,6 +211,18 @@ export class ReportTableComponent {
       i = fin;
     }
     return celdas;
+  }
+
+  /** Primera columna de su grupo: lleva la línea vertical izquierda que cierra el grupo en la cabecera. */
+  esInicioDeGrupo(columna: ReportTableColumn): boolean {
+    const i = this.columns.indexOf(columna);
+    return !!columna.group && this.columns[i - 1]?.group !== columna.group;
+  }
+
+  /** Última columna de su grupo: lleva la línea vertical derecha. */
+  esFinDeGrupo(columna: ReportTableColumn): boolean {
+    const i = this.columns.indexOf(columna);
+    return !!columna.group && this.columns[i + 1]?.group !== columna.group;
   }
 
   get columnasAgrupadas(): ReportTableColumn[] {

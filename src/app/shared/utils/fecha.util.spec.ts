@@ -1,4 +1,4 @@
-import { ddmmyyyyToIso, formatFechaCorta, formatFechaHora, isoToDdmmyyyy } from './fecha.util';
+import { FECHA_SIN_ELABORAR, fechaElaboracion, ddmmyyyyToIso, formatFechaCorta, formatFechaHora, isoToDdmmyyyy } from './fecha.util';
 
 describe('fecha.util (compartido)', () => {
   describe('ddmmyyyyToIso', () => {
@@ -51,5 +51,15 @@ describe('fecha.util (compartido)', () => {
     it('devuelve "—" si viene vacío', () => {
       expect(formatFechaHora(undefined)).toBe('—');
     });
+  });
+});
+
+describe('fechaElaboracion', () => {
+  it('sin elaborar muestra el marcador y luego la primera elaboración', () => {
+    expect(fechaElaboracion([{ estadoNuevo: 'NUEVO', createdAt: '2026-10-29T10:00:00' }])).toBe(FECHA_SIN_ELABORAR);
+    expect(fechaElaboracion([
+      { estadoNuevo: 'ELABORADO', createdAt: '2026-10-29T10:05:09' },
+      { estadoNuevo: 'ELABORADO', createdAt: '2026-10-30T11:00:00' },
+    ])).toBe('29/10/2026     10:05:09');
   });
 });

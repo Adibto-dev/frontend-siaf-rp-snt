@@ -41,3 +41,18 @@ export function formatFechaCorta(iso?: string | null): string {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
 }
+
+/** Marcador de la fecha de un documento que todavía no se elabora. */
+export const FECHA_SIN_ELABORAR = '--/--/----     --:--:--';
+
+/**
+ * Fecha y hora en que el documento se elaboró por primera vez (dd/mm/aaaa hh:mm:ss). Mientras no se elabora,
+ * devuelve `FECHA_SIN_ELABORAR`.
+ */
+export function fechaElaboracion(historial: { estadoNuevo: string; createdAt: string }[] | null | undefined): string {
+  const iso = historial?.find((h) => h.estadoNuevo === 'ELABORADO')?.createdAt;
+  if (!iso) return FECHA_SIN_ELABORAR;
+  const f = new Date(iso);
+  const dos = (n: number) => String(n).padStart(2, '0');
+  return `${dos(f.getDate())}/${dos(f.getMonth() + 1)}/${f.getFullYear()}     ${dos(f.getHours())}:${dos(f.getMinutes())}:${dos(f.getSeconds())}`;
+}

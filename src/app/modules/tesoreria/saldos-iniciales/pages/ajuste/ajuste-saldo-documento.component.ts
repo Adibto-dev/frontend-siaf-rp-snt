@@ -122,17 +122,17 @@ const ESTADOS: Record<string, FlowStatus> = {
                   <tr class="siaf-table-head-row">
                     <th class="siaf-table-th w-[120px]" rowspan="2">F. operación</th>
                     <th class="siaf-table-th w-[100px]" rowspan="2">Sec. ref.</th>
-                    <th class="siaf-table-th text-center" colspan="2">Cuenta bancaria</th>
-                    <th class="siaf-table-th text-center" colspan="2">{{ naturaleza() }}</th>
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Cuenta bancaria</th>
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">{{ naturaleza() }}</th>
                     <th class="siaf-table-th w-[150px] text-right" rowspan="2">Saldo inicial</th>
                     <th class="siaf-table-th w-[150px] text-right" rowspan="2">Saldo act.</th>
                     <th class="siaf-table-th w-[96px]" rowspan="2"><span class="sr-only">Acciones</span></th>
                   </tr>
                   <tr class="siaf-table-head-row">
-                    <th class="siaf-table-th">Número</th>
-                    <th class="siaf-table-th w-[90px]">Moneda</th>
-                    <th class="siaf-table-th w-[150px] text-right">Imp. M. cuenta</th>
-                    <th class="siaf-table-th w-[150px] text-right">Imp. M. nacional</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio">Número</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[90px]">Moneda</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[150px] text-right">Imp. M. cuenta</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[150px] text-right">Imp. M. nacional</th>
                   </tr>
                 </thead>
                 <tbody>
