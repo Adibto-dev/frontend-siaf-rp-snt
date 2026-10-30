@@ -40,3 +40,10 @@ describe('role.model', () => {
     });
   });
 });
+
+describe('Visualizador de documentos', () => {
+  it('VISUALIZADOR solo puede leer: ninguna acción sobre documentos', () => {
+    expect(mapRolCodigo('VISUALIZADOR')).toBe('viewer');
+    expect(ROLE_PERMISSIONS.viewer).toEqual(['document.read', 'chart_account.read']);
+  });
+});

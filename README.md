@@ -1,4 +1,4 @@
-# Taller IA · SIAF-RP
+# DEMO IA · SIAF-RP
 
 Arquetipo para clases demostrativas: muestra cómo se arman las pantallas del SIAF-RP con los componentes del diseño de
 Figma y **datos simulados**, sin backend. Trae el login, el escritorio virtual y un proceso de ejemplo completo
@@ -22,7 +22,7 @@ Abrir <http://127.0.0.1:4200>. Otro puerto: `npm start -- --port 4300`.
 
 ## Usuarios de demostración
 
-La contraseña de todos es **`Taller2026*`**. En el login, al enfocar el DNI aparecen como «Cuentas guardadas» (simulan el
+La contraseña de todos es **`Demo-DGTP2026`**. En el login, al enfocar el DNI aparecen como «Cuentas guardadas» (simulan el
 autocompletar del navegador) y llenan el DNI y la contraseña con un clic. El login recuerda al último usuario que
 entró, y «Reiniciar datos de la demo» vuelve a los datos iniciales.
 
@@ -31,10 +31,11 @@ entró, y «Reiniciar datos de la demo» vuelve a los datos iniciales.
 | Ana Torres Díaz | `45872163` | Creador | Crear, grabar, editar, verificar y eliminar solicitudes |
 | Luis Ramírez Soto | `70318246` | Aprobador | Aprobar, observar (con comentario) o rechazar lo verificado |
 | Carla Mendoza Ríos | `41269587` | Creador y Aprobador | Lo mismo que los dos anteriores: cambia de perfil desde su menú de usuario |
+| Jorge Salas Vega | `48219635` | Visualizador de documentos | Solo consulta: ve documentos y registros de todos los procesos, sin ninguna acción ni notificaciones |
 | Rosa Quispe Huamán | `46153928` | Creador autorizador | Crea y autoriza (sin aprobador) los documentos de autorización excepcional (RAUT); los demás perfiles solo los consultan |
 
-«Olvidé mi contraseña» también funciona: con el correo de un usuario (por ejemplo `ana.torres@taller.pe`) el código de
-verificación es `123456`.
+«Olvidé mi contraseña» también funciona: con el correo de un usuario (por ejemplo `ana.torres@demo.pe`) el código de
+verificación es `654321`.
 
 ## Recorrido sugerido para la clase
 

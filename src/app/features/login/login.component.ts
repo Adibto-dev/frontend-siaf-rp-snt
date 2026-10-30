@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 
 import { AlertComponent } from '../../shared/ui/alert/alert.component';
 import { ButtonComponent } from '../../shared/ui/button/button.component';
@@ -13,17 +13,6 @@ import { reiniciarDatosDemo } from '../../mock/mock-db';
 import { CONTRASENA_DEMO, USUARIOS_DEMO } from '../../mock/usuarios-demo';
 
 type LoginTab = 'entidades' | 'proveedores';
-
-/** Último DNI que entró (taller: simula la sesión que recuerda el navegador). */
-const CLAVE_ULTIMO_USUARIO = 'taller-siaf-rp:ultimo-usuario';
-
-function leerUltimoUsuario(): string | null {
-  try { return localStorage.getItem(CLAVE_ULTIMO_USUARIO); } catch { return null; }
-}
-
-function guardarUltimoUsuario(dni: string): void {
-  try { localStorage.setItem(CLAVE_ULTIMO_USUARIO, dni); } catch { /* sin almacenamiento: no se recuerda */ }
-}
 
 @Component({
   selector: 'siaf-login',
@@ -86,7 +75,7 @@ function guardarUltimoUsuario(dni: string): void {
                 leadingIcon="badge"
                 autocomplete="username"
                 [value]="usuario()"
-                (valueChange)="usuario.set(textFieldValue($event))"
+                (valueChange)="usuario.set(textFieldValue($event)); faltanDatos.set(false)"
               />
               @if (cuentasAbiertas()) {
                 <div
@@ -117,12 +106,16 @@ function guardarUltimoUsuario(dni: string): void {
                 [trailingButtonLabel]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 autocomplete="current-password"
                 [value]="contrasena()"
-                (valueChange)="contrasena.set(textFieldValue($event))"
+                (valueChange)="contrasena.set(textFieldValue($event)); faltanDatos.set(false)"
                 (trailingAction)="togglePassword()"
               />
 
-              <!-- Error de autenticación -->
-              @if (authService.authError()) {
+              <!-- Error: datos incompletos o autenticación -->
+              @if (faltanDatos()) {
+                <p class="siaf-text-body-2 w-full rounded-siaf-sm bg-[var(--sys-color-bg-feedback-light-danger)] px-siaf-md py-siaf-xs text-[var(--sys-color-text-feedback-danger)]" role="alert">
+                  Ingrese su DNI y contraseña.
+                </p>
+              } @else if (authService.authError()) {
                 <p class="siaf-text-body-2 w-full rounded-siaf-sm bg-[var(--sys-color-bg-feedback-light-danger)] px-siaf-md py-siaf-xs text-[var(--sys-color-text-feedback-danger)]">
                   {{ authService.authError() }}
                 </p>
@@ -283,26 +276,23 @@ export class LoginComponent {
   readonly usuariosDemo: ListItem[] = USUARIOS_DEMO.filter((u) => !u.oculto).map((u) => ({
     id: u.dni,
     title: `${u.nombres} ${u.apellidoPaterno} ${u.apellidoMaterno}`,
-    description: `${u.rol} · DNI ${u.dni} · ••••••••`,
+    description: `${u.rol} · DNI ${u.dni}`,
     leading: { type: 'avatar', initials: `${u.nombres[0]}${u.apellidoPaterno[0]}` },
   }));
   readonly usuarioElegido = signal<string | null>(null);
   readonly datosReiniciados = signal(false);
   readonly cuentasAbiertas = signal(false);
+  /** Se pulsó «Iniciar sesión» sin DNI o sin contraseña. */
+  readonly faltanDatos = signal(false);
 
-  constructor() {
-    // Recordar el último usuario: como un navegador que ya tiene la sesión guardada.
-    const ultimo = leerUltimoUsuario();
-    if (ultimo && USUARIOS_DEMO.some((u) => u.dni === ultimo && !u.oculto)) this.llenar(ultimo);
-  }
-
+  // Los campos empiezan vacíos: se completan al elegir una cuenta guardada (clic en DNI).
   onSubmit(): void {
-    if (!this.usuario() || !this.contrasena()) return;
+    if (!this.usuario().trim() || !this.contrasena()) {
+      this.faltanDatos.set(true);
+      return;
+    }
     this.authService.login(this.usuario().trim(), this.contrasena()).subscribe({
-      next: () => {
-        guardarUltimoUsuario(this.usuario().trim());
-        void this.router.navigate(['/panel']);
-      },
+      next: () => void this.router.navigate(['/panel']),
     });
   }
 
@@ -318,6 +308,7 @@ export class LoginComponent {
   }
 
   private llenar(dni: string): void {
+    this.faltanDatos.set(false);
     this.usuarioElegido.set(dni);
     this.usuario.set(dni);
     this.contrasena.set(CONTRASENA_DEMO);

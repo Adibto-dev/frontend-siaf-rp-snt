@@ -8,6 +8,7 @@
     [heading]="heading"
     secondaryText="Creación"
     [showReturn]="true"
+    [showButtonGroup]="!visualizador()"
     [saveDisabled]="!formValido() || saving()"
     [verifyDisabled]="verificarDeshabilitado()"
     (returned)="regresar()"

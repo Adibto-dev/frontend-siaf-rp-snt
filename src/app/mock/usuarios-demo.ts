@@ -6,11 +6,12 @@ import type { PerfilItem } from '../core/api/auth-api.service';
  * - Ana (creador) registra y verifica solicitudes.
  * - Luis (aprobador) aprueba, observa o rechaza lo verificado.
  * - Rosa (creador autorizador) es la única que crea y autoriza documentos de autorización excepcional (RAUT).
+ * - Jorge (visualizador de documentos) solo consulta: ve los documentos y registros, sin ninguna acción.
  * - Carla tiene los dos perfiles: sirve para mostrar el cambio de perfil desde el menú del usuario.
  *
  * Son datos de ejemplo: no hay contraseñas reales ni se validan contra un servidor.
  */
-export const CONTRASENA_DEMO = 'Taller2026*';
+export const CONTRASENA_DEMO = 'Demo-DGTP2026';
 
 export interface UsuarioDemo {
   id: string;
@@ -46,7 +47,7 @@ const ENTIDAD = {
   entidadAmbitoCodigo: 'GN',
 };
 
-function perfil(id: string, rolCodigo: 'CREADOR' | 'APROBADOR', rol: string, perfilFuncional: string): PerfilItem {
+function perfil(id: string, rolCodigo: 'CREADOR' | 'APROBADOR' | 'VISUALIZADOR', rol: string, perfilFuncional: string): PerfilItem {
   return { id, ...ENTIDAD, rol, rolCodigo, perfilFuncional };
 }
 
@@ -95,13 +96,29 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
     ],
   },
   {
+    id: 'usr-jorge',
+    dni: '48219635',
+    email: 'jorge.salas@taller.pe',
+    nombres: 'Jorge',
+    apellidoPaterno: 'Salas',
+    apellidoMaterno: 'Vega',
+    rol: 'Visualizador de documentos',
+    descripcion: 'Visualizador de documentos: solo consulta, sin acciones',
+    perfiles: [
+      {
+        ...perfil('perfil-jorge-visualizador', 'VISUALIZADOR', 'Visualizador de documentos', 'Visualizador de documentos'),
+        permisos: ['document.read', 'chart_account.read'],
+      },
+    ],
+  },
+  {
     id: 'usr-rosa',
     dni: '46153928',
     email: 'rosa.quispe@taller.pe',
     nombres: 'Rosa',
     apellidoPaterno: 'Quispe',
     apellidoMaterno: 'Huamán',
-    rol: 'Creador autorizador',
+    rol: 'Creador - Autorizador',
     descripcion: 'Creador autorizador: crea y autoriza autorizaciones excepcionales',
     perfiles: [
       {

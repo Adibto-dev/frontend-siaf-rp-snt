@@ -4,6 +4,7 @@ export type UserRole =
   | 'approver'
   | 'admin_sistema'
   | 'admin_entidad'
+  | 'viewer'
   | 'sin_permisos';
 
 /** Mapeo único backend → frontend de códigos de rol. */
@@ -13,6 +14,7 @@ export const ROL_MAP: Record<string, UserRole> = {
   REVISOR: 'reviewer',
   ADMIN_SISTEMA: 'admin_sistema',
   ADMIN_ENTIDAD: 'admin_entidad',
+  VISUALIZADOR: 'viewer',
 };
 
 /**
@@ -69,6 +71,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   approver: 'Aprobador',
   admin_sistema: 'Administrador del Sistema',
   admin_entidad: 'Administrador de Entidad',
+  viewer: 'Visualizador de documentos',
   sin_permisos: 'Sin permisos asignados'
 };
 
@@ -81,6 +84,8 @@ export const ROLE_LABELS: Record<UserRole, string> = {
  */
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   sin_permisos: [],
+  /** Visualizador de documentos: solo consulta, sin ninguna acción. */
+  viewer: ['document.read', 'chart_account.read'],
   creator: [
     'document.create', 'document.edit', 'document.delete',
     'document.verify', 'document.read',

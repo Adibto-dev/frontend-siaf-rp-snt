@@ -322,6 +322,8 @@ export class SaldosInicialesRequestComponent implements OnInit {
   readonly saving = signal(false);
 
   readonly headerRole = computed<'creator' | 'approver'>(() => (this.permissions.currentRole() === 'approver' ? 'approver' : 'creator'));
+  /** Visualizador de documentos: ve el documento sin ninguna acción. */
+  readonly visualizador = computed(() => this.permissions.currentRole() === 'viewer');
   readonly elaborado = computed(() => this.estado() !== 'NUEVO');
   readonly soloLectura = computed(() => this.elaborado() && !this.editando());
   readonly puedeVerificar = computed(() => ['ELABORADO', 'OBSERVADO'].includes(this.estado()));
