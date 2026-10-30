@@ -4,6 +4,8 @@ import { Router, RouterLink } from '@angular/router';
 import { AlertComponent } from '../../shared/ui/alert/alert.component';
 import { ButtonComponent } from '../../shared/ui/button/button.component';
 import { ListComponent, ListItem } from '../../shared/ui/list/list.component';
+import { ModalComponent } from '../../shared/ui/modal/modal.component';
+import { SideNavComponent } from '../../shared/ui/side-nav/side-nav.component';
 import { TabItem, TabsComponent } from '../../shared/ui/tabs/tabs.component';
 import { TextFieldComponent } from '../../shared/ui/text-field/text-field.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -26,7 +28,7 @@ function guardarUltimoUsuario(dni: string): void {
 @Component({
   selector: 'siaf-login',
   standalone: true,
-  imports: [AlertComponent, ButtonComponent, ListComponent, RouterLink, TabsComponent, TextFieldComponent],
+  imports: [AlertComponent, ButtonComponent, ListComponent, ModalComponent, SideNavComponent, TabsComponent, TextFieldComponent],
   template: `
     <main class="flex min-h-screen bg-[var(--sys-color-bg-surfaces-surface)] text-text lg:h-screen lg:overflow-hidden">
       <section class="hidden h-screen flex-[0_0_50%] overflow-hidden lg:block" aria-hidden="true">
@@ -51,16 +53,18 @@ function guardarUltimoUsuario(dni: string): void {
                 Ingresa tus datos para Iniciar sesión
               </p>
 
-              <!-- Tabs -->
-              <siaf-tabs
-                class="mt-siaf-xs w-full"
-                ariaLabel="Tipo de usuario"
-                [tabs]="pestanas"
-                [activeId]="activeTab()"
-                [border]="false"
-                [fullWidth]="true"
-                (activeIdChange)="activeTab.set($any($event))"
-              />
+              <!-- Tabs: ocultas mientras solo se usa el ingreso de Entidades del Estado (ver mostrarPestanas). -->
+              @if (mostrarPestanas) {
+                <siaf-tabs
+                  class="mt-siaf-xs w-full"
+                  ariaLabel="Tipo de usuario"
+                  [tabs]="pestanas"
+                  [activeId]="activeTab()"
+                  [border]="false"
+                  [fullWidth]="true"
+                  (activeIdChange)="activeTab.set($any($event))"
+                />
+              }
             </div>
 
             <!-- Formulario: Entidades del Estado -->
@@ -135,13 +139,7 @@ function guardarUltimoUsuario(dni: string): void {
               </siaf-button>
 
               <!-- Links inferiores -->
-              <div class="flex w-full items-center justify-between">
-                <a
-                  class="siaf-text-body-2-medium inline-flex min-h-10 items-center justify-center rounded-siaf-md px-siaf-md py-siaf-xs text-[var(--sys-color-text-brand-primary)] transition hover:bg-surface-muted active:bg-[var(--sys-color-bg-states-light-pressed)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
-                  routerLink="/ui-kit"
-                >
-                  Ver componentes
-                </a>
+              <div class="flex w-full items-center justify-end">
                 <button
                   class="siaf-text-body-2-medium inline-flex min-h-10 items-center justify-center rounded-siaf-md px-siaf-md py-siaf-xs text-[var(--sys-color-text-brand-primary)] transition hover:bg-surface-muted active:bg-[var(--sys-color-bg-states-light-pressed)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
                   type="button"
@@ -151,20 +149,6 @@ function guardarUltimoUsuario(dni: string): void {
                 </button>
               </div>
             </form>
-
-            <!-- Taller: volver a los datos iniciales de la demo -->
-            <div class="flex w-full flex-col items-center gap-siaf-xs">
-              <siaf-button variant="text" size="sm" icon="restart_alt" (click)="reiniciarDatos()">Reiniciar datos de la demo</siaf-button>
-              @if (datosReiniciados()) {
-                <siaf-alert
-                  class="w-full"
-                  tone="success"
-                  description="Se restauraron las solicitudes, las cuentas y las notificaciones iniciales."
-                  [showClose]="true"
-                  (closed)="datosReiniciados.set(false)"
-                />
-              }
-            </div>
             } <!-- fin @if entidades -->
 
             <!-- Formulario: Proveedores y Externos -->
@@ -222,21 +206,58 @@ function guardarUltimoUsuario(dni: string): void {
                   </div>
                 }
               </div>
-
-              <!-- Ir a inicio -->
-              <div class="flex w-full items-center">
-                <a
-                  class="siaf-text-body-2-medium inline-flex min-h-10 items-center justify-center rounded-siaf-md px-siaf-md py-siaf-xs text-[var(--sys-color-text-brand-primary)] transition hover:bg-surface-muted active:bg-[var(--sys-color-bg-states-light-pressed)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
-                  routerLink="/ui-kit"
-                >
-                  Ver componentes
-                </a>
-              </div>
             </div>
             } <!-- fin @if proveedores -->
           </section>
         </div>
       </section>
+
+      <!-- Taller: opciones de la demo (no son parte del SIAF-RP) en un side nav que abre el botón flotante. -->
+      <siaf-button
+        class="fixed bottom-siaf-lg right-siaf-lg z-30 rounded-siaf-md bg-surface shadow-siaf-elevation-2"
+        variant="outline"
+        icon="settings"
+        [iconOnly]="true"
+        ariaLabel="Opciones de la demo"
+        (click)="opcionesAbiertas.set(true)"
+      />
+
+      <siaf-side-nav
+        [open]="opcionesAbiertas()"
+        title="Opciones de la demo"
+        [showFooter]="false"
+        (closed)="cerrarOpciones()"
+      >
+        <div class="flex flex-col gap-siaf-md">
+          <siaf-list
+            ariaLabel="Opciones de la demo"
+            [items]="opcionesDemo"
+            [selectable]="true"
+            [dividers]="true"
+            [selectedId]="null"
+            (selectedIdChange)="elegirOpcion($event)"
+          />
+          @if (datosReiniciados()) {
+            <siaf-alert
+              tone="success"
+              description="Se restauraron las solicitudes, las cuentas y las notificaciones iniciales."
+              [showClose]="true"
+              (closed)="datosReiniciados.set(false)"
+            />
+          }
+        </div>
+      </siaf-side-nav>
+
+      <siaf-modal
+        [open]="confirmarReinicio()"
+        variant="custom"
+        title="¿Reiniciar los datos de la demo?"
+        description="Se borrará todo lo grabado en la demo (solicitudes, registros y notificaciones) y se restaurarán los datos iniciales."
+        confirmLabel="Reiniciar"
+        (confirmed)="reiniciarDatos()"
+        (canceled)="confirmarReinicio.set(false)"
+        (closed)="confirmarReinicio.set(false)"
+      />
     </main>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -247,6 +268,8 @@ export class LoginComponent {
 
   readonly usuario = signal('');
   readonly contrasena = signal('');
+  /** Pestañas Entidades del Estado / Proveedores y Externos. Apagadas: en el taller solo se ingresa como entidad. */
+  readonly mostrarPestanas = false;
   readonly activeTab = signal<LoginTab>('entidades');
   readonly pestanas: TabItem[] = [
     { id: 'entidades', label: 'Entidades del Estado' },
@@ -300,8 +323,42 @@ export class LoginComponent {
     this.contrasena.set(CONTRASENA_DEMO);
   }
 
+  // ── Taller: opciones de la demo (botón flotante → side nav) ──
+  readonly opcionesAbiertas = signal(false);
+  readonly confirmarReinicio = signal(false);
+  readonly opcionesDemo: ListItem[] = [
+    {
+      id: 'componentes',
+      title: 'Ver componentes',
+      description: 'Abre el catálogo de componentes (ui-kit) en otra pestaña.',
+      icon: 'widgets',
+      trailing: { type: 'icon', icon: 'open_in_new' },
+    },
+    {
+      id: 'reiniciar',
+      title: 'Reiniciar datos de la demo',
+      description: 'Restaura las solicitudes, las cuentas y las notificaciones iniciales.',
+      icon: 'restart_alt',
+    },
+  ];
+
+  elegirOpcion(id: string): void {
+    if (id === 'componentes') {
+      // Otra pestaña: el login queda abierto donde estaba.
+      window.open(this.router.serializeUrl(this.router.createUrlTree(['/ui-kit'])), '_blank', 'noopener');
+    } else if (id === 'reiniciar') {
+      this.confirmarReinicio.set(true);
+    }
+  }
+
+  cerrarOpciones(): void {
+    this.opcionesAbiertas.set(false);
+    this.datosReiniciados.set(false);
+  }
+
   /** Vuelve a los datos iniciales de la demo (lo que grabaron los usuarios se pierde). */
   reiniciarDatos(): void {
+    this.confirmarReinicio.set(false);
     reiniciarDatosDemo();
     this.datosReiniciados.set(true);
   }
