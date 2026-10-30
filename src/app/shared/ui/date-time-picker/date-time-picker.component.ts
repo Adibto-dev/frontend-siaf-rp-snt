@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnI
 
 import { ButtonComponent } from '../button/button.component';
 import { IconComponent } from '../icon/icon.component';
+import { ReadonlyFieldComponent } from '../readonly-field/readonly-field.component';
 import { TooltipDirective } from '../tooltip/tooltip.directive';
 import { FocoDirective } from '../foco/foco.directive';
 
@@ -74,8 +75,11 @@ type CalendarDay = {
 @Component({
   selector: 'siaf-date-time-picker',
   standalone: true,
-  imports: [FocoDirective, ButtonComponent, IconComponent, TooltipDirective],
+  imports: [FocoDirective, ButtonComponent, IconComponent, ReadonlyFieldComponent, TooltipDirective],
   template: `
+    @if (readonly) {
+      <readonly-field [caption]="labelText" [value]="hasValue ? displayValue : ''" [required]="required" [help]="help" [hint]="hint" />
+    } @else {
     <label class="grid gap-1.5">
       <span class="relative block w-full" [class.max-w-[300px]]="!fullWidth">
         @if (floatingLabel) {
@@ -85,7 +89,7 @@ type CalendarDay = {
         }
 
         <button
-          class="siaf-text-body-2 flex h-10 w-full items-center rounded-siaf-md border bg-surface px-siaf-md text-left text-text outline-none transition disabled:cursor-not-allowed disabled:border-[var(--sys-color-border-states-disabled)] disabled:bg-[var(--sys-color-bg-surfaces-disabled)] disabled:text-[var(--sys-color-text-neutral-disabled)]"
+          class="siaf-text-body-2 flex h-10 w-full items-center rounded-siaf-md border bg-surface px-siaf-md text-left text-text outline-none transition disabled:cursor-not-allowed disabled:border-[var(--sys-color-border-states-disabled)] disabled:bg-[var(--sys-color-bg-surfaces-disabled)] disabled:text-[var(--sys-color-text-neutral-medium)]"
           type="button"
           [class]="controlClass"
           [disabled]="disabled"
@@ -94,7 +98,7 @@ type CalendarDay = {
           aria-haspopup="dialog"
           (click)="togglePicker()"
         >
-          <span class="min-w-0 flex-1 truncate" siafTooltip [class.text-[var(--sys-color-text-neutral-low)]]="!hasValue">
+          <span class="min-w-0 flex-1 truncate" siafTooltip [class.text-[var(--sys-color-text-neutral-low)]]="!hasValue && !disabled" [class.text-[var(--sys-color-text-neutral-disabled)]]="!hasValue && disabled">
             {{ displayValue || labelText }}@if (!hasValue && required) { <span class="text-[var(--sys-color-text-feedback-danger)]">*</span> }
           </span>
           <siaf-icon class="shrink-0 text-text-muted" name="calendar_today" [size]="20" />
@@ -258,6 +262,7 @@ type CalendarDay = {
         <span class="siaf-text-caption-1 text-[var(--sys-color-text-feedback-danger)]">{{ error }}</span>
       }
     </label>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -269,6 +274,10 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
   @Input() state: DatePickerState = 'enabled';
   @Input() value = '';
   @Input() disabled = false;
+  /** Modo lectura (Figma «Readonly forms»): pinta `readonly-field` con la fecha, sin el selector. */
+  @Input() readonly = false;
+  /** En lectura: explicación del ícono info (sin texto no se muestra). */
+  @Input() help = '';
   @Input() variant: DatePickerVariant = 'date';
   @Input() defaultToToday = true;
   @Input() required = false;
@@ -398,7 +407,7 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
 
   get labelClass(): string {
     if (this.disabled) {
-      return 'text-[var(--sys-color-text-neutral-disabled)]';
+      return 'text-[var(--sys-color-text-neutral-low)]';
     }
 
     if (this.effectiveState === 'error') {

@@ -328,7 +328,7 @@ const guardarSaldosIniciales: Manejador = ({ req, datos, params }) => {
   // Los importes y el tipo de cambio se recalculan aquí: el backend no confía en los totales que manda la pantalla.
   const saldos = dto.saldos.map((x) => calcularSaldo(x.id, x.fechaOperacion, x.cuentaBancaria,
     Object.fromEntries(x.libretas.map((l) => [l.idCorrelativo, l.importe]))))
-    .map((x, i) => ({ ...x, sustento: dto.saldos[i].sustento || null }));
+    .map((x, i) => ({ ...x, sustento: dto.saldos[i].sustento || null, sustentoId: dto.saldos[i].sustento ? dto.saldos[i].sustentoId || null : null }));
   if (saldos.some((x) => x.importeCuenta <= 0)) return error(400, 'Cada saldo debe tener al menos un importe mayor a cero.');
   s.detalleSaldosIniciales = { documentoId: s.id, entidadFinanciera: dto.entidadFinanciera, saldos };
   s.updatedAt = new Date().toISOString();
@@ -363,7 +363,7 @@ function guardarAjusteSaldo(datos: DatosTaller, s: SolicitudResponse, dto: Saldo
   const ajuste = calcularAjuste(x.id, x.fechaOperacion, x.cuentaBancaria,
     Object.fromEntries(x.libretas.map((l) => [l.idCorrelativo, { importe: l.importe, naturaleza: l.naturaleza ?? 'Crédito' }])), original);
   if (ajuste.importeCuenta <= 0) return error(400, 'El ajuste debe tener un importe distinto de cero.');
-  s.detalleSaldosIniciales = { documentoId: s.id, entidadFinanciera: original.entidadFinanciera, saldos: [{ ...ajuste, sustento: x.sustento || null }] };
+  s.detalleSaldosIniciales = { documentoId: s.id, entidadFinanciera: original.entidadFinanciera, saldos: [{ ...ajuste, sustento: x.sustento || null, sustentoId: x.sustento ? x.sustentoId || null : null }] };
   s.updatedAt = new Date().toISOString();
   guardarDatos(datos);
   return ok({ message: 'Ajuste guardado' });

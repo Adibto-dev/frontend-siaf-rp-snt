@@ -10,10 +10,10 @@ import { DocumentSummaryCardComponent } from '../../../../../shared/ui/document-
 import type { FlowStatus } from '../../../../../shared/ui/flow-status-tag/flow-status-tag.component';
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { MessageBoxComponent } from '../../../../../shared/ui/message-box/message-box.component';
-import { SidePanelComponent } from '../../../../../shared/ui/side-panel/side-panel.component';
 import { SummaryCardComponent, SummaryCardField } from '../../../../../shared/ui/summary-card/summary-card.component';
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
-import { UploadedFileCardComponent, UploadedFileInfo } from '../../../../../shared/ui/uploaded-file-card/uploaded-file-card.component';
+import { SustentoVisorComponent } from '../../components/sustento-visor/sustento-visor.component';
+import type { SaldoConSustento } from '../../utils/sustento-pdf.util';
 import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs.util';
 import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
 import { PROCESS_ID, PROCESS_ROUTE } from '../../config/saldos-iniciales.rutas';
@@ -54,17 +54,16 @@ const ESTADOS: Record<string, FlowStatus> = {
   selector: 'siaf-ajuste-saldo-documento',
   standalone: true,
   imports: [
+    SustentoVisorComponent,
     DocumentSummaryCardComponent,
     IconComponent,
     MessageBoxComponent,
     SaldoLibretasPanelComponent,
-    SidePanelComponent,
     SolicitudeFormCardComponent,
     SolicitudeInfoCardComponent,
     SolicitudePageLayoutComponent,
     SummaryCardComponent,
     TooltipDirective,
-    UploadedFileCardComponent,
   ],
   template: `
     <div class="min-h-[calc(100vh-56px)] bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
@@ -154,7 +153,7 @@ const ESTADOS: Record<string, FlowStatus> = {
                             [disabled]="!saldo.sustento"
                             [attr.aria-label]="'Ver documento de sustento de ' + saldo.cuentaBancaria"
                             siafTooltip="Ver documento de sustento"
-                            (click)="sustentoVisto.set({ name: saldo.sustento! })"
+                            (click)="sustentoVisto.set(saldo)"
                           >
                             <siaf-icon name="description" [size]="20" />
                           </button>
@@ -202,11 +201,8 @@ const ESTADOS: Record<string, FlowStatus> = {
 
     <siaf-saldo-libretas-panel [saldo]="saldoVisto()" (closed)="saldoVisto.set(null)" />
 
-    <siaf-side-panel title="Documento de sustento" [open]="!!sustentoVisto()" [showFooter]="false" (closed)="sustentoVisto.set(null)">
-      @if (sustentoVisto(); as archivo) {
-        <siaf-uploaded-file-card [file]="archivo" [readonly]="true" />
-      }
-    </siaf-side-panel>
+    <!-- Documento de sustento en el visor de PDF (sin archivo guardado, uno de ejemplo) -->
+    <siaf-saldo-sustento-visor [saldo]="sustentoVisto()" (closed)="sustentoVisto.set(null)" />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -225,7 +221,7 @@ export class AjusteSaldoDocumentoComponent {
   readonly cargando = signal(true);
   readonly solicitud = signal<SolicitudResponse | null>(null);
   readonly saldoVisto = signal<SaldoInicial | null>(null);
-  readonly sustentoVisto = signal<UploadedFileInfo | null>(null);
+  readonly sustentoVisto = signal<SaldoConSustento | null>(null);
 
   readonly saldos = computed(() => this.solicitud()?.detalleSaldosIniciales?.saldos ?? []);
   /** Encabezado de los importes: «Crédito» o «Débito» según el ajuste. */

@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, inject, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 
+import { ReadonlyFieldComponent } from '../readonly-field/readonly-field.component';
+
 export type TextAreaControlState = 'enabled' | 'error' | 'success';
 
 /**
@@ -43,8 +45,15 @@ export type TextAreaControlState = 'enabled' | 'error' | 'success';
  */
 @Component({
   selector: 'text-area-control',
+  imports: [ReadonlyFieldComponent],
   standalone: true,
   template: `
+    @if (readonly) {
+      @if (title) {
+        <span class="mb-siaf-md block text-sm font-bold uppercase text-text">{{ title }}</span>
+      }
+      <readonly-field [caption]="placeholderText" [value]="value" [required]="required" [multiline]="true" [help]="help" />
+    } @else {
     <label class="grid gap-siaf-md">
       @if (title) {
         <span class="text-sm font-bold uppercase text-text">
@@ -70,7 +79,7 @@ export type TextAreaControlState = 'enabled' | 'error' | 'success';
             </span>
           }
           <textarea
-            class="siaf-text-body-2 min-h-11 flex-1 resize-none bg-transparent leading-6 text-[var(--sys-color-text-neutral-medium)] outline-none placeholder:text-[var(--sys-color-text-neutral-low)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-disabled)]"
+            class="siaf-text-body-2 min-h-11 flex-1 resize-none bg-transparent leading-6 text-[var(--sys-color-text-neutral-medium)] outline-none placeholder:text-[var(--sys-color-text-neutral-low)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-medium)] disabled:placeholder:text-[var(--sys-color-text-neutral-disabled)]"
             [attr.maxlength]="maxlength"
             [placeholder]="floatingLabel || required ? '' : placeholderText"
             [attr.aria-required]="required"
@@ -88,6 +97,7 @@ export type TextAreaControlState = 'enabled' | 'error' | 'success';
         <span class="shrink-0 text-text-muted">{{ charCount }}/{{ maxlength }}</span>
       </span>
     </label>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -98,6 +108,10 @@ export class TextAreaControlComponent implements OnChanges {
   @Input() placeholder = '';
   @Input() value = '';
   @Input() disabled = false;
+  /** Modo lectura (Figma «Readonly forms»): el texto con «Leer más», sin el área ni el contador. */
+  @Input() readonly = false;
+  /** En lectura: explicación del ícono info (sin texto no se muestra). */
+  @Input() help = '';
   @Input() maxlength = 500;
   /** Mínimo de caracteres (sin contar espacios al inicio/fin). 0 = sin mínimo. */
   @Input() minlength = 0;
@@ -132,7 +146,7 @@ export class TextAreaControlComponent implements OnChanges {
 
   get labelClass(): string {
     if (this.disabled) {
-      return 'text-[var(--sys-color-text-neutral-disabled)]';
+      return 'text-[var(--sys-color-text-neutral-low)]';
     }
 
     if (this.effectiveState === 'error') {

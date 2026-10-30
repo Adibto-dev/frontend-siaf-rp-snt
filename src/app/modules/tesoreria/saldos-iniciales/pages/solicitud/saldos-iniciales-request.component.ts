@@ -44,6 +44,9 @@ import { AutorizacionesApiService } from '../../../autorizaciones/api/autorizaci
 import { AutorizacionVigente, fechaCorta } from '../../../autorizaciones/models/autorizacion.model';
 import { SaldosInicialesApiService } from '../../api/saldos-iniciales-api.service';
 import { SaldosCargaMasivaComponent } from '../../components/saldos-carga-masiva/saldos-carga-masiva.component';
+import { SustentoVisorComponent } from '../../components/sustento-visor/sustento-visor.component';
+import type { SaldoConSustento } from '../../utils/sustento-pdf.util';
+import { guardarArchivo } from '../../../../../mock/archivos-demo';
 import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
 import { ADJUSTMENT_ROUTE, PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/saldos-iniciales.rutas';
 import {
@@ -75,6 +78,7 @@ import {
   formatoImporte,
   redondear,
   tipoCambio,
+  type MonedaSaldo,
 } from '../../models/saldo-inicial.model';
 
 import { fechaElaboracion } from '../../../../../shared/utils/fecha.util';
@@ -86,11 +90,13 @@ interface Borrador {
   importes: Record<string, string>;
   /** Documento de sustento del saldo (opcional). */
   sustento: UploadedFileInfo | null;
+  /** Id del archivo ya guardado del sustento. */
+  sustentoId: string | null;
   /** Solo en un ajuste: naturaleza de cada libreta (por id correlativo). */
   naturalezas: Record<string, NaturalezaAjuste>;
 }
 
-const BORRADOR_VACIO: Borrador = { fechaOperacion: '', cuentaBancaria: '', importes: {}, sustento: null, naturalezas: {} };
+const BORRADOR_VACIO: Borrador = { fechaOperacion: '', cuentaBancaria: '', importes: {}, sustento: null, sustentoId: null, naturalezas: {} };
 
 /** Una fila de «Ajuste saldo inicial libro bancos»: el saldo registrado o, ya ajustado, el ajuste. */
 interface FilaAjuste {
@@ -98,12 +104,13 @@ interface FilaAjuste {
   fechaOperacion: string;
   secuenciaReferencia: string;
   cuentaBancaria: string;
-  moneda: string;
+  moneda: MonedaSaldo;
   importeCuenta: number;
   importeNacional: number;
   saldoInicial: number;
   saldoActual: number;
   sustento: string | null;
+  sustentoId: string | null;
   libretas: SaldoInicial['libretas'];
 }
 
@@ -129,6 +136,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
   selector: 'siaf-saldos-iniciales-request',
   standalone: true,
   imports: [
+    SustentoVisorComponent,
     SaldosCargaMasivaComponent,
     AlertComponent,
     SaldoLibretasPanelComponent,
@@ -209,14 +217,14 @@ export class SaldosInicialesRequestComponent implements OnInit {
         id: hecho.id, fechaOperacion: hecho.fechaOperacion, secuenciaReferencia: hecho.ajuste.secuenciaReferencia,
         cuentaBancaria: hecho.cuentaBancaria, moneda: hecho.moneda, importeCuenta: hecho.importeCuenta, importeNacional: hecho.importeNacional,
         saldoInicial: hecho.ajuste.saldoInicial, saldoActual: saldoActualizado(hecho.ajuste.saldoInicial, hecho.importeCuenta, hecho.ajuste.naturaleza),
-        sustento: hecho.sustento ?? null, libretas: hecho.libretas,
+        sustento: hecho.sustento ?? null, sustentoId: hecho.sustentoId ?? null, libretas: hecho.libretas,
       }];
     }
     const o = this.saldoOriginal();
     return o ? [{
       id: o.registroId, fechaOperacion: o.fechaOperacion, secuenciaReferencia: o.secuencia ?? '', cuentaBancaria: o.cuentaBancaria,
       moneda: o.moneda, importeCuenta: o.importeCuenta, importeNacional: o.importeNacional, saldoInicial: o.importeCuenta,
-      saldoActual: o.importeCuenta, sustento: o.sustento ?? null, libretas: o.libretas,
+      saldoActual: o.importeCuenta, sustento: o.sustento ?? null, sustentoId: o.sustentoId ?? null, libretas: o.libretas,
     }] : [];
   });
   readonly ajusteSeleccionado = signal(false);
@@ -234,6 +242,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
       importes: Object.fromEntries((hecho?.libretas ?? []).map((l) => [l.idCorrelativo, l.importe.toFixed(2)])),
       naturalezas: Object.fromEntries((hecho?.libretas ?? []).map((l) => [l.idCorrelativo, l.naturaleza ?? 'Crédito'])),
       sustento: hecho?.sustento ? { name: hecho.sustento } : null,
+      sustentoId: hecho?.sustentoId ?? null,
     });
     this.ajusteSeleccionado.set(false);
     this.abrirEditor();
@@ -635,6 +644,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
       cuentaBancaria: saldo.cuentaBancaria,
       importes: Object.fromEntries(saldo.libretas.map((l) => [l.idCorrelativo, l.importe.toFixed(2)])),
       sustento: saldo.sustento ? { name: saldo.sustento } : null,
+      sustentoId: saldo.sustentoId ?? null,
       naturalezas: {},
     });
     this.abrirEditor();
@@ -713,23 +723,53 @@ export class SaldosInicialesRequestComponent implements OnInit {
     const referencia = this.referenciaAjuste();
     if (this.esAjuste() && referencia) {
       const movimientos = Object.fromEntries(Object.entries(importes).map(([k, v]) => [k, { importe: v, naturaleza: this.naturalezaDe(k) }]));
-      this.saldos.set([{ ...calcularAjuste(id, b.fechaOperacion, b.cuentaBancaria, movimientos, referencia), sustento: b.sustento?.name ?? null }]);
+      this.saldos.set([{ ...calcularAjuste(id, b.fechaOperacion, b.cuentaBancaria, movimientos, referencia), sustento: b.sustento?.name ?? null, sustentoId: b.sustento ? b.sustentoId : null }]);
       this.cerrarEditor();
       return;
     }
-    const saldo = { ...calcularSaldo(id, b.fechaOperacion, b.cuentaBancaria, importes), sustento: b.sustento?.name ?? null };
+    const saldo = { ...calcularSaldo(id, b.fechaOperacion, b.cuentaBancaria, importes), sustento: b.sustento?.name ?? null, sustentoId: b.sustento ? b.sustentoId : null };
     this.saldos.update((lista) => (this.saldoEditado() ? lista.map((s) => (s.id === id ? saldo : s)) : [...lista, saldo]));
     this.cerrarEditor();
   }
 
   // ── Página ────────────────────────────────────────────────────────
-  onSustentoConfirmado(archivo: File): void {
-    this.borrador.update((b) => ({ ...b, sustento: archivo }));
+  /** Guarda el archivo elegido (para verlo después en el visor) y lo deja como sustento del saldo en edición. */
+  async onSustentoConfirmado(archivo: File): Promise<void> {
+    this.borrador.update((b) => ({ ...b, sustento: archivo, sustentoId: null }));
     this.panelSustentoAbierto.set(false);
+    const id = await guardarArchivo(archivo);
+    this.borrador.update((b) => (b.sustento === archivo ? { ...b, sustentoId: id } : b));
   }
 
   quitarSustento(): void {
-    this.borrador.update((b) => ({ ...b, sustento: null }));
+    this.borrador.update((b) => ({ ...b, sustento: null, sustentoId: null }));
+  }
+
+  // ── Visor del documento de sustento ──
+  /** Saldo cuyo sustento se ve en el visor de PDF. */
+  readonly sustentoEnVisor = signal<SaldoConSustento | null>(null);
+  /** Archivo recién elegido en el formulario (se ve aunque todavía no se haya guardado). */
+  readonly archivoEnVisor = signal<Blob | null>(null);
+
+  verSustento(saldo: SaldoConSustento): void {
+    if (!saldo.sustento) return;
+    this.archivoEnVisor.set(null);
+    this.sustentoEnVisor.set({ ...saldo, entidadFinanciera: this.entidadCodigo() ?? undefined });
+  }
+
+  verSustentoBorrador(): void {
+    const b = this.borrador();
+    if (!b.sustento) return;
+    this.archivoEnVisor.set(b.sustento instanceof Blob ? b.sustento : null);
+    this.sustentoEnVisor.set({
+      sustento: b.sustento.name, sustentoId: b.sustentoId, cuentaBancaria: b.cuentaBancaria, fechaOperacion: b.fechaOperacion,
+      importeCuenta: this.importeCuentaBorrador(), moneda: this.cuentaBorrador()?.moneda ?? 'PEN', entidadFinanciera: this.entidadCodigo() ?? undefined,
+    });
+  }
+
+  cerrarVisor(): void {
+    this.sustentoEnVisor.set(null);
+    this.archivoEnVisor.set(null);
   }
 
   regresar(): void {

@@ -121,7 +121,7 @@
           [required]="true"
           [maxlength]="500"
           [minlength]="minCaracteresTexto"
-          [disabled]="soloLectura()"
+          [readonly]="soloLectura()"
           [value]="justificacion()"
           (valueChange)="justificacion.set($event)"
         />

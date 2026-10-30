@@ -277,16 +277,58 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "ui",
     "importacion": "@siaf/ui/readonly-field/readonly-field.component",
     "archivo": "src/app/shared/ui/readonly-field/readonly-field.component.ts",
-    "descripcion": "Campo de solo lectura con caption flotante que muestra el valor o `--` cuando está vacío.\n\nÚsalo para mostrar datos ya grabados en las pantallas de consulta o en el modo lectura de una\nsolicitud. No confundir con `siaf-readonly`, que es otro componente distinto y sin consumidores.",
+    "descripcion": "Campo de solo lectura del Figma «Readonly forms»: caption flotante y el valor sin contenedor, borde ni íconos de\nedición. Muestra `--` cuando está vacío. Es lo que pintan `siaf-input`, `siaf-date-time-picker` y\n`text-area-control` con `[readonly]`: un formulario en modo lectura se ve así sin duplicar el markup.\n\nVariantes de Figma: texto, importe (`align=\"right\"`), negrita (`bold`), resaltado (`highlight`, fondo\n`bg-surfaces-highlight`), varios valores como chips (`tags`), estado de registro (`status`), texto largo con\n«Leer más» (`multiline`) e ícono info con ayuda (`help`, solo si hay texto).",
     "usaSesion": false,
     "proyectaContenido": false,
     "entradas": [
+      {
+        "nombre": "align",
+        "tipo": "'left' | 'right'",
+        "porDefecto": "'left'",
+        "requerida": false,
+        "descripcion": "`right` para importes."
+      },
+      {
+        "nombre": "bold",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": null
+      },
       {
         "nombre": "caption",
         "tipo": "string",
         "porDefecto": "''",
         "requerida": false,
         "descripcion": null
+      },
+      {
+        "nombre": "help",
+        "tipo": "string",
+        "porDefecto": "''",
+        "requerida": false,
+        "descripcion": "Explicación del ícono info; sin texto no se muestra."
+      },
+      {
+        "nombre": "highlight",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Fondo `bg-surfaces-highlight` para el dato que hay que destacar."
+      },
+      {
+        "nombre": "hint",
+        "tipo": "string",
+        "porDefecto": "''",
+        "requerida": false,
+        "descripcion": "Texto de apoyo debajo del valor."
+      },
+      {
+        "nombre": "multiline",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Texto largo: se recorta y ofrece «Leer más»."
       },
       {
         "nombre": "required",
@@ -296,28 +338,76 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "status",
+        "tipo": "'' | RecordStatus",
+        "porDefecto": "''",
+        "requerida": false,
+        "descripcion": "Estado de un registro con `siaf-record-status-tag`."
+      },
+      {
+        "nombre": "tags",
+        "tipo": "string[]",
+        "porDefecto": "[]",
+        "requerida": false,
+        "descripcion": "Varios valores como chips (select múltiple)."
+      },
+      {
         "nombre": "value",
-        "tipo": "string",
+        "tipo": "string | number | null",
         "porDefecto": "''",
         "requerida": false,
         "descripcion": null
       }
     ],
     "eventos": [],
-    "usar": "- En el modo lectura de una solicitud, en lugar del campo editable y con el mismo caption: cuenta contable, carga\n  masiva del plan de cuentas, clase de ajuste, tipo de asiento y asiento de ajuste.\n- Para los criterios de búsqueda sobre los resultados de las consultas (plan de cuentas, asiento de ajuste, tipos de\n  asiento, contabilización) y la cabecera de un detalle o reporte (pedido de contabilización, apertura contable,\n  libros contables).\n- Para leer un dato con contraste completo: un campo `[disabled]` pinta el texto tenue (exento de contraste) y aquí\n  el valor va en `text-neutral-high`.\n- `[required]` solo para repetir el asterisco del campo editable, así la lectura se ve igual que la edición.",
-    "evitar": "- Para un dato que el usuario puede cambiar: usar `siaf-input`, `text-area-control` o `siaf-date-time-picker`.\n- Para el ítem elegido desde un panel lateral: usar `siaf-summary-card`; para un aviso breve, `message-box`.\n- Confundirlo con `siaf-readonly`, el recuadro gris con etiqueta en mayúsculas que ninguna pantalla usa.",
-    "teclado": "- No recibe foco: no es interactivo.",
-    "accesibilidad": "- **1.3.1 Información y relaciones (A)**: es texto estático, no un campo: el caption va antes del valor en el DOM,\n  así que se leen juntos y en orden; no usa `dt`/`dd` ni `aria-labelledby`.\n- **1.4.3 Contraste mínimo (AA)**: caption `text-neutral-low` 5.01:1 (8.86:1 oscuro), valor `text-neutral-high`\n  16.29:1 y asterisco `text-feedback-danger` 9.84:1 sobre `bg-surfaces-surface`.\n- **1.4.1 Uso del color (A)**: el obligatorio se marca con un asterisco, no solo con el color.",
-    "figma": [],
+    "usar": "- En el modo lectura de una solicitud: mejor `[readonly]=\"soloLectura()\"` en el campo editable, que pinta este\n  componente con su mismo caption, valor y asterisco.\n- Directo para los criterios de búsqueda sobre los resultados de las consultas y la cabecera de un detalle o reporte.\n- `align=\"right\"` para importes; `bold` o `highlight` para el dato que hay que destacar (total, número).\n- `tags` para varios valores (select múltiple) y `status` para el estado de un registro.\n- `multiline` para un texto largo (justificación, descripción): se recorta y «Leer más» lo despliega.\n- `help` para el ícono info con su explicación; sin texto no se muestra.",
+    "evitar": "- Para un dato que el usuario puede cambiar: usar `siaf-input`, `text-area-control` o `siaf-date-time-picker`.\n- Para un dato fijo dentro de un formulario en edición (ej. el periodo): ahí va el campo `[disabled]`.\n- Para el ítem elegido desde un panel lateral: usar `siaf-summary-card`; para un aviso breve, `message-box`.\n- Confundirlo con `siaf-readonly`, el recuadro gris con etiqueta en mayúsculas que ninguna pantalla usa.",
+    "teclado": "- Solo «Leer más» / «Leer menos» y el ícono info reciben foco (Tab); Enter o Espacio despliegan el texto.",
+    "accesibilidad": "- **1.3.1 Información y relaciones (A)**: es texto estático, no un campo: el caption va antes del valor en el DOM,\n  así que se leen juntos y en orden; los chips van en una lista.\n- **1.4.3 Contraste mínimo (AA)**: caption `text-neutral-low` 5.01:1, valor `text-neutral-medium` 14.53:1 (también\n  sobre `bg-surfaces-highlight`), «Leer más» `text-brand-primary` y asterisco `text-feedback-danger`.\n- **4.1.2 Nombre, función y valor (A)**: «Leer más» es un botón con `aria-expanded`; el ícono info se llama «Ayuda».\n- **1.4.1 Uso del color (A)**: el obligatorio se marca con un asterisco, no solo con el color.",
+    "figma": [
+      {
+        "nodo": "7544:2031",
+        "nombre": "Readonly forms"
+      }
+    ],
     "aria": {
-      "roles": [],
-      "atributos": []
+      "roles": [
+        "img"
+      ],
+      "atributos": [
+        "aria-expanded",
+        "aria-label"
+      ]
     },
     "tokens": [
+      {
+        "token": "--sys-color-bg-surfaces-highlight",
+        "via": [
+          "var()"
+        ]
+      },
       {
         "token": "--sys-color-bg-surfaces-surface",
         "via": [
           "bg-surface"
+        ]
+      },
+      {
+        "token": "--sys-color-border-states-enabled",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-border-states-focus",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-text-brand-primary",
+        "via": [
+          "var()"
         ]
       },
       {
@@ -327,15 +417,16 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         ]
       },
       {
-        "token": "--sys-color-text-neutral-high",
+        "token": "--sys-color-text-neutral-low",
         "via": [
-          "text-text"
+          "text-text-muted",
+          "var()"
         ]
       },
       {
-        "token": "--sys-color-text-neutral-low",
+        "token": "--sys-color-text-neutral-medium",
         "via": [
-          "text-text-muted"
+          "var()"
         ]
       },
       {
@@ -347,13 +438,18 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       {
         "token": "--sys-gap-base-xs",
         "via": [
+          "gap-siaf-xs",
+          "mt-siaf-xs",
+          "px-siaf-xs",
           "py-siaf-xs"
         ]
       },
       {
         "token": "--sys-gap-base-xxs",
         "via": [
-          "px-siaf-xxs"
+          "pt-siaf-xxs",
+          "px-siaf-xxs",
+          "py-siaf-xxs"
         ]
       },
       {
@@ -369,7 +465,11 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         ]
       }
     ],
-    "usa": [],
+    "usa": [
+      "[siafTooltip]",
+      "siaf-icon",
+      "siaf-record-status-tag"
+    ],
     "sinUso": false
   },
   {
@@ -3641,6 +3741,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "help",
+        "tipo": "string",
+        "porDefecto": "''",
+        "requerida": false,
+        "descripcion": "En lectura: explicación del ícono info (sin texto no se muestra)."
+      },
+      {
         "nombre": "hint",
         "tipo": "string",
         "porDefecto": "''",
@@ -3667,6 +3774,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "porDefecto": "''",
         "requerida": false,
         "descripcion": null
+      },
+      {
+        "nombre": "readonly",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Modo lectura (Figma «Readonly forms»): pinta `readonly-field` con la fecha, sin el selector."
       },
       {
         "nombre": "required",
@@ -3887,6 +4001,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "usa": [
       "[siafFoco]",
       "[siafTooltip]",
+      "readonly-field",
       "siaf-button",
       "siaf-icon"
     ],
@@ -4888,12 +5003,6 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         ]
       },
       {
-        "token": "--sys-color-text-neutral-low",
-        "via": [
-          "text-text-muted"
-        ]
-      },
-      {
         "token": "--sys-gap-base-lg",
         "via": [
           "bottom-siaf-lg",
@@ -4913,14 +5022,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "token": "--sys-gap-base-sm",
         "via": [
           "gap-siaf-sm",
-          "pt-siaf-sm"
+          "py-siaf-sm"
         ]
       },
       {
         "token": "--sys-gap-base-xs",
         "via": [
           "gap-siaf-xs",
-          "pb-siaf-xs",
           "px-siaf-xs"
         ]
       },
@@ -6139,6 +6247,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "help",
+        "tipo": "string",
+        "porDefecto": "''",
+        "requerida": false,
+        "descripcion": "En lectura: explicación del ícono info (sin texto no se muestra)."
+      },
+      {
         "nombre": "hint",
         "tipo": "string",
         "porDefecto": "''",
@@ -6172,6 +6287,27 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "porDefecto": "''",
         "requerida": false,
         "descripcion": null
+      },
+      {
+        "nombre": "readonly",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Modo lectura (Figma «Readonly forms»): pinta `readonly-field` con el caption y el valor, sin el campo."
+      },
+      {
+        "nombre": "readonlyBold",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "En lectura: valor en negrita."
+      },
+      {
+        "nombre": "readonlyHighlight",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "En lectura: fondo `bg-surfaces-highlight` para destacar el dato."
       },
       {
         "nombre": "required",
@@ -6400,6 +6536,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "usa": [
       "[siafFoco]",
       "[siafTooltip]",
+      "readonly-field",
       "siaf-icon",
       "siaf-select-options"
     ],
@@ -8652,6 +8789,166 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "usa": [
       "siaf-button",
       "siaf-list"
+    ],
+    "sinUso": false
+  },
+  {
+    "selector": "siaf-pdf-viewer",
+    "clase": "PdfViewerComponent",
+    "tipo": "componente",
+    "capa": "ui",
+    "importacion": "@siaf/ui/pdf-viewer/pdf-viewer.component",
+    "archivo": "src/app/shared/ui/pdf-viewer/pdf-viewer.component.ts",
+    "descripcion": "Visor de PDF a pantalla completa (Figma 2.10.6.1.3, nodo 24324:79499): barra superior con Cerrar, nombre del archivo,\nDescargar e Imprimir; las páginas sobre fondo oscuro y, abajo, «Página N de M» con zoom − / +.\n\nRecibe el archivo como `Blob` (`source`) y lo dibuja con pdf.js. Mientras no llega el archivo muestra «Cargando\ndocumento…»; si no es un PDF válido, avisa sin cerrar el visor. Es agnóstico: quien lo usa decide de dónde sale el\narchivo (el subido por el usuario, el que devuelve la API o uno de ejemplo).",
+    "usaSesion": false,
+    "proyectaContenido": false,
+    "entradas": [
+      {
+        "nombre": "fileName",
+        "tipo": "string",
+        "porDefecto": "'documento.pdf'",
+        "requerida": false,
+        "descripcion": "Nombre que muestra la barra superior y con el que se descarga."
+      },
+      {
+        "nombre": "open",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": null
+      },
+      {
+        "nombre": "source",
+        "tipo": "Blob | null",
+        "porDefecto": null,
+        "requerida": false,
+        "descripcion": "El PDF. `null` mientras se obtiene (el visor muestra «Cargando documento…»)."
+      }
+    ],
+    "eventos": [
+      {
+        "nombre": "closed",
+        "tipo": "void",
+        "descripcion": null
+      }
+    ],
+    "usar": "- Para ver un documento de sustento PDF ya adjunto: desde la tarjeta del archivo (`siaf-uploaded-file-card` con\n  `[viewable]`) o desde la acción «Ver documento de sustento» de una tabla.",
+    "evitar": "- Para elegir o subir un archivo: usar `siaf-upload-side-nav`.\n- Para archivos que no son PDF (Excel, imágenes): descargarlos.",
+    "teclado": "- **Tab**: recorre Cerrar, Descargar, Imprimir, el número de página y los botones de zoom; el foco no sale del visor.\n- **Escape**: cierra el visor y devuelve el foco a quien lo abrió.\n- **Enter** en «Página»: va a la página escrita.",
+    "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: el visor es un `role=\"dialog\"` con `aria-modal` y el nombre del archivo; los\n  botones de ícono llevan `aria-label`.\n- **2.4.3 Orden del foco (A)**: con `siafFoco`, el foco entra al abrir, queda atrapado y vuelve al cerrar.\n- **4.1.3 Mensajes de estado (AA)**: «Cargando documento…» y el error se anuncian con `role=\"status\"` / `role=\"alert\"`.\n- **Pendiente · 1.1.1 Contenido no textual (A)**: las páginas se dibujan como imagen; el texto del PDF no es\n  seleccionable ni lo lee un lector de pantalla (para eso, Descargar).",
+    "figma": [
+      {
+        "nodo": "24324:79499",
+        "nombre": null
+      }
+    ],
+    "aria": {
+      "roles": [
+        "alert",
+        "dialog",
+        "img",
+        "status"
+      ],
+      "atributos": [
+        "aria-hidden",
+        "aria-label",
+        "aria-live",
+        "aria-modal"
+      ]
+    },
+    "tokens": [
+      {
+        "token": "--sys-color-bg-feedback-dark-default",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-bg-states-dark-hover",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-bg-surfaces-surface",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-border-states-focus",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-text-brand-white",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-text-neutral-high",
+        "via": [
+          "text-text"
+        ]
+      },
+      {
+        "token": "--sys-gap-base-lg",
+        "via": [
+          "bottom-siaf-lg"
+        ]
+      },
+      {
+        "token": "--sys-gap-base-md",
+        "via": [
+          "gap-siaf-md",
+          "px-siaf-md"
+        ]
+      },
+      {
+        "token": "--sys-gap-base-sm",
+        "via": [
+          "gap-siaf-sm"
+        ]
+      },
+      {
+        "token": "--sys-gap-base-xl",
+        "via": [
+          "p-siaf-xl",
+          "pt-siaf-xl"
+        ]
+      },
+      {
+        "token": "--sys-gap-base-xs",
+        "via": [
+          "mx-siaf-xs",
+          "py-siaf-xs"
+        ]
+      },
+      {
+        "token": "--sys-radius-md",
+        "via": [
+          "rounded-siaf-md"
+        ]
+      },
+      {
+        "token": "--sys-radius-sm",
+        "via": [
+          "rounded-siaf-sm"
+        ]
+      },
+      {
+        "token": "--sys-shadow-elevation-2",
+        "via": [
+          "shadow-siaf-elevation-2"
+        ]
+      }
+    ],
+    "usa": [
+      "[siafFoco]",
+      "[siafTooltip]",
+      "siaf-icon"
     ],
     "sinUso": false
   },
@@ -15284,6 +15581,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "porDefecto": "false",
         "requerida": false,
         "descripcion": null
+      },
+      {
+        "nombre": "viewable",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Muestra «Ver archivo»; al pulsarlo emite `viewed` (quien la usa abre el visor)."
       }
     ],
     "eventos": [
@@ -15291,11 +15595,16 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "nombre": "removed",
         "tipo": "void",
         "descripcion": null
+      },
+      {
+        "nombre": "viewed",
+        "tipo": "void",
+        "descripcion": null
       }
     ],
-    "usar": "- Para el documento de sustento ya adjunto en las solicitudes: cuenta contable, carga masiva, clase de ajuste, tipo\n  de asiento, asiento de ajuste, evento, evento contable y apertura contable.\n- Con `[readonly]` en modo consulta o en un detalle, donde el adjunto se ve pero no se reemplaza ni se quita.\n- Con `[error]` cuando el archivo adjunto no se pudo cargar.",
+    "usar": "- Para el documento de sustento ya adjunto en las solicitudes: cuenta contable, carga masiva, clase de ajuste, tipo\n  de asiento, asiento de ajuste, evento, evento contable y apertura contable.\n- Con `[readonly]` en modo consulta o en un detalle, donde el adjunto se ve pero no se reemplaza ni se quita.\n- Con `[error]` cuando el archivo adjunto no se pudo cargar.\n- Con `[viewable]` para mostrar «Ver archivo» (`visibility`): emite `(viewed)` y quien la usa abre `siaf-pdf-viewer`.",
     "evitar": "- Para elegir o arrastrar el archivo: usar `siaf-upload-side-nav` (o `siaf-uploader` embebido); esta tarjeta solo\n  muestra el que ya está adjunto.\n- Para el aviso «No se han adjuntado archivos»: usar `message-box` en vez del bloque gris que hoy repiten a mano las\n  solicitudes.\n- Para el avance de una subida en curso: usar las tarjetas de progreso de `siaf-uploader`.",
-    "teclado": "- **Tab**: pasa por «Quitar archivo»; con `readonly` la tarjeta no recibe foco.\n- **Enter / Espacio**: ejecutan la acción del botón enfocado.",
+    "teclado": "- **Tab**: pasa por «Ver archivo» (con `viewable`) y «Quitar archivo»; con `readonly` y sin `viewable` la tarjeta no\n  recibe foco.\n- **Enter / Espacio**: ejecutan la acción del botón enfocado.",
     "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: «Quitar archivo» es un `<button>` nativo con `aria-label`; los íconos son\n  decorativos.\n- **4.1.3 Mensajes de estado (AA)**: el mensaje de error va con `role=\"alert\"` y se anuncia al aparecer.\n- **1.4.1 Uso del color (A)**: el estado fallido, además del rojo, muestra el mensaje en lugar del peso.\n- **Pendiente · 2.1.1 Teclado (A)**: un nombre largo se corta y el completo solo aparece con el mouse o una pulsación\n  larga: el `siafTooltip` está en un texto que no recibe foco.\n- **2.4.7 Foco visible (AA)**: los botones no definen estilo de foco; queda el anillo nativo del navegador.\n- **1.4.11 Contraste no textual (AA)**: los íconos de acción van en `text-neutral-low` 5.01:1 y, si falló, en\n  `text-feedback-danger` 9.84:1.\n- **1.4.3 Contraste mínimo (AA)**: nombre `text-neutral-high` 16.29:1, peso `text-neutral-low` 5.01:1 y error\n  `text-feedback-danger` 9.84:1.\n- **2.5.8 Tamaño del objetivo (AA)**: cada botón mide 24 × 24 px (`size-6`), justo el mínimo.",
     "figma": [
       {
@@ -15753,6 +16062,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "help",
+        "tipo": "string",
+        "porDefecto": "''",
+        "requerida": false,
+        "descripcion": "En lectura: explicación del ícono info (sin texto no se muestra)."
+      },
+      {
         "nombre": "maxlength",
         "tipo": "number",
         "porDefecto": "500",
@@ -15772,6 +16088,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "porDefecto": "''",
         "requerida": false,
         "descripcion": null
+      },
+      {
+        "nombre": "readonly",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Modo lectura (Figma «Readonly forms»): el texto con «Leer más», sin el área ni el contador."
       },
       {
         "nombre": "required",
@@ -15912,6 +16235,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "via": [
           "gap-siaf-md",
           "left-siaf-md",
+          "mb-siaf-md",
           "px-siaf-md"
         ]
       },
@@ -15947,7 +16271,9 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         ]
       }
     ],
-    "usa": [],
+    "usa": [
+      "readonly-field"
+    ],
     "sinUso": false
   }
 ];

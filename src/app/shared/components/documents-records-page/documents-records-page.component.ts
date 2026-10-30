@@ -181,10 +181,10 @@ type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
           <section class="bg-surface lg:sticky lg:top-14 lg:z-10">
             <siaf-breadcrumb class="block" [items]="effectiveConfig.breadcrumbs" />
 
-            <header class="flex min-h-[72px] flex-col gap-siaf-sm px-siaf-md pb-siaf-xs pt-siaf-sm md:flex-row md:items-start md:justify-between">
+            <header class="flex min-h-[72px] flex-col gap-siaf-sm px-siaf-md py-siaf-sm md:flex-row md:items-center md:justify-between">
+              <!-- Sin texto secundario: el título queda centrado en vertical junto a «Crear documento». -->
               <div class="min-w-0">
                 <h1 class="m-0 text-sm font-bold uppercase leading-normal text-text">{{ effectiveConfig.title }}</h1>
-                <p class="siaf-text-caption-2-medium m-0 text-text-muted">Documentos y registros</p>
               </div>
 
               <div class="relative shrink-0">

@@ -23,6 +23,7 @@ export type UploadedFileInfo = File | { name: string; size?: number };
  *   de asiento, asiento de ajuste, evento, evento contable y apertura contable.
  * - Con `[readonly]` en modo consulta o en un detalle, donde el adjunto se ve pero no se reemplaza ni se quita.
  * - Con `[error]` cuando el archivo adjunto no se pudo cargar.
+ * - Con `[viewable]` para mostrar «Ver archivo» (`visibility`): emite `(viewed)` y quien la usa abre `siaf-pdf-viewer`.
  * @evitar
  * - Para elegir o arrastrar el archivo: usar `siaf-upload-side-nav` (o `siaf-uploader` embebido); esta tarjeta solo
  *   muestra el que ya está adjunto.
@@ -30,7 +31,8 @@ export type UploadedFileInfo = File | { name: string; size?: number };
  *   solicitudes.
  * - Para el avance de una subida en curso: usar las tarjetas de progreso de `siaf-uploader`.
  * @teclado
- * - **Tab**: pasa por «Quitar archivo»; con `readonly` la tarjeta no recibe foco.
+ * - **Tab**: pasa por «Ver archivo» (con `viewable`) y «Quitar archivo»; con `readonly` y sin `viewable` la tarjeta no
+ *   recibe foco.
  * - **Enter / Espacio**: ejecutan la acción del botón enfocado.
  * @accesibilidad
  * - **4.1.2 Nombre, función y valor (A)**: «Quitar archivo» es un `<button>` nativo con `aria-label`; los íconos son
@@ -77,8 +79,20 @@ export type UploadedFileInfo = File | { name: string; size?: number };
             <span class="siaf-text-caption-1 text-text-muted">{{ formattedSize }}</span>
           }
         </div>
-        @if (!readonly) {
+        @if (viewable || !readonly) {
           <div class="flex shrink-0 items-center gap-1">
+            @if (viewable && !fallido) {
+              <button
+                class="inline-flex size-6 items-center justify-center rounded-siaf-sm transition hover:bg-surface-muted"
+                type="button"
+                aria-label="Ver archivo"
+                siafTooltip="Ver archivo"
+                (click)="viewed.emit()"
+              >
+                <siaf-icon name="visibility" [size]="24" class="text-text-muted" />
+              </button>
+            }
+            @if (!readonly) {
             <button
               class="inline-flex size-6 items-center justify-center rounded-siaf-sm transition hover:bg-surface-muted"
               type="button"
@@ -87,6 +101,7 @@ export type UploadedFileInfo = File | { name: string; size?: number };
             >
               <siaf-icon name="cancel" [size]="24" [class.text-text-muted]="!fallido" [class.text-[var(--sys-color-text-feedback-danger)]]="fallido" />
             </button>
+            }
           </div>
         }
       </div>
@@ -100,7 +115,11 @@ export class UploadedFileCardComponent {
   /** Mensaje de error del archivo (ej. «No se pudo cargar el archivo»). Si trae texto, la tarjeta se muestra fallida. */
   @Input() error = '';
 
+  /** Muestra «Ver archivo»; al pulsarlo emite `viewed` (quien la usa abre el visor). */
+  @Input() viewable = false;
+
   @Output() removed = new EventEmitter<void>();
+  @Output() viewed = new EventEmitter<void>();
 
   get fallido(): boolean {
     return this.error.trim().length > 0;

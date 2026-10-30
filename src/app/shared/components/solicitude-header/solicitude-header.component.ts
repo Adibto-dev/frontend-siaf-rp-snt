@@ -284,10 +284,13 @@ const MOBILE_PRIMARY_ACTION_CLASS =
   imports: [ButtonComponent, IconComponent, NgClass, TooltipDirective],
   template: `
     <header
-      class="flex w-full flex-col gap-siaf-lg bg-surface px-siaf-lg py-siaf-md lg:flex-row lg:items-start lg:justify-between"
+      class="flex w-full flex-col gap-siaf-lg bg-surface px-siaf-lg py-siaf-md lg:flex-row lg:justify-between"
+      [class.lg:items-start]="conTextoSecundario"
+      [class.lg:items-center]="!conTextoSecundario"
       [ngClass]="containerClass"
     >
-      <div class="flex min-w-0 flex-1 items-start gap-siaf-xs">
+      <!-- Sin texto secundario, regresar, título y botones quedan centrados en vertical. -->
+      <div class="flex min-w-0 flex-1 gap-siaf-xs" [class.items-start]="conTextoSecundario" [class.items-center]="!conTextoSecundario">
         @if (muestraRegresar) {
           <button
             class="inline-flex size-10 shrink-0 items-center justify-center rounded-siaf-md text-text-muted transition hover:bg-surface-muted hover:text-text focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
@@ -321,7 +324,7 @@ const MOBILE_PRIMARY_ACTION_CLASS =
               }
             </div>
 
-            @if (showSecondaryText && secondaryText) {
+            @if (conTextoSecundario) {
               <p class="siaf-text-overline m-0 text-text-muted">
                 {{ secondaryText }}
               </p>
@@ -469,6 +472,11 @@ export class SolicitudeHeaderComponent {
   }
 
   /** «Regresar» se oculta solo mientras está la botonera de edición: ahí se sale con Cancelar. */
+  /** Hay texto secundario debajo del título (si no, la cabecera centra todo en vertical). */
+  get conTextoSecundario(): boolean {
+    return this.loading || (this.showSecondaryText && !!this.secondaryText);
+  }
+
   get muestraRegresar(): boolean {
     return this.showReturn && !this.enEdicion;
   }

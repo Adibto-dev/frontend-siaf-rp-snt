@@ -171,6 +171,8 @@ export interface SaldoInicial {
   secuencia?: string | null;
   /** Nombre del documento de sustento del saldo (opcional; el taller guarda solo el nombre). */
   sustento?: string | null;
+  /** Id del archivo del sustento guardado (el taller lo guarda en el navegador: `mock/archivos-demo.ts`). */
+  sustentoId?: string | null;
   /** Solo en un ajuste de saldo inicial (tipo de operación 2). */
   ajuste?: AjusteSaldo;
 }

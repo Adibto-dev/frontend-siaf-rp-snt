@@ -144,6 +144,7 @@ export const CATEGORIA_POR_SELECTOR: Readonly<Record<string, CategoriaId>> = {
   'siaf-annulment-modal': 'overlays',
   'siaf-side-nav': 'overlays',
   'siaf-side-panel': 'overlays',
+  'siaf-pdf-viewer': 'overlays',
   'siaf-selection-side-nav': 'overlays',
   'siaf-upload-side-nav': 'overlays',
   'siaf-timeline-detail-panel': 'overlays',

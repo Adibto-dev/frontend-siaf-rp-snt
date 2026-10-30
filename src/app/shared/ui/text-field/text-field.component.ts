@@ -4,6 +4,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { IconComponent } from '../icon/icon.component';
 import { SelectOption, SelectOptionsComponent } from '../select-options/select-options.component';
 import { TooltipDirective } from '../tooltip/tooltip.directive';
+import { ReadonlyFieldComponent } from '../readonly-field/readonly-field.component';
 import { FocoDirective } from '../foco/foco.directive';
 
 export interface TextFieldOption {
@@ -84,7 +85,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
 @Component({
   selector: 'siaf-input',
   standalone: true,
-  imports: [FocoDirective, IconComponent, SelectOptionsComponent, TooltipDirective],
+  imports: [FocoDirective, IconComponent, ReadonlyFieldComponent, SelectOptionsComponent, TooltipDirective],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -101,6 +102,19 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
     }
   `,
   template: `
+    @if (readonly) {
+      <readonly-field
+        [caption]="labelText"
+        [value]="readonlyValue"
+        [required]="required"
+        [align]="type === 'decimal' ? 'right' : 'left'"
+        [tags]="readonlyTags"
+        [bold]="readonlyBold"
+        [highlight]="readonlyHighlight"
+        [help]="help"
+        [hint]="hint"
+      />
+    } @else {
     <label class="grid w-full min-w-0 gap-1.5">
       <span class="relative block w-full min-w-0">
         @if (floatingLabel) {
@@ -111,7 +125,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
 
         @if (type === 'select') {
           <button
-            class="siaf-text-body-2 flex h-10 w-full items-center rounded-siaf-md border bg-surface px-siaf-md text-left text-text outline-none transition disabled:cursor-not-allowed disabled:border-[var(--sys-color-border-states-disabled)] disabled:bg-[var(--sys-color-bg-surfaces-disabled)] disabled:text-[var(--sys-color-text-neutral-disabled)]"
+            class="siaf-text-body-2 flex h-10 w-full items-center rounded-siaf-md border bg-surface px-siaf-md text-left text-text outline-none transition disabled:cursor-not-allowed disabled:border-[var(--sys-color-border-states-disabled)] disabled:bg-[var(--sys-color-bg-surfaces-disabled)] disabled:text-[var(--sys-color-text-neutral-medium)]"
             [class]="controlClass"
             type="button"
             [disabled]="disabled"
@@ -121,7 +135,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
             (click)="toggleSelect()"
             (keydown.escape)="cerrarSelectConEscape($event)"
           >
-            <span class="min-w-0 flex-1 truncate" siafTooltip [class.text-[var(--sys-color-text-neutral-low)]]="!hasValue">
+            <span class="min-w-0 flex-1 truncate" siafTooltip [class.text-[var(--sys-color-text-neutral-low)]]="!hasValue && !disabled" [class.text-[var(--sys-color-text-neutral-disabled)]]="!hasValue && disabled">
               {{ selectDisplayText }}@if (!hasValue && required) { <span class="text-[var(--sys-color-text-feedback-danger)]">*</span> }
             </span>
             @if (clearable && hasValue && !required) {
@@ -227,7 +241,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
             }
 
             <input
-              class="siaf-text-body-2 min-w-0 flex-1 bg-transparent leading-6 text-[var(--sys-color-text-neutral-medium)] outline-none placeholder:text-[var(--sys-color-text-neutral-low)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-disabled)]"
+              class="siaf-text-body-2 min-w-0 flex-1 bg-transparent leading-6 text-[var(--sys-color-text-neutral-medium)] outline-none placeholder:text-[var(--sys-color-text-neutral-low)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-medium)] disabled:placeholder:text-[var(--sys-color-text-neutral-disabled)]"
               [type]="inputType"
               [attr.inputmode]="inputMode"
               [placeholder]="floatingLabel || required ? '' : labelText"
@@ -267,6 +281,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
         <span class="siaf-text-caption-1 text-[var(--sys-color-text-feedback-danger)]">{{ error }}</span>
       }
     </label>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -282,6 +297,14 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
   @Input() type: TextFieldType = 'text';
   @Input() options: TextFieldOption[] = [];
   @Input() disabled = false;
+  /** Modo lectura (Figma «Readonly forms»): pinta `readonly-field` con el caption y el valor, sin el campo. */
+  @Input() readonly = false;
+  /** En lectura: valor en negrita. */
+  @Input() readonlyBold = false;
+  /** En lectura: fondo `bg-surfaces-highlight` para destacar el dato. */
+  @Input() readonlyHighlight = false;
+  /** En lectura: explicación del ícono info (sin texto no se muestra). */
+  @Input() help = '';
   @Input() leadingIcon = '';
   @Input() trailingIcon = '';
   @Input() trailingButtonLabel = '';
@@ -380,7 +403,7 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
 
   get labelClass(): string {
     if (this.disabled) {
-      return 'text-[var(--sys-color-text-neutral-disabled)]';
+      return 'text-[var(--sys-color-text-neutral-low)]';
     }
 
     if (this.effectiveState === 'error') {
@@ -472,6 +495,21 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
 
   get selectOptions(): SelectOption[] {
     return this.options;
+  }
+
+  /** Texto del valor en modo lectura: la etiqueta de la opción en un select, el valor escrito en los demás. */
+  get readonlyValue(): string {
+    if (!this.hasValue) return '';
+    if (this.type === 'select') return this.selectDisplayText;
+    if (this.type === 'password') return '••••••••';
+    return Array.isArray(this.internalValue) ? '' : String(this.internalValue);
+  }
+
+  /** En lectura, un select múltiple muestra cada opción elegida como chip. */
+  get readonlyTags(): string[] {
+    if (!Array.isArray(this.internalValue)) return [];
+    const elegidos = this.internalValue;
+    return this.options.filter((o) => elegidos.includes(o.value)).map((o) => o.label);
   }
 
   get selectDisplayText(): string {

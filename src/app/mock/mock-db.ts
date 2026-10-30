@@ -1,5 +1,6 @@
 import type { NotificacionResponse } from '../core/api/notificaciones-api.service';
 import type { HistorialItem, SolicitudResponse } from '../core/api/solicitudes-api.service';
+import { borrarArchivos } from './archivos-demo';
 import type { EstadoDocumento } from '../core/models/documento.model';
 import {
   CODIGO_DOCUMENTO,
@@ -99,6 +100,7 @@ export function guardarDatos(datos: DatosTaller): void {
 /** Vuelve a los datos iniciales de la demo. */
 export function reiniciarDatosDemo(): void {
   guardarDatos(crearDatosIniciales());
+  void borrarArchivos();
 }
 
 export function nuevoId(datos: DatosTaller, prefijo: string): string {

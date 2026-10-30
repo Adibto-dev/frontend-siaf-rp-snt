@@ -48,9 +48,9 @@
           @if (tipoOperacionEditable()) {
             <siaf-input label="Tipo de operación del saldo" type="select" [options]="opcionesTipoOperacion" [value]="tipoOperacionSel()" (valueChange)="cambiarTipoOperacion($event)" />
           } @else {
-            <siaf-input label="Tipo de operación del saldo" [value]="tipoOperacionSel()" [disabled]="true" />
+            <siaf-input label="Tipo de operación del saldo" [value]="tipoOperacionSel()" [disabled]="true" [readonly]="soloLectura()" />
           }
-          <siaf-input label="Periodo" [value]="periodo" [disabled]="true" />
+          <siaf-input label="Periodo" [value]="periodo" [disabled]="true" [readonly]="soloLectura()" />
           @if (esAjuste() && tipoOperacionEditable() && opcionesCuentaAjuste().length > 1) {
             <siaf-input label="Cuenta bancaria autorizada" type="select" [options]="opcionesCuentaAjuste()" [value]="cuentaAjuste() ?? ''" (valueChange)="elegirCuentaAjuste($event)" />
           }
@@ -156,6 +156,7 @@
                             [ariaLabel]="'Ver documento de sustento de ' + fila.cuentaBancaria"
                             [siafTooltip]="'Ver documento de sustento'"
                             [disabled]="!fila.sustento"
+                            (click)="verSustento(fila)"
                           />
                           <siaf-button
                             variant="text"
@@ -287,6 +288,16 @@
                               (click)="editarSaldo(saldo)"
                             />
                           }
+                          <siaf-button
+                            variant="text"
+                            size="sm"
+                            icon="attach_file"
+                            [iconOnly]="true"
+                            [ariaLabel]="'Ver documento de sustento de ' + saldo.cuentaBancaria"
+                            [siafTooltip]="saldo.sustento ? 'Ver documento de sustento' : 'Sin documento de sustento'"
+                            [disabled]="!saldo.sustento"
+                            (click)="verSustento(saldo)"
+                          />
                           <siaf-button
                             variant="text"
                             size="sm"
@@ -542,7 +553,7 @@
                 <siaf-button variant="accent" size="md" icon="file_upload" [iconOnly]="true" ariaLabel="Subir documento de sustento del saldo" (click)="panelSustentoAbierto.set(true)" />
               </div>
               @if (borrador().sustento) {
-                <siaf-uploaded-file-card [file]="borrador().sustento" (removed)="quitarSustento()" />
+                <siaf-uploaded-file-card [file]="borrador().sustento" [viewable]="true" (viewed)="verSustentoBorrador()" (removed)="quitarSustento()" />
               } @else {
                 <message-box text="No se ha adjuntado ningún archivo. Esta acción no es obligatoria." />
               }
@@ -595,6 +606,9 @@
     (closed)="panelCuenta.set(false)"
     (accepted)="aceptarCuenta($event)"
   />
+
+  <!-- Documento de sustento en el visor de PDF (el archivo subido o, si no hay, uno de ejemplo) -->
+  <siaf-saldo-sustento-visor [archivo]="archivoEnVisor()" [saldo]="sustentoEnVisor()" (closed)="cerrarVisor()" />
 
   <siaf-upload-side-nav [open]="panelSustentoAbierto()" (closed)="panelSustentoAbierto.set(false)" (confirmed)="onSustentoConfirmado($event)" />
 

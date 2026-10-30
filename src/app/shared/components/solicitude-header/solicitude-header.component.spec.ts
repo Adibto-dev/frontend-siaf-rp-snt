@@ -117,4 +117,18 @@ describe('SolicitudeHeaderComponent', () => {
       expect(regresar()).toBeNull();
     });
   });
+  describe('centrado vertical', () => {
+    const header = () => (fixture.nativeElement as HTMLElement).querySelector('header')!;
+
+    it('con texto secundario alinea arriba; sin él, centra título, regresar y botones', () => {
+      configurar({ loading: false, showReturn: true, secondaryText: 'Creación', role: 'creator', state: 'elaborated' });
+      expect(header().classList).toContain('lg:items-start');
+      expect(header().textContent).toContain('Creación');
+
+      configurar({ secondaryText: '' });
+      expect(header().classList).toContain('lg:items-center');
+      expect(header().classList).not.toContain('lg:items-start');
+      expect(header().firstElementChild!.classList).toContain('items-center');
+    });
+  });
 });

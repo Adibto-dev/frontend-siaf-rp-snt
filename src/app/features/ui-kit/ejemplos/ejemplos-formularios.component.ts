@@ -143,6 +143,22 @@ import { UploaderComponent } from '../../../shared/ui/uploader/uploader.componen
         <div class="grid gap-4 sm:grid-cols-2">
           <readonly-field caption="Número de documento" value="PCC-SCC-00001-2026-MEF-DGCP" />
           <readonly-field caption="Unidad ejecutora" [required]="true" value="" />
+          <readonly-field caption="Importe (align right)" value="S/ 125,000.00" align="right" />
+          <readonly-field caption="Texto en negrita (bold)" value="SI-DRSI-00011-2026-MEF-OGA" [bold]="true" />
+          <readonly-field caption="Resaltado (highlight)" value="S/ 98,450.30" align="right" [highlight]="true" help="Saldo actualizado a la fecha de operación." />
+          <readonly-field caption="Tags (select múltiple)" [tags]="['Gobierno nacional', 'Gobierno regional']" />
+          <readonly-field caption="Estado de registro" status="Activo" />
+          <readonly-field caption="Con ayuda (help)" value="Banco de la Nación" help="Entidad financiera de la cuenta." />
+          <div class="sm:col-span-2">
+            <readonly-field caption="Justificación (multiline)" [multiline]="true" value="Registro de los saldos iniciales en libro bancos de las cuentas corrientes de la unidad ejecutora, según los extractos bancarios al cierre del periodo anterior, conciliados con los movimientos pendientes y las notas de abono y cargo que el banco aún no había informado." />
+          </div>
+        </div>
+        <h5 class="mb-3 mt-6 text-[11px] font-bold uppercase tracking-widest text-text-muted">Campos con [readonly]</h5>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <siaf-input label="Tipo de documento" type="select" [options]="opciones" [value]="opciones[0].value" [readonly]="true" />
+          <siaf-input label="Ámbitos" type="select-multiple" [options]="ambitos" [value]="['GN', 'GR']" [readonly]="true" />
+          <siaf-date-time-picker label="Fecha de operación" value="2026-01-15" [readonly]="true" />
+          <siaf-input label="Importe" type="decimal" value="1250.50" [readonly]="true" />
         </div>
       }
       @case ('siaf-readonly') {

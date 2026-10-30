@@ -7,9 +7,11 @@ import { SolicitudeFormCardComponent } from '../../../../../shared/components/so
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { MessageBoxComponent } from '../../../../../shared/ui/message-box/message-box.component';
 import { RecordStatusTagComponent } from '../../../../../shared/ui/record-status-tag/record-status-tag.component';
-import { TextFieldComponent } from '../../../../../shared/ui/text-field/text-field.component';
+import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { UploadedFileCardComponent } from '../../../../../shared/ui/uploaded-file-card/uploaded-file-card.component';
+import { SustentoVisorComponent } from '../sustento-visor/sustento-visor.component';
+import type { SaldoConSustento } from '../../utils/sustento-pdf.util';
 import {
   MOVIMIENTO_INTERNO,
   MOVIMIENTO_INTERNO_AJUSTE,
@@ -54,11 +56,14 @@ interface Dato {
     PaginationComponent,
     RecordStatusTagComponent,
     SolicitudeFormCardComponent,
-    TextFieldComponent,
+    ReadonlyFieldComponent,
     TooltipDirective,
     UploadedFileCardComponent,
+    SustentoVisorComponent,
   ],
   template: `
+    <siaf-saldo-sustento-visor [saldo]="sustentoVisto()" (closed)="sustentoVisto.set(null)" />
+
     @if (registro(); as r) {
       <div class="flex flex-col gap-siaf-md">
         <!-- Tipo de operación del saldo -->
@@ -144,7 +149,7 @@ interface Dato {
               <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
               <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
                 <div class="relative">
-                  <siaf-input label="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" [disabled]="true" />
+                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" align="right" />
                   <span
                     class="absolute right-siaf-sm top-1/2 inline-flex -translate-y-1/2 rounded-full text-[var(--sys-color-text-neutral-medium)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
                     tabindex="0"
@@ -155,7 +160,7 @@ interface Dato {
                     <siaf-icon name="info" [size]="24" />
                   </span>
                 </div>
-                <siaf-input label="En moneda nacional" [value]="formatoImporte(r.importeNacional)" [disabled]="true" />
+                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" align="right" />
               </div>
             </section>
   
@@ -223,7 +228,7 @@ interface Dato {
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Documento de sustento</h4>
               @if (r.sustento) {
-                <siaf-uploaded-file-card [file]="{ name: r.sustento }" [readonly]="true" />
+                <siaf-uploaded-file-card [file]="{ name: r.sustento }" [readonly]="true" [viewable]="true" (viewed)="sustentoVisto.set(r)" />
               } @else {
                 <message-box text="El saldo no tiene documento de sustento." />
               }
@@ -254,6 +259,8 @@ interface Dato {
 })
 export class SaldoDetalleComponent {
   readonly registro = signal<SaldoInicialRegistro | null>(null);
+  /** Registro cuyo documento de sustento se ve en el visor de PDF. */
+  readonly sustentoVisto = signal<SaldoConSustento | null>(null);
 
   /** Registro a mostrar; al cambiar, la tabla de cuentas de registro vuelve a la primera página. */
   @Input({ alias: 'registro' }) set registroValor(valor: SaldoInicialRegistro | null) {

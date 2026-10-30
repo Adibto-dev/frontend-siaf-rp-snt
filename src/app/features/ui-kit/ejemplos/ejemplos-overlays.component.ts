@@ -13,6 +13,7 @@ import { ButtonComponent } from '../../../shared/ui/button/button.component';
 import { ColumnVisibilityPanelComponent } from '../../../shared/ui/column-visibility-panel/column-visibility-panel.component';
 import { FocoDirective } from '../../../shared/ui/foco/foco.directive';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
+import { PdfViewerComponent } from '../../../shared/ui/pdf-viewer/pdf-viewer.component';
 import { SideNavComponent } from '../../../shared/ui/side-nav/side-nav.component';
 import { SidePanelComponent } from '../../../shared/ui/side-panel/side-panel.component';
 import { TextFieldComponent, TextFieldOption } from '../../../shared/ui/text-field/text-field.component';
@@ -30,7 +31,7 @@ interface CuentaEjemplo {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AnnulmentModalComponent, ButtonComponent, ColumnVisibilityPanelComponent, FocoDirective, ModalComponent, QueryParametersPanelComponent,
+    AnnulmentModalComponent, ButtonComponent, ColumnVisibilityPanelComponent, FocoDirective, ModalComponent, PdfViewerComponent, QueryParametersPanelComponent,
     RequestApprovalModalsComponent, SelectionSideNavComponent, SideNavComponent, SidePanelComponent, TextFieldComponent, TimelineDetailPanelComponent,
     UploadSideNavComponent,
   ],
@@ -126,6 +127,10 @@ interface CuentaEjemplo {
         </siaf-side-panel>
         <p class="mt-2 text-xs text-text-muted" aria-live="polite">{{ eventoSidePanel() }}</p>
       }
+      @case ('siaf-pdf-viewer') {
+        <siaf-button variant="secondary" icon="picture_as_pdf" (click)="abrirPdf()">Ver documento PDF</siaf-button>
+        <siaf-pdf-viewer [open]="pdfAbierto()" fileName="Documento de ejemplo.pdf" [source]="pdf()" (closed)="pdfAbierto.set(false)" />
+      }
       @case ('siaf-selection-side-nav') {
         <siaf-button variant="secondary" icon="search" (click)="seleccion.set(true)">Seleccionar cuenta contable</siaf-button>
         <siaf-selection-side-nav
@@ -195,7 +200,7 @@ interface CuentaEjemplo {
 })
 export class EjemplosOverlaysComponent {
   static readonly selectores = [
-    'siaf-modal', 'siaf-request-approval-modals', 'siaf-annulment-modal', 'siaf-side-nav', 'siaf-side-panel',
+    'siaf-modal', 'siaf-request-approval-modals', 'siaf-annulment-modal', 'siaf-side-nav', 'siaf-side-panel', 'siaf-pdf-viewer',
     'siaf-selection-side-nav', 'siaf-upload-side-nav', 'siaf-timeline-detail-panel', 'siaf-column-visibility-panel',
     'siaf-query-parameters-panel', '[siafFoco]',
   ];
@@ -236,6 +241,20 @@ export class EjemplosOverlaysComponent {
     this.sidePanelFiltros.set(conFiltros);
     this.eventoSidePanel.set('');
     this.sidePanel.set(true);
+  }
+  readonly pdfAbierto = signal(false);
+  readonly pdf = signal<Blob | null>(null);
+
+  /** Abre el visor con un PDF de dos páginas generado al momento. */
+  async abrirPdf(): Promise<void> {
+    this.pdfAbierto.set(true);
+    if (this.pdf()) return;
+    const { default: jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    doc.setFontSize(16).text('Documento de ejemplo', 20, 25);
+    doc.setFontSize(10).text('Página 1: contenido de muestra del visor de PDF.', 20, 35);
+    doc.addPage().setFontSize(10).text('Página 2: usa la barra inferior para navegar y hacer zoom.', 20, 25);
+    this.pdf.set(doc.output('blob'));
   }
   readonly dialogoFoco = signal(false);
   readonly seleccion = signal(false);

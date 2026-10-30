@@ -220,3 +220,87 @@ describe('TextFieldComponent — otros tipos', () => {
     expect(emitidos.at(-1)).toEqual([]);
   });
 });
+
+describe('TextFieldComponent — deshabilitado (Figma «Input text, State=Disabled»)', () => {
+  let fixture: ComponentFixture<TextFieldComponent>;
+  const color = (variable: string): string => {
+    const muestra = document.createElement('span');
+    muestra.style.color = `var(${variable})`;
+    document.body.appendChild(muestra);
+    const valor = getComputedStyle(muestra).color;
+    muestra.remove();
+    return valor;
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({ imports: [TextFieldComponent] }).compileComponents();
+    fixture = TestBed.createComponent(TextFieldComponent);
+    fixture.componentRef.setInput('label', 'Periodo');
+    fixture.componentRef.setInput('disabled', true);
+    document.body.appendChild(fixture.nativeElement);
+  });
+
+  afterEach(() => (fixture.nativeElement as HTMLElement).remove());
+
+  it('con valor: el valor en neutral-medium y la etiqueta en neutral-low, no en gris disabled', () => {
+    fixture.componentRef.setInput('value', '2026');
+    fixture.detectChanges();
+    const input = (fixture.nativeElement as HTMLElement).querySelector('input')!;
+    expect(getComputedStyle(input).color).toBe(color('--sys-color-text-neutral-medium'));
+    expect(fixture.componentInstance.labelClass).toContain('--sys-color-text-neutral-low');
+  });
+
+  it('select con valor: el valor en neutral-medium; sin valor, el placeholder sigue en gris disabled', () => {
+    fixture.componentRef.setInput('type', 'select');
+    fixture.componentRef.setInput('options', [{ value: '1', label: '1 - Saldos iniciales' }]);
+    fixture.componentRef.setInput('value', '1');
+    fixture.detectChanges();
+    const texto = (): HTMLElement => (fixture.nativeElement as HTMLElement).querySelector('button > span')!;
+    expect(getComputedStyle(texto()).color).toBe(color('--sys-color-text-neutral-medium'));
+
+    fixture.componentRef.setInput('value', '');
+    fixture.detectChanges();
+    expect(getComputedStyle(texto()).color).toBe(color('--sys-color-text-neutral-disabled'));
+  });
+});
+
+describe('TextFieldComponent — [readonly] (Figma «Readonly forms»)', () => {
+  let fixture: ComponentFixture<TextFieldComponent>;
+  const el = (): HTMLElement => fixture.nativeElement;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({ imports: [TextFieldComponent] }).compileComponents();
+    fixture = TestBed.createComponent(TextFieldComponent);
+    fixture.componentRef.setInput('readonly', true);
+  });
+
+  it('pinta readonly-field sin input ni contenedor de edición', () => {
+    fixture.componentRef.setInput('label', 'Periodo');
+    fixture.componentRef.setInput('value', '2026');
+    fixture.componentRef.setInput('disabled', true);
+    fixture.detectChanges();
+    expect(el().querySelector('input')).toBeNull();
+    expect(el().querySelector('readonly-field')!.textContent).toContain('2026');
+  });
+
+  it('select: muestra la etiqueta de la opción; select múltiple: chips', () => {
+    fixture.componentRef.setInput('type', 'select');
+    fixture.componentRef.setInput('options', [{ value: '1', label: '1 - Saldos iniciales' }]);
+    fixture.componentRef.setInput('value', '1');
+    fixture.detectChanges();
+    expect(el().querySelector('[data-valor]')!.textContent!.trim()).toBe('1 - Saldos iniciales');
+
+    fixture.componentRef.setInput('type', 'select-multiple');
+    fixture.componentRef.setInput('options', [{ value: 'GN', label: 'Nacional' }, { value: 'GR', label: 'Regional' }]);
+    fixture.componentRef.setInput('value', ['GN', 'GR']);
+    fixture.detectChanges();
+    expect(Array.from(el().querySelectorAll('li')).map((li) => li.textContent!.trim())).toEqual(['Nacional', 'Regional']);
+  });
+
+  it('importe (decimal) alineado a la derecha', () => {
+    fixture.componentRef.setInput('type', 'decimal');
+    fixture.componentRef.setInput('value', '1250.50');
+    fixture.detectChanges();
+    expect(el().querySelector('[data-valor]')!.classList).toContain('text-right');
+  });
+});
