@@ -58,12 +58,12 @@ export interface FilaMenuProcesos {
 const DATOS_EXTRA_POR_ID: Record<string, Partial<ProcessMenuNode>> = {
   'gestion-recursos-publicos': { selected: true },
   'doc-traslado-cta-registros': {
-    createRoute: '/procesos/registro-cuentas-bancarias/solicitud',
+    createRoute: '/procesos/traspasos-cuentas-registros/solicitud',
     documentOptions: ['Registro de traslado entre cuentas de registros'],
     documentCreateOptions: [
       {
         label: 'Registro de traslado entre cuentas de registros',
-        route: '/procesos/registro-cuentas-bancarias/solicitud',
+        route: '/procesos/traspasos-cuentas-registros/solicitud',
         actionTypes: ['Creación'],
       },
     ],

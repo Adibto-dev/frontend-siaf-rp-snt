@@ -2,7 +2,7 @@ import { buildProcessBreadcrumbs, buildProcessPath } from './breadcrumbs.util';
 
 // Hoja real del árbol de procesos, con dos ancestros agrupadores.
 const PROCESS_ID = 'doc-traslado-cta-registros';
-const PROCESS_ROUTE = '/procesos/registro-cuentas-bancarias';
+const PROCESS_ROUTE = '/procesos/traspasos-cuentas-registros';
 
 describe('breadcrumbs.util', () => {
   describe('buildProcessBreadcrumbs', () => {

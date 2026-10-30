@@ -42,8 +42,8 @@ describe('construirArbolDeProcesos', () => {
 describe('DEFAULT_PROCESS_TREE (desde docs/menu-procesos.xlsx)', () => {
   it('el MFD de documentos del proceso de ejemplo existe, navega y conserva los datos de «Crear documento»', () => {
     const documentos = findProcessPathById('doc-traslado-cta-registros', DEFAULT_PROCESS_TREE).at(-1);
-    expect(documentos?.moduleRoute).toBe('/procesos/registro-cuentas-bancarias');
-    expect(documentos?.createRoute).toBe('/procesos/registro-cuentas-bancarias/solicitud');
+    expect(documentos?.moduleRoute).toBe('/procesos/traspasos-cuentas-registros');
+    expect(documentos?.createRoute).toBe('/procesos/traspasos-cuentas-registros/solicitud');
     expect(findProcessPathById('cons-traslado-cta-registros', DEFAULT_PROCESS_TREE).length).toBeGreaterThan(0);
   });
 

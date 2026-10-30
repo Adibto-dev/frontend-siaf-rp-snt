@@ -22,7 +22,7 @@ usuarios de demostración, el recorrido de la clase y cómo sumar un proceso.
   patrón y manejador) con las reglas del flujo de la solicitud; `mock-db.ts` guarda los datos en `localStorage`
   (clave `taller-siaf-rp:datos`, con `VERSION`: al cambiar la forma de los datos, subirla); `usuarios-demo.ts`, los
   usuarios (contraseña común `Taller2026*`). Su spec documenta las reglas: si se cambia una, actualizarlo.
-- `src/app/modules/tesoreria/cuentas-bancarias/`: **proceso de ejemplo** «Registro de cuentas bancarias» (documento
+- `src/app/modules/tesoreria/traspasos-cuentas-registros/`: **proceso de ejemplo** «Registro de cuentas bancarias» (documento
   RTCR). Es el modelo para un proceso nuevo: `api/`, `config/`, `models/`, `pages/{documents,solicitud,consultas}` y
   `utils/`.
 - `src/app/core/`: API (`core/api`, mismo contrato que el backend real), sesión, permisos por rol

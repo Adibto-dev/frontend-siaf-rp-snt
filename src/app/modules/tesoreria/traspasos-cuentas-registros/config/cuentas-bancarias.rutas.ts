@@ -2,7 +2,7 @@ import type { CreateDocumentProcessOption } from '../../../../shared/components/
 import { NOMBRE_DOCUMENTO } from '../models/cuenta-bancaria.model';
 
 /** Rutas e ids del proceso de ejemplo. Los ids existen en `DEFAULT_PROCESS_TREE` (shared/utils/process-tree.util.ts). */
-export const PROCESS_ROUTE = '/procesos/registro-cuentas-bancarias';
+export const PROCESS_ROUTE = '/procesos/traspasos-cuentas-registros';
 export const REQUEST_SEGMENT = 'solicitud';
 export const REQUEST_ROUTE = `${PROCESS_ROUTE}/${REQUEST_SEGMENT}`;
 export const CONSULTAS_ROUTE = `${PROCESS_ROUTE}/consultas`;

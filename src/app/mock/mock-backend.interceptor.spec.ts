@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 
 import type { LoginResponse } from '../core/api/auth-api.service';
 import type { SolicitudResponse } from '../core/api/solicitudes-api.service';
-import type { CuentaBancariaDatos, CuentaBancariaRegistro } from '../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
+import type { CuentaBancariaDatos, CuentaBancariaRegistro } from '../modules/tesoreria/traspasos-cuentas-registros/models/cuenta-bancaria.model';
 import { cuentasRegistroDe, type SaldoInicialRegistro, type SaldosInicialesDatos } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import { sumarDias, type AutorizacionRegistro, type AutorizacionVigente } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { mockBackendInterceptor } from './mock-backend.interceptor';

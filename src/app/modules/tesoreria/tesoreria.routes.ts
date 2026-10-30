@@ -17,31 +17,36 @@ export const TESORERIA_ROUTES: Routes = [
     loadComponent: () =>
       import('./autorizaciones/pages/solicitud/autorizacion-request.component').then((m) => m.AutorizacionRequestComponent),
   },
+  // Rutas anteriores del proceso (cuando se llamaba «registro de cuentas bancarias»): redirigen a las nuevas.
+  { path: 'procesos/registro-cuentas-bancarias', pathMatch: 'full', redirectTo: '/procesos/traspasos-cuentas-registros' },
+  { path: 'procesos/registro-cuentas-bancarias/solicitud', redirectTo: '/procesos/traspasos-cuentas-registros/solicitud' },
+  { path: 'procesos/registro-cuentas-bancarias/solicitud/:id', redirectTo: '/procesos/traspasos-cuentas-registros/solicitud/:id' },
+  { path: 'procesos/registro-cuentas-bancarias/consultas', redirectTo: '/procesos/traspasos-cuentas-registros/consultas' },
   {
-    path: 'procesos/registro-cuentas-bancarias',
+    path: 'procesos/traspasos-cuentas-registros',
     loadComponent: () =>
-      import('./cuentas-bancarias/pages/documents/cuentas-bancarias-documents.component').then(
+      import('./traspasos-cuentas-registros/pages/documents/cuentas-bancarias-documents.component').then(
         (m) => m.CuentasBancariasDocumentsComponent,
       ),
   },
   {
-    path: 'procesos/registro-cuentas-bancarias/solicitud',
+    path: 'procesos/traspasos-cuentas-registros/solicitud',
     loadComponent: () =>
-      import('./cuentas-bancarias/pages/solicitud/cuenta-bancaria-request.component').then(
+      import('./traspasos-cuentas-registros/pages/solicitud/cuenta-bancaria-request.component').then(
         (m) => m.CuentaBancariaRequestComponent,
       ),
   },
   {
-    path: 'procesos/registro-cuentas-bancarias/solicitud/:id',
+    path: 'procesos/traspasos-cuentas-registros/solicitud/:id',
     loadComponent: () =>
-      import('./cuentas-bancarias/pages/solicitud/cuenta-bancaria-request.component').then(
+      import('./traspasos-cuentas-registros/pages/solicitud/cuenta-bancaria-request.component').then(
         (m) => m.CuentaBancariaRequestComponent,
       ),
   },
   {
-    path: 'procesos/registro-cuentas-bancarias/consultas',
+    path: 'procesos/traspasos-cuentas-registros/consultas',
     loadComponent: () =>
-      import('./cuentas-bancarias/pages/consultas/cuentas-bancarias-consultas.component').then(
+      import('./traspasos-cuentas-registros/pages/consultas/cuentas-bancarias-consultas.component').then(
         (m) => m.CuentasBancariasConsultasComponent,
       ),
   },

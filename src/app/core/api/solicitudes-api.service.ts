@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { APP_CONFIG } from '../config/app.config';
 import { EstadoDocumento } from '../models/documento.model';
-import type { CuentaBancariaDatos } from '../../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
+import type { CuentaBancariaDatos } from '../../modules/tesoreria/traspasos-cuentas-registros/models/cuenta-bancaria.model';
 import type { SaldosInicialesDatos } from '../../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import type { AutorizacionDatos } from '../../modules/tesoreria/autorizaciones/models/autorizacion.model';
 

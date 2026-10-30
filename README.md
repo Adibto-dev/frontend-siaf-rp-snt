@@ -63,9 +63,9 @@ Para empezar de cero: **Reiniciar datos** en el login (o borrar el almacenamient
 | `/login` | Inicio de sesión y usuarios de demostración | `siaf-tabs`, `siaf-input`, `siaf-list` |
 | `/login/recuperar-contrasena` | Recuperar contraseña con código | — |
 | `/panel` | Escritorio virtual | `siaf-desk-card` |
-| `/procesos/registro-cuentas-bancarias` | Documentos y registros | `siaf-documents-records-page` |
-| `/procesos/registro-cuentas-bancarias/solicitud` y `/solicitud/:id` | Solicitud de Registro de Cuenta Bancaria | `siaf-solicitude-page-layout` |
-| `/procesos/registro-cuentas-bancarias/consultas` | Consultas y reportes | `siaf-query-report-page` |
+| `/procesos/traspasos-cuentas-registros` | Documentos y registros | `siaf-documents-records-page` |
+| `/procesos/traspasos-cuentas-registros/solicitud` y `/solicitud/:id` | Solicitud de Registro de Cuenta Bancaria | `siaf-solicitude-page-layout` |
+| `/procesos/traspasos-cuentas-registros/consultas` | Consultas y reportes | `siaf-query-report-page` |
 | `/ui-kit` | Catálogo de componentes (sin sesión) | — |
 
 ## Cómo funcionan los datos simulados
@@ -91,7 +91,7 @@ src/app/
 ├── layout/          armazón: barra superior, menú lateral, menú de procesos, bandeja y escritorio virtual
 ├── mock/            backend simulado, datos iniciales y usuarios de demostración
 ├── modules/
-│   └── tesoreria/cuentas-bancarias/
+│   └── tesoreria/traspasos-cuentas-registros/
 │       ├── api/     llamadas del proceso
 │       ├── config/  rutas, columnas y filtros de Documentos y registros
 │       ├── models/  tipos y catálogos (bancos, monedas, tipos de cuenta)
@@ -105,7 +105,7 @@ src/app/
 
 ## Cómo sumar un proceso
 
-Tomen como modelo `modules/tesoreria/cuentas-bancarias/`:
+Tomen como modelo `modules/tesoreria/traspasos-cuentas-registros/`:
 
 1. **Modelo y API** del proceso en `modules/<área>/<proceso>/`.
 2. **Backend simulado**: sus rutas en `RUTAS` de `mock-backend.interceptor.ts` y sus datos iniciales en `mock-db.ts`.

@@ -6,7 +6,7 @@ import type { CambiarPerfilResponse, LoginResponse, PerfilItem } from '../core/a
 import type { SolicitudResponse } from '../core/api/solicitudes-api.service';
 import { APP_CONFIG } from '../core/config/app.config';
 import type { EstadoDocumento } from '../core/models/documento.model';
-import type { CuentaBancariaDatos } from '../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
+import type { CuentaBancariaDatos } from '../modules/tesoreria/traspasos-cuentas-registros/models/cuenta-bancaria.model';
 import { AutorizacionDatos, AutorizacionVigente, CODIGO_DOCUMENTO as CODIGO_AUTORIZACION, PERMISO_AUTORIZAR, PROCEDIMIENTOS, USUARIO_AJUSTE_SALDO, cuentaDeAutorizacion, errorAmpliacion, errorVigencia, estaVigente, responsablePorUsuario } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { CODIGO_DOCUMENTO as CODIGO_SALDOS, SaldosInicialesDatos, calcularAjuste, calcularSaldo, cuentaPorNumero, entidadPorCodigo } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import {

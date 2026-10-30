@@ -6,7 +6,7 @@ import {
   CuentaBancariaDatos,
   CuentaBancariaRegistro,
   NOMBRE_DOCUMENTO,
-} from '../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
+} from '../modules/tesoreria/traspasos-cuentas-registros/models/cuenta-bancaria.model';
 import {
   CODIGO_AUTOMATICO,
   CODIGO_DOCUMENTO as CODIGO_SALDOS,
