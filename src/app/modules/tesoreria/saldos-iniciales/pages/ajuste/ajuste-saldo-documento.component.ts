@@ -160,8 +160,8 @@ const ESTADOS: Record<string, FlowStatus> = {
                           <button
                             class="inline-flex size-8 items-center justify-center rounded-siaf-md transition hover:bg-surface-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
                             type="button"
-                            [attr.aria-label]="'Ver cuentas de registro de ' + saldo.cuentaBancaria"
-                            siafTooltip="Ver cuentas de registro"
+                            [attr.aria-label]="'Ver saldos iniciales libretas de ' + saldo.cuentaBancaria"
+                            siafTooltip="Ver saldos iniciales libretas"
                             (click)="saldoVisto.set(saldo)"
                           >
                             <siaf-icon name="table_view" [size]="20" />

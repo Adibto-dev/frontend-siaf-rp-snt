@@ -65,7 +65,7 @@ const TIPOS = [CODIGO_DOCUMENTO, CODIGO_AUTOMATICO];
       }
     </siaf-documents-records-page>
 
-    <!-- Ver cuentas de registro: el mismo panel que en la solicitud -->
+    <!-- Ver saldos iniciales libretas: el mismo panel que en la solicitud -->
     <siaf-saldo-libretas-panel [saldo]="registroCuentas()" (closed)="registroCuentas.set(null)" />
 
     <!-- Historial del registro: documentos de la misma cuenta bancaria -->
@@ -168,6 +168,8 @@ export class SaldosInicialesDocumentsComponent implements OnInit {
       numeroCuenta: r.cuentaBancaria,
       moneda: r.moneda,
       fechaOperacion: formatoFecha(r.fechaOperacion),
+      // Periodo = año de la fecha de operación (filtro rápido).
+      periodo: r.fechaOperacion.slice(0, 4),
       movimiento: r.movimiento,
       descripcion: r.automatico ? NOMBRE_AUTOMATICO : NOMBRE_DOCUMENTO,
       sustento: r.sustento ?? undefined,
@@ -186,6 +188,8 @@ export class SaldosInicialesDocumentsComponent implements OnInit {
       ...SALDOS_INICIALES_DOCUMENTS_CONFIG,
       documentRows,
       recordRows,
+      // Periodos con registros, del más reciente al más antiguo.
+      recordFilter1Options: [...new Set(recordRows.map((f) => String(f['periodo'])))].sort().reverse(),
       serverQuery: { total: this.solicitudesState.bandejaTotal() },
       recordRoute: (row) => `${RECORD_ROUTE}/${row['recordId']}`,
     };

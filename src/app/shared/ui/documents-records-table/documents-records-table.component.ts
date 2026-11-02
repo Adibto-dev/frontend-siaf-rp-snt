@@ -35,7 +35,7 @@ export type DocumentsRecordsSelectionChange = {
  * - Con `headerGroup` en columnas seguidas para agruparlas bajo una cabecera común (Saldos iniciales: «Cuenta
  *   bancaria», «Libro bancos» y «Documentos»): la cabecera pasa a dos filas.
  * - Con `rowActions` para íconos por fila en Registros antes del historial (Saldos iniciales: ver documento de
- *   sustento, deshabilitado sin archivo, y ver cuentas de registro); se deshabilitan por fila con `disabled`.
+ *   sustento, deshabilitado sin archivo, y ver saldos iniciales libretas); se deshabilitan por fila con `disabled`.
  * - Con `selectionDisabled` para dejar marcables solo los documentos de la acción masiva: Elaborados para el creador
  *   (Verificar) y Verificados para el aprobador (Aprobar).
  * @evitar

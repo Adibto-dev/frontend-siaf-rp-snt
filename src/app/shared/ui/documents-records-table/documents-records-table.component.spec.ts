@@ -138,7 +138,7 @@ describe('DocumentsRecordsTableComponent — acciones por fila', () => {
     fixture.componentRef.setInput('rows', [{ sec: '1', sustento: 'a.pdf' }, { sec: '2' }]);
     fixture.componentRef.setInput('rowActions', [
       { id: 'sustento', icon: 'description', label: 'Ver documento de sustento', disabled: (r: DocumentsRecordsRow) => !r['sustento'] },
-      { id: 'cuentas', icon: 'table_view', label: 'Ver cuentas de registro' },
+      { id: 'cuentas', icon: 'table_view', label: 'Ver saldos iniciales libretas' },
     ]);
     fixture.detectChanges();
     return fixture;
@@ -150,7 +150,7 @@ describe('DocumentsRecordsTableComponent — acciones por fila', () => {
     fixture.componentInstance.rowActionTriggered.subscribe((e) => emitidas.push(`${e.actionId}:${e.row['sec']}`));
     const filas = fixture.nativeElement.querySelectorAll('tbody tr') as NodeListOf<HTMLTableRowElement>;
     const botones = (i: number) => Array.from(filas[i].querySelectorAll('button')) as HTMLButtonElement[];
-    expect(botones(0).map((b) => b.getAttribute('aria-label'))).toEqual(['Ver documento de sustento', 'Ver cuentas de registro', 'Ver historial del registro']);
+    expect(botones(0).map((b) => b.getAttribute('aria-label'))).toEqual(['Ver documento de sustento', 'Ver saldos iniciales libretas', 'Ver historial del registro']);
     expect(botones(0)[0].disabled).toBeFalse();
     expect(botones(1)[0].disabled).withContext('sin sustento').toBeTrue();
     expect(getComputedStyle(botones(1)[0]).cursor).toBe('not-allowed');

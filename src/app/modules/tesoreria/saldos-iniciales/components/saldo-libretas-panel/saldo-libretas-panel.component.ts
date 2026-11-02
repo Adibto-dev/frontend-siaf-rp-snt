@@ -27,7 +27,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
  * Panel lateral «Saldos iniciales libretas»: datos de la cuenta bancaria de un saldo y la tabla de sus cuentas de
  * registro (libretas) con importes, buscador y paginación (Figma 23870:87733 y 23870:87777).
  *
- * Lo abren «Ver cuentas de registro» en la solicitud RSIN y en la pestaña Registros de Documentos de saldos
+ * Lo abren «Ver saldos iniciales libretas» en la solicitud RSIN y en la pestaña Registros de Documentos de saldos
  * iniciales: con `saldo` en `null` queda cerrado.
  */
 @Component({

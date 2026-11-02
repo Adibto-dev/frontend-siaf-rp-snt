@@ -154,7 +154,7 @@
                             icon="description"
                             [iconOnly]="true"
                             [ariaLabel]="'Ver documento de sustento de ' + fila.cuentaBancaria"
-                            [siafTooltip]="'Ver documento de sustento'"
+                            [siafTooltip]="fila.sustento ? 'Ver documento de sustento' : 'Sin documento de sustento'"
                             [disabled]="!fila.sustento"
                             (click)="verSustento(fila)"
                           />
@@ -163,8 +163,8 @@
                             size="sm"
                             icon="table_view"
                             [iconOnly]="true"
-                            [ariaLabel]="'Ver cuentas de registro de ' + fila.cuentaBancaria"
-                            [siafTooltip]="'Ver cuentas de registro'"
+                            [ariaLabel]="'Ver saldos iniciales libretas de ' + fila.cuentaBancaria"
+                            [siafTooltip]="'Ver saldos iniciales libretas'"
                             [disabled]="!ajusteHecho()"
                             (click)="ajusteHecho() && verLibretas(ajusteHecho()!)"
                           />
@@ -280,7 +280,7 @@
                             <siaf-button
                               variant="text"
                               size="sm"
-                              icon="description"
+                              icon="edit"
                               [iconOnly]="true"
                               [ariaLabel]="'Editar saldo de la cuenta ' + saldo.cuentaBancaria"
                               [siafTooltip]="'Editar saldo'"
@@ -291,7 +291,7 @@
                           <siaf-button
                             variant="text"
                             size="sm"
-                            icon="attach_file"
+                            icon="description"
                             [iconOnly]="true"
                             [ariaLabel]="'Ver documento de sustento de ' + saldo.cuentaBancaria"
                             [siafTooltip]="saldo.sustento ? 'Ver documento de sustento' : 'Sin documento de sustento'"
@@ -303,8 +303,8 @@
                             size="sm"
                             icon="table_view"
                             [iconOnly]="true"
-                            [ariaLabel]="'Ver cuentas de registro de ' + saldo.cuentaBancaria"
-                            [siafTooltip]="'Ver cuentas de registro'"
+                            [ariaLabel]="'Ver saldos iniciales libretas de ' + saldo.cuentaBancaria"
+                            [siafTooltip]="'Ver saldos iniciales libretas'"
                             (click)="verLibretas(saldo)"
                           />
                         </div>

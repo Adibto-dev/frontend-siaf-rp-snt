@@ -149,7 +149,7 @@ interface Dato {
               <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
               <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
                 <div class="relative">
-                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" align="right" />
+                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" />
                   <span
                     class="absolute right-siaf-sm top-1/2 inline-flex -translate-y-1/2 rounded-full text-[var(--sys-color-text-neutral-medium)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
                     tabindex="0"
@@ -160,7 +160,7 @@ interface Dato {
                     <siaf-icon name="info" [size]="24" />
                   </span>
                 </div>
-                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" align="right" />
+                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" />
               </div>
             </section>
   
@@ -174,7 +174,7 @@ interface Dato {
                     <tr class="siaf-table-head-row">
                       <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
                       <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
-                      <th class="siaf-table-th siaf-table-th--grupo" colspan="2">{{ r.ajuste ? r.ajuste.naturaleza : 'Libretas' }}</th>
+                      <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libretas</th>
                       @if (r.ajuste) {
                         <th class="siaf-table-th w-[150px] text-right" rowspan="2">Saldo act.</th>
                       }

@@ -95,16 +95,17 @@ export const SALDOS_INICIALES_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   // Íconos del Figma antes del historial; el sustento es opcional, sin archivo queda deshabilitado.
   recordRowActions: [
     { id: ACCION_VER_SUSTENTO, icon: 'description', label: 'Ver documento de sustento', disabled: (row) => !row['sustento'] },
-    { id: ACCION_VER_CUENTAS, icon: 'table_view', label: 'Ver cuentas de registro' },
+    { id: ACCION_VER_CUENTAS, icon: 'table_view', label: 'Ver saldos iniciales libretas' },
   ],
   statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.OBSERVADO, ESTADO.APROBADO, ESTADO.RECHAZADO],
   actionTypeFilterOptions: ['Creación'],
   filterCampoOptions,
   filterValorOptions,
   fieldsMenuOptions,
-  recordFilter1Label: 'Estado',
-  recordFilter1Key: 'status',
-  recordFilter1Options: ['Activo', 'Inactivo'],
+  // Periodo: año de operación; las opciones las arma la pantalla con los registros.
+  recordFilter1Label: 'Periodo',
+  recordFilter1Key: 'periodo',
+  recordFilter1Options: [],
   recordFilter2Label: 'Moneda',
   recordFilter2Key: 'moneda',
   recordFilter2Options: ['PEN', 'USD'],

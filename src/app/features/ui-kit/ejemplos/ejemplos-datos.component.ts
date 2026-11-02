@@ -190,7 +190,7 @@ export class EjemplosDatosComponent {
   /** Íconos por fila de Registros: el de sustento se deshabilita en la fila sin archivo. */
   readonly accionesRegistro: DocumentsRecordsRowAction[] = [
     { id: 'sustento', icon: 'description', label: 'Ver documento de sustento', disabled: (fila) => !fila['sustento'] },
-    { id: 'cuentas', icon: 'table_view', label: 'Ver cuentas de registro' },
+    { id: 'cuentas', icon: 'table_view', label: 'Ver saldos iniciales libretas' },
   ];
   readonly registrosAgrupados: DocumentsRecordsRow[] = [
     { sec: '000002', numero: '12073303572000000003', moneda: 'USD', cuenta: '100,000.00', nacional: '341,000.00', status: 'Activo', sustento: 'constancia-saldo.pdf' },
