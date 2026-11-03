@@ -3,11 +3,11 @@ import type { PerfilItem } from '../core/api/auth-api.service';
 /**
  * Usuarios de demostración del taller. Entran con su DNI y la contraseña común.
  *
- * - Ana (creador) registra y verifica solicitudes.
- * - Luis (aprobador) aprueba, observa o rechaza lo verificado.
- * - Rosa (creador autorizador) es la única que crea y autoriza documentos de autorización excepcional (RAUT).
- * - Jorge (visualizador de documentos) solo consulta: ve los documentos y registros, sin ninguna acción.
- * - Carla tiene los dos perfiles: sirve para mostrar el cambio de perfil desde el menú del usuario.
+ * - Victoria (creador) registra y verifica solicitudes.
+ * - Mateo (aprobador) aprueba, observa o rechaza lo verificado.
+ * - Santiago (creador autorizador) es el único que crea y autoriza documentos de autorización excepcional (RAUT).
+ * - Valentina (visualizador de documentos) solo consulta: ve los documentos y registros, sin ninguna acción.
+ * - Ariana tiene los dos perfiles: sirve para mostrar el cambio de perfil desde el menú del usuario.
  *
  * Son datos de ejemplo: no hay contraseñas reales ni se validan contra un servidor.
  */
@@ -57,14 +57,26 @@ export const PERMISOS_CREADOR_AUTORIZADOR = [
   'chart_account.read', 'chart_account.create', 'authorization.create',
 ];
 
+/**
+ * Nombres anteriores de los usuarios de la demo (mismo id). Los datos ya guardados en el navegador los tienen copiados
+ * (firmas, historial, avisos): `mock-db.ts` los cambia por los actuales al leerlos, sin perder lo creado.
+ */
+export const NOMBRES_ANTERIORES: Record<string, { nombres: string; apellidoPaterno: string; apellidoMaterno: string }> = {
+  'usr-ana': { nombres: 'Ana', apellidoPaterno: 'Torres', apellidoMaterno: 'Díaz' },
+  'usr-luis': { nombres: 'Luis', apellidoPaterno: 'Ramírez', apellidoMaterno: 'Soto' },
+  'usr-jorge': { nombres: 'Jorge', apellidoPaterno: 'Salas', apellidoMaterno: 'Vega' },
+  'usr-rosa': { nombres: 'Rosa', apellidoPaterno: 'Quispe', apellidoMaterno: 'Huamán' },
+  'usr-carla': { nombres: 'Carla', apellidoPaterno: 'Mendoza', apellidoMaterno: 'Ríos' },
+};
+
 export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-ana',
     dni: '45872163',
-    email: 'ana.torres@taller.pe',
-    nombres: 'Ana',
-    apellidoPaterno: 'Torres',
-    apellidoMaterno: 'Díaz',
+    email: 'victoria.mendoza@lab-demo.com.pe',
+    nombres: 'Victoria',
+    apellidoPaterno: 'Mendoza',
+    apellidoMaterno: 'Paredes',
     rol: 'Creador',
     descripcion: 'Creador: registra y verifica solicitudes',
     perfiles: [perfil('perfil-ana-creador', 'CREADOR', 'Creador', 'Operador de cuentas bancarias')],
@@ -72,10 +84,10 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-luis',
     dni: '70318246',
-    email: 'luis.ramirez@taller.pe',
-    nombres: 'Luis',
-    apellidoPaterno: 'Ramírez',
-    apellidoMaterno: 'Soto',
+    email: 'mateo.flores@lab-demo.com.pe',
+    nombres: 'Mateo',
+    apellidoPaterno: 'Flores',
+    apellidoMaterno: 'Gutiérrez',
     rol: 'Aprobador',
     descripcion: 'Aprobador: aprueba, observa o rechaza',
     perfiles: [perfil('perfil-luis-aprobador', 'APROBADOR', 'Aprobador', 'Aprobador de cuentas bancarias')],
@@ -83,10 +95,10 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-carla',
     dni: '41269587',
-    email: 'carla.mendoza@taller.pe',
-    nombres: 'Carla',
-    apellidoPaterno: 'Mendoza',
-    apellidoMaterno: 'Ríos',
+    email: 'ariana.ramirez@lab-demo.com.pe',
+    nombres: 'Ariana',
+    apellidoPaterno: 'Ramírez',
+    apellidoMaterno: 'Vega',
     rol: 'Creador y aprobador',
     oculto: true,
     descripcion: 'Dos perfiles: creador y aprobador (cambia de perfil)',
@@ -98,10 +110,10 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-jorge',
     dni: '48219635',
-    email: 'jorge.salas@taller.pe',
-    nombres: 'Jorge',
-    apellidoPaterno: 'Salas',
-    apellidoMaterno: 'Vega',
+    email: 'valentina.espinoza@lab-demo.com.pe',
+    nombres: 'Valentina',
+    apellidoPaterno: 'Espinoza',
+    apellidoMaterno: 'Rojas',
     rol: 'Visualizador de documentos',
     descripcion: 'Visualizador de documentos: solo consulta, sin acciones',
     perfiles: [
@@ -114,10 +126,10 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-rosa',
     dni: '46153928',
-    email: 'rosa.quispe@taller.pe',
-    nombres: 'Rosa',
-    apellidoPaterno: 'Quispe',
-    apellidoMaterno: 'Huamán',
+    email: 'santiago.castillo@lab-demo.com.pe',
+    nombres: 'Santiago',
+    apellidoPaterno: 'Castillo',
+    apellidoMaterno: 'Vargas',
     rol: 'Creador - Autorizador',
     descripcion: 'Creador autorizador: crea y autoriza autorizaciones excepcionales',
     perfiles: [

@@ -229,7 +229,7 @@ describe('mockBackendInterceptor', () => {
       expect(estado(entrar('45872163'), creacion, 'APROBADO').error?.status).toBe(403);
       expect(estado(rosa, creacion, 'APROBADO').error).toBeUndefined();
       const detalle = esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${creacion}`, { headers: rosa })).valor!;
-      expect(detalle.historialEstados!.map((h) => `${h.estadoNuevo}:${h.creador?.nombres}`)).toEqual(['NUEVO:Rosa', 'ELABORADO:Rosa', 'VERIFICADO:SIAF RP', 'APROBADO:Rosa']);
+      expect(detalle.historialEstados!.map((h) => `${h.estadoNuevo}:${h.creador?.nombres}`)).toEqual(['NUEVO:Santiago', 'ELABORADO:Santiago', 'VERIFICADO:SIAF RP', 'APROBADO:Santiago']);
       const nueva = registros().find((r) => r.documentoId === creacion)!;
       expect(registros().length).toBe(antes + 1);
       expect([nueva.estado, nueva.fechaDesde, nueva.fechaHasta]).toEqual(['Activo', '2026-11-01', '2026-11-03']);

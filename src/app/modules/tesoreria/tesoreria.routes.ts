@@ -86,6 +86,13 @@ export const TESORERIA_ROUTES: Routes = [
       ),
   },
   {
+    path: 'procesos/saldos-iniciales/documento/:documentoId/saldo/:saldoId',
+    loadComponent: () =>
+      import('./saldos-iniciales/pages/registro/saldo-inicial-detalle.component').then(
+        (m) => m.SaldoInicialDetalleComponent,
+      ),
+  },
+  {
     path: 'procesos/saldos-iniciales/registro/:registroId',
     loadComponent: () =>
       import('./saldos-iniciales/pages/registro/saldo-inicial-detalle.component').then(

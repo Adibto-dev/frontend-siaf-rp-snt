@@ -148,7 +148,7 @@ import { UploaderComponent } from '../../../shared/ui/uploader/uploader.componen
           <readonly-field caption="Número de documento" value="PCC-SCC-00001-2026-MEF-DGCP" />
           <readonly-field caption="Unidad ejecutora" [required]="true" value="" />
           <readonly-field caption="Importe (align right)" value="S/ 125,000.00" align="right" />
-          <readonly-field caption="Texto en negrita (bold)" value="SI-DRSI-00011-2026-MEF-OGA" [bold]="true" />
+          <readonly-field caption="Texto en negrita (bold)" value="SI-DRSI-00011-2026-MEF-OGA" />
           <readonly-field caption="Resaltado (highlight)" value="S/ 98,450.30" align="right" [highlight]="true" help="Saldo actualizado a la fecha de operación." />
           <readonly-field caption="Tags (select múltiple)" [tags]="['Gobierno nacional', 'Gobierno regional']" />
           <readonly-field caption="Estado de registro" status="Activo" />

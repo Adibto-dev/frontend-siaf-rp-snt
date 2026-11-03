@@ -258,10 +258,18 @@
                 </thead>
                 <tbody>
                   @for (saldo of tablaSaldos().filas; track saldo.id) {
-                    <tr class="siaf-table-row">
+                    <tr
+                      class="siaf-table-row"
+                      [class.cursor-pointer]="soloLectura()"
+                      [attr.tabindex]="soloLectura() ? 0 : null"
+                      [attr.aria-label]="soloLectura() ? 'Ver detalle del saldo de la cuenta ' + saldo.cuentaBancaria : null"
+                      (click)="soloLectura() && verDetalle(saldo)"
+                      (keydown.enter)="soloLectura() && verDetalle(saldo)"
+                    >
                       @if (!soloLectura()) {
                         <td class="siaf-table-td">
                           <siaf-checkbox
+                            (click)="$event.stopPropagation()"
                             [label]="''"
                             [checked]="seleccionSaldos().includes(saldo.id)"
                             [attr.aria-label]="'Seleccionar saldo de la cuenta ' + saldo.cuentaBancaria"
@@ -285,7 +293,7 @@
                               [ariaLabel]="'Editar saldo de la cuenta ' + saldo.cuentaBancaria"
                               [siafTooltip]="'Editar saldo'"
                               [disabled]="editorAbierto()"
-                              (click)="editarSaldo(saldo)"
+                              (click)="$event.stopPropagation(); editarSaldo(saldo)"
                             />
                           }
                           <siaf-button
@@ -296,7 +304,7 @@
                             [ariaLabel]="'Ver documento de sustento de ' + saldo.cuentaBancaria"
                             [siafTooltip]="saldo.sustento ? 'Ver documento de sustento' : 'Sin documento de sustento'"
                             [disabled]="!saldo.sustento"
-                            (click)="verSustento(saldo)"
+                            (click)="$event.stopPropagation(); verSustento(saldo)"
                           />
                           <siaf-button
                             variant="text"
@@ -305,7 +313,7 @@
                             [iconOnly]="true"
                             [ariaLabel]="'Ver saldos iniciales libretas de ' + saldo.cuentaBancaria"
                             [siafTooltip]="'Ver saldos iniciales libretas'"
-                            (click)="verLibretas(saldo)"
+                            (click)="$event.stopPropagation(); verLibretas(saldo)"
                           />
                         </div>
                       </td>

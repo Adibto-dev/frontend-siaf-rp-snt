@@ -32,7 +32,7 @@ import {
   USUARIO_AJUSTE_SALDO,
   mensajeAutorizacionVigente,
 } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
-import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
+import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
 
 /**
  * «Base de datos» del backend simulado: vive en el `localStorage` del navegador, así lo que hace un usuario lo ve
@@ -74,12 +74,54 @@ export const TIPOS_DOCUMENTO = [TIPO_DOCUMENTO, TIPO_SALDOS, TIPO_AUTOMATICO, TI
 export const ENTIDAD_CREADORA = { id: 'ent-mef', codMef: '0001', siglas: 'MEF', nombre: 'Ministerio de Economía y Finanzas' };
 export const UNIDAD_CREADORA = { id: 'uo-oga', sigla: 'OGA', nombre: 'Oficina General de Administración' };
 
+/** Cambios de nombre de un usuario: el anterior y el actual, completos y por partes. */
+const RENOMBRES = Object.entries(NOMBRES_ANTERIORES).flatMap(([id, antes]) => {
+  const ahora = USUARIOS_DEMO.find((u) => u.id === id);
+  if (!ahora) return [];
+  const completo = (n: typeof antes) => [n.nombres, n.apellidoPaterno, n.apellidoMaterno].join(' ');
+  return [{ antes, ahora, textoAntes: completo(antes), textoAhora: completo(ahora) }];
+});
+
+/**
+ * Cambia los nombres anteriores de los usuarios por los actuales en los datos guardados (firmas, historial, avisos,
+ * textos), sin tocar lo demás. Si no hay nombres anteriores, devuelve lo mismo.
+ */
+export function renombrarUsuarios<T>(valor: T): T {
+  if (typeof valor === 'string') {
+    let texto: string = valor;
+    for (const r of RENOMBRES) {
+      texto = texto.split(r.textoAntes).join(r.textoAhora).split(r.textoAntes.toUpperCase()).join(r.textoAhora.toUpperCase());
+    }
+    return texto as T;
+  }
+  if (Array.isArray(valor)) return valor.map((v) => renombrarUsuarios(v)) as T;
+  if (valor && typeof valor === 'object') {
+    const objeto = valor as Record<string, unknown>;
+    const r = RENOMBRES.find(
+      (x) => objeto['nombres'] === x.antes.nombres && objeto['apellidoPaterno'] === x.antes.apellidoPaterno,
+    );
+    const copia: Record<string, unknown> = {};
+    for (const [clave, v] of Object.entries(objeto)) copia[clave] = renombrarUsuarios(v);
+    if (r) {
+      copia['nombres'] = r.ahora.nombres;
+      copia['apellidoPaterno'] = r.ahora.apellidoPaterno;
+      copia['apellidoMaterno'] = r.ahora.apellidoMaterno;
+      if ('email' in copia) copia['email'] = r.ahora.email;
+    }
+    return copia as T;
+  }
+  return valor;
+}
+
 export function leerDatos(): DatosTaller {
   try {
     const guardados = localStorage.getItem(CLAVE);
     if (guardados) {
-      const datos = JSON.parse(guardados) as DatosTaller;
-      if (datos.version === VERSION) return datos;
+      const datos = renombrarUsuarios(JSON.parse(guardados)) as DatosTaller;
+      if (datos.version === VERSION) {
+        guardarDatos(datos);
+        return datos;
+      }
     }
   } catch {
     // Datos corruptos o sin acceso al almacenamiento: se empieza de nuevo.
@@ -182,7 +224,7 @@ export function registrarAutorizacion(datos: DatosTaller, s: SolicitudResponse, 
 }
 
 /**
- * Al aprobarse una autorización excepcional activa, se avisa al creador que hará el ajuste del saldo inicial (Ana):
+ * Al aprobarse una autorización excepcional activa, se avisa al creador que hará el ajuste del saldo inicial (Victoria):
  * la notificación abre el documento de autorización.
  */
 export function avisarAutorizacionAjuste(datos: DatosTaller, s: SolicitudResponse, fecha: string, leida = false): void {

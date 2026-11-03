@@ -1,3 +1,4 @@
+import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
 import { ABREVIATURAS } from '../../../../../shared/utils/abreviaturas.util';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -17,7 +18,7 @@ import { SustentoVisorComponent } from '../../components/sustento-visor/sustento
 import type { SaldoConSustento } from '../../utils/sustento-pdf.util';
 import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs.util';
 import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
-import { PROCESS_ID, PROCESS_ROUTE } from '../../config/saldos-iniciales.rutas';
+import { rutaSaldoDeDocumento, PROCESS_ID, PROCESS_ROUTE } from '../../config/saldos-iniciales.rutas';
 import {
   ENTE_RECTOR,
   MOVIMIENTO_INTERNO_AJUSTE,
@@ -55,6 +56,7 @@ const ESTADOS: Record<string, FlowStatus> = {
   selector: 'siaf-ajuste-saldo-documento',
   standalone: true,
   imports: [
+    ReadonlyFieldComponent,
     SustentoVisorComponent,
     DocumentSummaryCardComponent,
     IconComponent,
@@ -94,16 +96,10 @@ const ESTADOS: Record<string, FlowStatus> = {
           </section>
 
           <siaf-solicitude-form-card title="Tipo de operación del saldo">
-            <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-3">
-              <div>
-                <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Tipo de operación del saldo</dt>
-                <dd class="m-0 text-sm">{{ tipoOperacion }}</dd>
-              </div>
-              <div>
-                <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Periodo</dt>
-                <dd class="m-0 text-sm">{{ periodo }}</dd>
-              </div>
-            </dl>
+            <div class="grid gap-x-siaf-lg gap-y-siaf-md sm:grid-cols-3">
+              <readonly-field caption="Tipo de operación del saldo" [value]="tipoOperacion" />
+              <readonly-field caption="Periodo" [value]="periodo" />
+            </div>
           </siaf-solicitude-form-card>
 
           <siaf-solicitude-form-card title="Movimiento interno">
@@ -137,7 +133,7 @@ const ESTADOS: Record<string, FlowStatus> = {
                 </thead>
                 <tbody>
                   @for (saldo of saldos(); track saldo.id) {
-                    <tr class="siaf-table-row">
+                    <tr class="siaf-table-row cursor-pointer" tabindex="0" [attr.aria-label]="'Ver detalle del saldo de la cuenta ' + saldo.cuentaBancaria" (click)="verDetalle(saldo)" (keydown.enter)="verDetalle(saldo)">
                       <td class="siaf-table-td">{{ formatoFecha(saldo.fechaOperacion) }}</td>
                       <td class="siaf-table-td">{{ saldo.ajuste?.secuenciaReferencia || '-' }}</td>
                       <td class="siaf-table-td">{{ saldo.cuentaBancaria }}</td>
@@ -154,7 +150,7 @@ const ESTADOS: Record<string, FlowStatus> = {
                             [disabled]="!saldo.sustento"
                             [attr.aria-label]="'Ver documento de sustento de ' + saldo.cuentaBancaria"
                             siafTooltip="Ver documento de sustento"
-                            (click)="sustentoVisto.set(saldo)"
+                            (click)="$event.stopPropagation(); sustentoVisto.set(saldo)"
                           >
                             <siaf-icon name="description" [size]="20" />
                           </button>
@@ -163,7 +159,7 @@ const ESTADOS: Record<string, FlowStatus> = {
                             type="button"
                             [attr.aria-label]="'Ver saldos iniciales libretas de ' + saldo.cuentaBancaria"
                             siafTooltip="Ver saldos iniciales libretas"
-                            (click)="saldoVisto.set(saldo)"
+                            (click)="$event.stopPropagation(); saldoVisto.set(saldo)"
                           >
                             <siaf-icon name="table_view" [size]="20" />
                           </button>
@@ -285,5 +281,11 @@ export class AjusteSaldoDocumentoComponent {
 
   regresar(): void {
     void this.router.navigate([PROCESS_ROUTE]);
+  }
+
+  /** Abre el detalle del saldo; «Regresar» vuelve a este documento. */
+  verDetalle(saldo: { id: string }): void {
+    const id = this.solicitud()?.id;
+    if (id) void this.router.navigate(rutaSaldoDeDocumento(id, saldo.id));
   }
 }

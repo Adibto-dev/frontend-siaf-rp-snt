@@ -277,7 +277,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "ui",
     "importacion": "@siaf/ui/readonly-field/readonly-field.component",
     "archivo": "src/app/shared/ui/readonly-field/readonly-field.component.ts",
-    "descripcion": "Campo de solo lectura del Figma «Readonly forms»: caption flotante y el valor sin contenedor, borde ni íconos de\nedición. Muestra `--` cuando está vacío. Es lo que pintan `siaf-input`, `siaf-date-time-picker` y\n`text-area-control` con `[readonly]`: un formulario en modo lectura se ve así sin duplicar el markup.\n\nVariantes de Figma: texto, importe (`align=\"right\"`), negrita (`bold`), resaltado (`highlight`, fondo\n`bg-surfaces-highlight`), varios valores como chips (`tags`), estado de registro (`status`), texto largo con\n«Leer más» (`multiline`) e ícono info con ayuda (`help`, solo si hay texto).",
+    "descripcion": "Campo de solo lectura del Figma «Readonly forms»: caption flotante y el valor sin contenedor, borde ni íconos de\nedición. Muestra `--` cuando está vacío. Es lo que pintan `siaf-input`, `siaf-date-time-picker` y\n`text-area-control` con `[readonly]`: un formulario en modo lectura se ve así sin duplicar el markup.\n\nVariantes de Figma: texto, importe (`align=\"right\"`), negrita por defecto (`bold`, `false` para valor normal), resaltado (`highlight`, fondo\n`bg-surfaces-highlight`), varios valores como chips (`tags`), estado de registro (`status`), texto largo con\n«Leer más» (`multiline`) e ícono info con ayuda (`help`, solo si hay texto).",
     "usaSesion": false,
     "proyectaContenido": false,
     "entradas": [
@@ -291,9 +291,9 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       {
         "nombre": "bold",
         "tipo": "boolean",
-        "porDefecto": "false",
+        "porDefecto": "true",
         "requerida": false,
-        "descripcion": null
+        "descripcion": "Valor en negrita (por defecto); `false` para un valor normal."
       },
       {
         "nombre": "caption",
@@ -353,14 +353,14 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       },
       {
         "nombre": "value",
-        "tipo": "string | number | null",
+        "tipo": "string | number | null | undefined",
         "porDefecto": "''",
         "requerida": false,
         "descripcion": null
       }
     ],
     "eventos": [],
-    "usar": "- En el modo lectura de una solicitud: mejor `[readonly]=\"soloLectura()\"` en el campo editable, que pinta este\n  componente con su mismo caption, valor y asterisco.\n- Directo para los criterios de búsqueda sobre los resultados de las consultas y la cabecera de un detalle o reporte.\n- `align=\"right\"` para importes; `bold` o `highlight` para el dato que hay que destacar (total, número).\n- `tags` para varios valores (select múltiple) y `status` para el estado de un registro.\n- `multiline` para un texto largo (justificación, descripción): se recorta y «Leer más» lo despliega.\n- `help` para el ícono info con su explicación; sin texto no se muestra.",
+    "usar": "- En el modo lectura de una solicitud: mejor `[readonly]=\"soloLectura()\"` en el campo editable, que pinta este\n  componente con su mismo caption, valor y asterisco.\n- Directo para los criterios de búsqueda sobre los resultados de las consultas y la cabecera de un detalle o reporte.\n- `align=\"right\"` para importes; `highlight` para el dato que hay que destacar (total, número).\n- `tags` para varios valores (select múltiple) y `status` para el estado de un registro.\n- `multiline` para un texto largo (justificación, descripción): se recorta y «Leer más» lo despliega.\n- `help` para el ícono info con su explicación; sin texto no se muestra.",
     "evitar": "- Para un dato que el usuario puede cambiar: usar `siaf-input`, `text-area-control` o `siaf-date-time-picker`.\n- Para un dato fijo dentro de un formulario en edición (ej. el periodo): ahí va el campo `[disabled]`.\n- Para el ítem elegido desde un panel lateral: usar `siaf-summary-card`; para un aviso breve, `message-box`.\n- Confundirlo con `siaf-readonly`, el recuadro gris con etiqueta en mayúsculas que ninguna pantalla usa.",
     "teclado": "- Solo «Leer más» / «Leer menos» y el ícono info reciben foco (Tab); Enter o Espacio despliegan el texto.",
     "accesibilidad": "- **1.3.1 Información y relaciones (A)**: es texto estático, no un campo: el caption va antes del valor en el DOM,\n  así que se leen juntos y en orden; los chips van en una lista.\n- **1.4.3 Contraste mínimo (AA)**: caption `text-neutral-low` 5.01:1, valor `text-neutral-medium` 14.53:1 (también\n  sobre `bg-surfaces-highlight`), «Leer más» `text-brand-primary` y asterisco `text-feedback-danger`.\n- **4.1.2 Nombre, función y valor (A)**: «Leer más» es un botón con `aria-expanded`; el ícono info se llama «Ayuda».\n- **1.4.1 Uso del color (A)**: el obligatorio se marca con un asterisco, no solo con el color.",
@@ -6298,7 +6298,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       {
         "nombre": "readonlyBold",
         "tipo": "boolean",
-        "porDefecto": "false",
+        "porDefecto": "true",
         "requerida": false,
         "descripcion": "En lectura: valor en negrita."
       },
@@ -13247,7 +13247,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "ui",
     "importacion": "@siaf/ui/summary-card/summary-card.component",
     "archivo": "src/app/shared/ui/summary-card/summary-card.component.ts",
-    "descripcion": "Card resumen de campos etiqueta/valor, con indicador lateral, borde opcional y ✕ para limpiar.\n\nEs LA card canónica del \"ítem seleccionado\" que llega desde un side panel: usarla `bordered` con\nindicador, y la ✕ solo en edición. Regla del proyecto: 0 ítems → placeholder gris, 1 → esta card,\n2 o más → grilla estándar (`siaf-table-controls` + `siaf-pagination Bottom`).",
+    "descripcion": "Card resumen de campos etiqueta/valor, con indicador lateral, borde opcional y ✕ para limpiar. Cada campo es un\n`readonly-field` (caption flotante y valor), igual que el resto de los datos de solo lectura.\n\nEs LA card canónica del \"ítem seleccionado\" que llega desde un side panel: usarla `bordered` con\nindicador, y la ✕ solo en edición. Regla del proyecto: 0 ítems → placeholder gris, 1 → esta card,\n2 o más → grilla estándar (`siaf-table-controls` + `siaf-pagination Bottom`).",
     "usaSesion": false,
     "proyectaContenido": false,
     "entradas": [
@@ -13297,7 +13297,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "usar": "- Para el único ítem elegido desde un panel lateral en una solicitud: plan de cuentas, cuenta contable anterior o\n  entidad del estado (plan de cuentas); ámbito, período, clase y detalle (catálogo de ajustes y asiento de ajuste);\n  evento (eventos contables).\n- `bordered` con indicador y la ✕ solo en edición (`[showClose]=\"!isReadOnly\"`), con un `closeLabel` que nombre el\n  ítem («Quitar plan contable»).\n- Para datos precargados de solo lectura con la misma forma, sin ✕: pliego, unidad ejecutora y período mensual en\n  apertura contable, o la cuenta en uso de una modificación.",
     "evitar": "- Para 2 o más ítems: usar la grilla estándar (`siaf-table-controls` + tabla + `siaf-pagination` Bottom); sin\n  ítems, el placeholder gris o `empty-section`.\n- Para el N° y el estado del documento abierto: usar `siaf-document-summary-card`.\n- Para ítems con detalle que se despliega: usar `siaf-collapsible-card`.\n- Para elegir entre tarjetas: usar `siaf-stepper-card`; esta no es seleccionable.",
     "teclado": "- **Tab**: enfoca la ✕ cuando `showClose` está activo; sin ella la tarjeta no recibe foco.\n- **Enter / Espacio** en la ✕: emiten `closed`; el foco no se mueve solo: al quitar el ítem, el padre debe\n  llevarlo, por ejemplo, al botón de búsqueda.",
-    "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: la ✕ es un `button` con nombre desde `closeLabel` (por defecto «Cerrar»);\n  el padre debe nombrar el ítem, como «Quitar entidad del estado».\n- **1.1.1 Contenido no textual (A)**: la barra lateral y el ícono de la ✕ son decorativos (`aria-hidden`); el ícono\n  de un campo solo se anuncia si trae `iconLabel` y, si no, queda decorativo.\n- **1.4.3 Contraste mínimo (AA)**: etiquetas `text-neutral-low` 5.01:1 (oscuro 8.86:1) y valores\n  `text-neutral-medium` 14.53:1 (12.87:1) sobre la superficie.\n- **2.4.7 Foco visible (AA)**: la ✕ muestra un contorno de 2 px `border-states-focus` separado 2 px.\n- **1.4.11 Contraste no textual (AA)**: ese contorno es el azul del kit (`border-states-focus`, 5.35:1 claro /\n  10.15:1 oscuro sobre la superficie).\n- **1.4.13 Contenido en hover o foco (AA)**: desde `sm` los valores truncados se completan con `siafTooltip`, que\n  se cierra con Escape y se puede recorrer con el puntero.\n- **Pendiente · 2.1.1 Teclado (A)**: ese texto no recibe foco, así que con teclado el globo no aparece (el lector de\n  pantalla sí lo lee entero).\n- **2.5.8 Tamaño del objetivo (AA)**: la ✕ mide 40 × 40 px.",
+    "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: la ✕ es un `button` con nombre desde `closeLabel` (por defecto «Cerrar»);\n  el padre debe nombrar el ítem, como «Quitar entidad del estado».\n- **1.1.1 Contenido no textual (A)**: la barra lateral y el ícono de la ✕ son decorativos (`aria-hidden`); el ícono\n  de un campo solo se anuncia si trae `iconLabel` y, si no, queda decorativo.\n- **1.4.3 Contraste mínimo (AA)**: los de `readonly-field`: caption `text-neutral-low` 5.01:1 y valor\n  `text-neutral-medium` 14.53:1 sobre la superficie.\n- **2.4.7 Foco visible (AA)**: la ✕ muestra un contorno de 2 px `border-states-focus` separado 2 px.\n- **1.4.11 Contraste no textual (AA)**: ese contorno es el azul del kit (`border-states-focus`, 5.35:1 claro /\n  10.15:1 oscuro sobre la superficie).\n- **1.4.10 Reflow (AA)**: los valores largos envuelven en vez de recortarse, así que no hace falta tooltip.\n- **2.5.8 Tamaño del objetivo (AA)**: la ✕ mide 40 × 40 px.",
     "figma": [],
     "aria": {
       "roles": [],
@@ -13350,12 +13350,18 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         ]
       },
       {
+        "token": "--sys-gap-base-lg",
+        "via": [
+          "gap-y-siaf-lg"
+        ]
+      },
+      {
         "token": "--sys-gap-base-md",
         "via": [
           "gap-siaf-md",
+          "gap-x-siaf-md",
           "p-siaf-md",
           "pl-siaf-md",
-          "px-siaf-md",
           "var()"
         ]
       },
@@ -13363,12 +13369,6 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "token": "--sys-gap-base-xs",
         "via": [
           "gap-siaf-xs"
-        ]
-      },
-      {
-        "token": "--sys-gap-base-xxs",
-        "via": [
-          "gap-siaf-xxs"
         ]
       },
       {
@@ -13385,7 +13385,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       }
     ],
     "usa": [
-      "[siafTooltip]",
+      "readonly-field",
       "siaf-icon"
     ],
     "sinUso": false

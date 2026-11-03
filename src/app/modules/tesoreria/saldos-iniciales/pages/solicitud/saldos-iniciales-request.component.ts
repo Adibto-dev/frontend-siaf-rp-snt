@@ -49,7 +49,7 @@ import { SustentoVisorComponent } from '../../components/sustento-visor/sustento
 import type { SaldoConSustento } from '../../utils/sustento-pdf.util';
 import { guardarArchivo } from '../../../../../mock/archivos-demo';
 import { SaldoLibretasPanelComponent } from '../../components/saldo-libretas-panel/saldo-libretas-panel.component';
-import { ADJUSTMENT_ROUTE, PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/saldos-iniciales.rutas';
+import { rutaSaldoDeDocumento, ADJUSTMENT_ROUTE, PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/saldos-iniciales.rutas';
 import {
   CODIGO_DOCUMENTO,
   CUENTAS_BANCARIAS,
@@ -934,5 +934,11 @@ export class SaldosInicialesRequestComponent implements OnInit {
     this.saldos.set(d?.saldos.map((x) => ({ ...x, libretas: x.libretas.map((l) => ({ ...l })) })) ?? []);
     this.seleccionSaldos.set([]);
     this.saldoDesplegado.set(null);
+  }
+
+  /** Abre el detalle del saldo; «Regresar» vuelve a este documento. */
+  verDetalle(saldo: { id: string }): void {
+    const id = this.solicitudId;
+    if (id) void this.router.navigate(rutaSaldoDeDocumento(id, saldo.id));
   }
 }

@@ -28,27 +28,27 @@ entró, y «Reiniciar datos de la demo» vuelve a los datos iniciales.
 
 | Usuario | DNI | Perfil | Qué puede hacer |
 | --- | --- | --- | --- |
-| Ana Torres Díaz | `45872163` | Creador | Crear, grabar, editar, verificar y eliminar solicitudes |
-| Luis Ramírez Soto | `70318246` | Aprobador | Aprobar, observar (con comentario) o rechazar lo verificado |
-| Carla Mendoza Ríos | `41269587` | Creador y Aprobador | Lo mismo que los dos anteriores: cambia de perfil desde su menú de usuario |
-| Jorge Salas Vega | `48219635` | Visualizador de documentos | Solo consulta: ve documentos y registros de todos los procesos, sin ninguna acción ni notificaciones |
-| Rosa Quispe Huamán | `46153928` | Creador autorizador | Crea y autoriza (sin aprobador) los documentos de autorización excepcional (RAUT); los demás perfiles solo los consultan |
+| Victoria Mendoza Paredes | `45872163` | Creador | Crear, grabar, editar, verificar y eliminar solicitudes |
+| Mateo Flores Gutiérrez | `70318246` | Aprobador | Aprobar, observar (con comentario) o rechazar lo verificado |
+| Ariana Ramírez Vega | `41269587` | Creador y Aprobador | Lo mismo que los dos anteriores: cambia de perfil desde su menú de usuario |
+| Valentina Espinoza Rojas | `48219635` | Visualizador de documentos | Solo consulta: ve documentos y registros de todos los procesos, sin ninguna acción ni notificaciones |
+| Santiago Castillo Vargas | `46153928` | Creador autorizador | Crea y autoriza (sin aprobador) los documentos de autorización excepcional (RAUT); los demás perfiles solo los consultan |
 
-«Olvidé mi contraseña» también funciona: con el correo de un usuario (por ejemplo `ana.torres@demo.pe`) el código de
+«Olvidé mi contraseña» también funciona: con el correo de un usuario (por ejemplo `victoria.mendoza@lab-demo.com.pe`) el código de
 verificación es `654321`.
 
 ## Recorrido sugerido para la clase
 
-1. **Login** como Ana. El escritorio virtual muestra la bandeja, los contadores y sus notificaciones.
+1. **Login** como Victoria. El escritorio virtual muestra la bandeja, los contadores y sus notificaciones.
 2. **Procesos → Gestión de tesorería → Registro de cuentas bancarias → Documentos y registros**. La pestaña Documentos
    es la bandeja; Registros, las cuentas ya aprobadas (con el historial de la solicitud que las creó).
 3. **Crear documento → Solicitud de Registro de Cuenta Bancaria**: llenar el formulario, adjuntar un PDF de sustento
    y **Grabar**. La solicitud recibe su número (`PCB-RTCR-00013-2026-MEF-OGA`) y queda Elaborada; luego **Verificar**.
-4. **Cerrar sesión** y entrar como Luis: tiene la notificación «Solicitud por aprobar». Abrir la solicitud y
+4. **Cerrar sesión** y entrar como Mateo: tiene la notificación «Solicitud por aprobar». Abrir la solicitud y
    **Aprobar** (la cuenta aparece en Registros con el código `CB-0009`), **Observar** o **Rechazar** (piden comentario).
-5. Volver a entrar como Ana: le llega el aviso. Una solicitud observada se corrige y se vuelve a verificar, pero ya no
+5. Volver a entrar como Victoria: le llega el aviso. Una solicitud observada se corrige y se vuelve a verificar, pero ya no
    se puede eliminar.
-6. Entrar como Carla y cambiar de perfil desde el menú del usuario: el avatar pasa de «CR» a «AP» y cambian la bandeja,
+6. Entrar como Ariana y cambiar de perfil desde el menú del usuario: el avatar pasa de «CR» a «AP» y cambian la bandeja,
    los botones y las notificaciones.
 7. **Consultas y reportes**: elegir el rango de fechas de apertura y consultar. Probar los filtros, la **vista de
    gráficas** (KPI, barras, dona y línea) y **Exportar** a Excel, CSV o PDF.

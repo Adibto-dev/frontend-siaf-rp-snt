@@ -52,13 +52,13 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
         <div class="grid gap-siaf-md">
           <siaf-expansion-panel title="Cuenta bancaria" [expanded]="false">
             <div class="grid gap-siaf-lg">
-              <dl class="m-0 grid gap-siaf-md px-siaf-sm" [class.sm:grid-cols-2]="!s.ajuste" [class.sm:grid-cols-3]="!!s.ajuste">
-                <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia</dt><dd class="m-0 text-sm">{{ s.secuencia || '-' }}</dd></div>
-                <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Fecha de operación</dt><dd class="m-0 text-sm">{{ formatoFecha(s.fechaOperacion) }}</dd></div>
+              <div class="grid gap-x-siaf-lg gap-y-siaf-md" [class.sm:grid-cols-2]="!s.ajuste" [class.sm:grid-cols-3]="!!s.ajuste">
+                <readonly-field caption="Secuencia" [value]="s.secuencia" />
+                <readonly-field caption="Fecha de operación" [value]="formatoFecha(s.fechaOperacion)" />
                 @if (s.ajuste) {
-                  <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia de referencia</dt><dd class="m-0 text-sm">{{ s.ajuste.secuenciaReferencia || '-' }}</dd></div>
+                  <readonly-field caption="Secuencia de referencia" [value]="s.ajuste.secuenciaReferencia" />
                 }
-              </dl>
+              </div>
               <section class="grid gap-siaf-sm">
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h4>
                 <siaf-summary-card [fields]="camposCuenta()" [bordered]="true" [showClose]="false" />
@@ -66,27 +66,27 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
               @if (s.moneda === 'USD') {
                 <section class="grid gap-siaf-sm">
                   <h4 class="m-0 text-sm font-bold uppercase text-text">Tipo de cambio</h4>
-                  <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-2">
-                    <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Tipo de cotización</dt><dd class="m-0 text-sm">{{ tipoCotizacion }}</dd></div>
-                    <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Compra</dt><dd class="m-0 text-sm">{{ s.tipoCambio.toFixed(2) }}</dd></div>
-                  </dl>
+                  <div class="grid gap-x-siaf-lg gap-y-siaf-md sm:grid-cols-2">
+                    <readonly-field caption="Tipo de cotización" [value]="tipoCotizacion" />
+                    <readonly-field caption="Compra" [value]="s.tipoCambio.toFixed(2)" />
+                  </div>
                 </section>
               }
               @if (s.ajuste; as a) {
                 <section class="grid gap-siaf-sm">
                   <h4 class="m-0 text-sm font-bold uppercase text-text">Saldo inicial</h4>
                   <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                    <readonly-field caption="Importe de saldo inicial" [value]="formatoImporte(a.saldoInicial)" [bold]="true" [highlight]="true" />
-                    <readonly-field caption="Naturaleza de la operación" [value]="a.naturaleza" [bold]="true" [highlight]="true" />
-                    <readonly-field caption="Saldo actualizado" [value]="formatoImporte(saldoActualizado(a.saldoInicial, s.importeCuenta, a.naturaleza))" [bold]="true" [highlight]="true" />
+                    <readonly-field caption="Importe de saldo inicial" [value]="formatoImporte(a.saldoInicial)" [highlight]="true" />
+                    <readonly-field caption="Naturaleza de la operación" [value]="a.naturaleza" [highlight]="true" />
+                    <readonly-field caption="Saldo actualizado" [value]="formatoImporte(saldoActualizado(a.saldoInicial, s.importeCuenta, a.naturaleza))" [highlight]="true" />
                   </div>
                 </section>
               }
               <section class="grid gap-siaf-sm">
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
                 <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(s.importeCuenta)" [bold]="true" [highlight]="true" [help]="ayudaImportes" />
-                  <readonly-field caption="En moneda nacional" [value]="formatoImporte(s.importeNacional)" [bold]="true" [highlight]="true" />
+                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(s.importeCuenta)" [highlight]="true" [help]="ayudaImportes" />
+                  <readonly-field caption="En moneda nacional" [value]="formatoImporte(s.importeNacional)" [highlight]="true" />
                 </div>
               </section>
             </div>

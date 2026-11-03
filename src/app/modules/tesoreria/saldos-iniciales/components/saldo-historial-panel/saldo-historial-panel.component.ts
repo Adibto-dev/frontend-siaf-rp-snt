@@ -3,9 +3,8 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, comput
 import { SolicitudResponse, SolicitudesApiService } from '../../../../../core/api/solicitudes-api.service';
 import { FocoDirective } from '../../../../../shared/ui/foco/foco.directive';
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
-import { RecordStatusTagComponent } from '../../../../../shared/ui/record-status-tag/record-status-tag.component';
+import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
 import { SidePanelAnimacion } from '../../../../../shared/ui/side-panel-animacion';
-import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { NOMBRE_AUTOMATICO, NOMBRE_DOCUMENTO, SaldoInicialRegistro } from '../../models/saldo-inicial.model';
 import { SolicitudeFormCardComponent } from '../../../../../shared/components/solicitude-form-card/solicitude-form-card.component';
 import { SaldoDetalleComponent } from '../saldo-detalle/saldo-detalle.component';
@@ -33,7 +32,7 @@ function fechaHora(iso: string | null | undefined): string {
 @Component({
   selector: 'siaf-saldo-historial-panel',
   standalone: true,
-  imports: [FocoDirective, IconComponent, RecordStatusTagComponent, SaldoDetalleComponent, SolicitudeFormCardComponent, TooltipDirective],
+  imports: [FocoDirective, IconComponent, ReadonlyFieldComponent, SaldoDetalleComponent, SolicitudeFormCardComponent],
   template: `
     @if (anim.visible()) {
       <section
@@ -70,20 +69,11 @@ function fechaHora(iso: string | null | undefined): string {
                     <div>
                     <p class="siaf-text-overline-medium m-0 text-text-muted">Documento</p>
                     <p class="m-0 text-sm">{{ nombreDocumento(r) }}</p>
-                    <dl class="m-0 mt-siaf-lg grid gap-siaf-md md:grid-cols-3">
-                      <div class="min-w-0">
-                        <dt class="siaf-text-overline-medium text-text-muted">N° documento</dt>
-                        <dd class="m-0 truncate text-sm" siafTooltip>{{ r.numeroDocumento }}</dd>
-                      </div>
-                      <div>
-                        <dt class="siaf-text-overline-medium text-text-muted">Tipo de acción</dt>
-                        <dd class="m-0 text-sm">Creación</dd>
-                      </div>
-                      <div>
-                        <dt class="siaf-text-overline-medium text-text-muted">Estado de registro</dt>
-                        <dd class="m-0"><siaf-record-status-tag [status]="r.estado" size="small" /></dd>
-                      </div>
-                    </dl>
+                    <div class="mt-siaf-lg grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-3">
+                      <readonly-field caption="N° documento" [value]="r.numeroDocumento" />
+                      <readonly-field caption="Tipo de acción" value="Creación" />
+                      <readonly-field caption="Estado de registro" [status]="r.estado" />
+                    </div>
                     </div>
                   </siaf-solicitude-form-card>
 

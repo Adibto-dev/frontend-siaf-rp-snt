@@ -7,6 +7,13 @@ export const REQUEST_SEGMENT = 'solicitud';
 export const REQUEST_ROUTE = `${PROCESS_ROUTE}/${REQUEST_SEGMENT}`;
 /** Detalle de un saldo aprobado (pestaña Registros): `${RECORD_ROUTE}/:registroId`. */
 export const RECORD_ROUTE = `${PROCESS_ROUTE}/registro`;
+/**
+ * Detalle de un saldo abierto desde la tabla de su documento: `${DOCUMENT_SALDO_ROUTE}/:documentoId/saldo/:saldoId`.
+ * Si el documento ya está aprobado muestra el registro; si no, el saldo tal como está en el documento.
+ */
+export const DOCUMENT_SALDO_ROUTE = `${PROCESS_ROUTE}/documento`;
+/** Ruta del detalle de un saldo desde su documento. */
+export const rutaSaldoDeDocumento = (documentoId: string, saldoId: string): string[] => [DOCUMENT_SALDO_ROUTE, documentoId, 'saldo', saldoId];
 /** Vista de un registro automático de saldos de apertura: `${AUTOMATIC_ROUTE}/:id`. */
 export const AUTOMATIC_ROUTE = `${PROCESS_ROUTE}/automatico`;
 /** Vista de un ajuste de saldo inicial (RSIN con tipo de operación 2): `${ADJUSTMENT_ROUTE}/:id`. */

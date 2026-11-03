@@ -114,7 +114,7 @@ export const OPCIONES_CUENTA: Opcion[] = CUENTAS_BANCARIAS.map((c) => ({ value: 
 export const OPCIONES_RESPONSABLE: Opcion[] = RESPONSABLES.map((r) => ({ value: r.usuario, label: `${r.usuario} · ${r.nombres}` }));
 
 /**
- * Taller: el creador que recibe la notificación y puede ajustar el saldo inicial con una autorización vigente (Ana).
+ * Taller: el creador que recibe la notificación y puede ajustar el saldo inicial con una autorización vigente (Victoria).
  * Los responsables de la autorización son usuarios sintéticos que no existen en el login.
  */
 export const USUARIO_AJUSTE_SALDO = 'usr-ana';

@@ -114,11 +114,11 @@ npm run icons:check
 npm run menu:check
 ```
 
-**Recorrido en el navegador** (`preview_start`, usuario Ana `45872163`, contraseña `Demo-DGTP2026`):
+**Recorrido en el navegador** (`preview_start`, usuario Victoria `45872163`, contraseña `Demo-DGTP2026`):
 1. Crear documento → llenar → adjuntar PDF → Grabar: recibe número y queda Elaborada.
 2. Editar → sin cambios, Grabar deshabilitado → cambiar un campo → Grabar.
-3. Verificar: queda Verificada; entrar como Luis (`70318246`): tiene «Solicitud por aprobar».
-4. Luis observa con comentario; como Ana: corregir y volver a verificar; Eliminar ya no aparece.
+3. Verificar: queda Verificada; entrar como Mateo (`70318246`): tiene «Solicitud por aprobar».
+4. Mateo observa con comentario; como Victoria: corregir y volver a verificar; Eliminar ya no aparece.
 5. Revisar la consola: sin errores ni endpoints no simulados.
 
 ## 5. Cierre

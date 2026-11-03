@@ -85,22 +85,13 @@ interface Dato {
         <!-- Saldo inicial libro bancos -->
         <siaf-solicitude-form-card [bordered]="lineal" [title]="r.ajuste ? 'Ajuste de saldo inicial libro bancos' : 'Saldo inicial libro bancos'">
           <div class="grid gap-siaf-lg">
-            <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-3">
-              <div>
-                <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia</dt>
-                <dd class="m-0 text-sm">{{ r.secuencia || '-' }}</dd>
-              </div>
-              <div>
-                <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Fecha de operación</dt>
-                <dd class="m-0 text-sm">{{ formatoFecha(r.fechaOperacion) }}</dd>
-              </div>
+            <div class="grid gap-x-siaf-lg gap-y-siaf-md sm:grid-cols-3">
+              <readonly-field caption="Secuencia" [value]="r.secuencia" />
+              <readonly-field caption="Fecha de operación" [value]="formatoFecha(r.fechaOperacion)" />
               @if (r.ajuste) {
-                <div>
-                  <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia de referencia</dt>
-                  <dd class="m-0 text-sm">{{ r.ajuste.secuenciaReferencia }}</dd>
-                </div>
+                <readonly-field caption="Secuencia de referencia" [value]="r.ajuste.secuenciaReferencia" />
               }
-            </dl>
+            </div>
   
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h4>
@@ -119,7 +110,7 @@ interface Dato {
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Saldo inicial</h4>
                 <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
                   @for (d of saldoInicial(); track d.etiqueta) {
-                    <readonly-field [caption]="d.etiqueta" [value]="d.valor" [bold]="true" [highlight]="true" />
+                    <readonly-field [caption]="d.etiqueta" [value]="d.valor" [highlight]="true" />
                   }
                 </div>
               </section>
@@ -128,8 +119,8 @@ interface Dato {
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
               <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" [bold]="true" [highlight]="true" [help]="ayudaImportes" />
-                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" [bold]="true" [highlight]="true" />
+                <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" [highlight]="true" [help]="ayudaImportes" />
+                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" [highlight]="true" />
               </div>
             </section>
   
@@ -212,7 +203,7 @@ interface Dato {
             </section>
   
             <!-- En el historial el estado ya está en el bloque Documento. -->
-            @if (!lineal) {
+            @if (!lineal && r.registroId) {
             <div class="border-t border-[var(--sys-color-divider-default)] px-siaf-sm pt-siaf-md">
               <p class="siaf-text-caption-1 m-0 mb-siaf-xxs text-[var(--sys-color-text-neutral-low)]">Estado de registro</p>
               <siaf-record-status-tag [status]="r.estado" />
@@ -224,14 +215,11 @@ interface Dato {
     }
 
     <ng-template #datos let-lista>
-      <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-3">
+      <div class="grid gap-x-siaf-lg gap-y-siaf-md sm:grid-cols-3">
         @for (d of lista; track d.etiqueta) {
-          <div class="min-w-0">
-            <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">{{ d.etiqueta }}</dt>
-            <dd class="m-0 truncate text-sm" siafTooltip>{{ d.valor }}</dd>
-          </div>
+          <readonly-field [caption]="d.etiqueta" [value]="d.valor" />
         }
-      </dl>
+      </div>
     </ng-template>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

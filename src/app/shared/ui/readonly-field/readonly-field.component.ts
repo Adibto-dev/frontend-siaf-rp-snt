@@ -12,7 +12,7 @@ export const READONLY_LEER_MAS_DESDE = 160;
  * edición. Muestra `--` cuando está vacío. Es lo que pintan `siaf-input`, `siaf-date-time-picker` y
  * `text-area-control` con `[readonly]`: un formulario en modo lectura se ve así sin duplicar el markup.
  *
- * Variantes de Figma: texto, importe (`align="right"`), negrita (`bold`), resaltado (`highlight`, fondo
+ * Variantes de Figma: texto, importe (`align="right"`), negrita por defecto (`bold`, `false` para valor normal), resaltado (`highlight`, fondo
  * `bg-surfaces-highlight`), varios valores como chips (`tags`), estado de registro (`status`), texto largo con
  * «Leer más» (`multiline`) e ícono info con ayuda (`help`, solo si hay texto).
  *
@@ -21,7 +21,7 @@ export const READONLY_LEER_MAS_DESDE = 160;
  * - En el modo lectura de una solicitud: mejor `[readonly]="soloLectura()"` en el campo editable, que pinta este
  *   componente con su mismo caption, valor y asterisco.
  * - Directo para los criterios de búsqueda sobre los resultados de las consultas y la cabecera de un detalle o reporte.
- * - `align="right"` para importes; `bold` o `highlight` para el dato que hay que destacar (total, número).
+ * - `align="right"` para importes; `highlight` para el dato que hay que destacar (total, número).
  * - `tags` para varios valores (select múltiple) y `status` para el estado de un registro.
  * - `multiline` para un texto largo (justificación, descripción): se recorta y «Leer más» lo despliega.
  * - `help` para el ícono info con su explicación; sin texto no se muestra.
@@ -110,11 +110,12 @@ export const READONLY_LEER_MAS_DESDE = 160;
 })
 export class ReadonlyFieldComponent {
   @Input() caption = '';
-  @Input() value: string | number | null = '';
+  @Input() value: string | number | null | undefined = '';
   @Input() required = false;
   /** `right` para importes. */
   @Input() align: 'left' | 'right' = 'left';
-  @Input() bold = false;
+  /** Valor en negrita (por defecto); `false` para un valor normal. */
+  @Input() bold = true;
   /** Fondo `bg-surfaces-highlight` para el dato que hay que destacar. */
   @Input() highlight = false;
   /** Varios valores como chips (select múltiple). */

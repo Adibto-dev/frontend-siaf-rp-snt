@@ -1,16 +1,27 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
+import { Location, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
+
+import { SolicitudesApiService } from '../../../../../core/api/solicitudes-api.service';
 
 import { SolicitudeFormCardComponent } from '../../../../../shared/components/solicitude-form-card/solicitude-form-card.component';
 import { SolicitudePageLayoutComponent } from '../../../../../shared/components/solicitude-page-layout/solicitude-page-layout.component';
 import { MessageBoxComponent } from '../../../../../shared/ui/message-box/message-box.component';
-import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs.util';
 import { SaldosInicialesApiService } from '../../api/saldos-iniciales-api.service';
 import { SaldoDetalleComponent } from '../../components/saldo-detalle/saldo-detalle.component';
 import { PROCESS_ID, PROCESS_ROUTE } from '../../config/saldos-iniciales.rutas';
-import { NOMBRE_AUTOMATICO, NOMBRE_DOCUMENTO, SaldoInicialRegistro } from '../../models/saldo-inicial.model';
+import {
+  CODIGO_AUTOMATICO,
+  MOVIMIENTO_AJUSTE,
+  MOVIMIENTO_APERTURA,
+  MOVIMIENTO_SALDO_INICIAL,
+  NOMBRE_AUTOMATICO,
+  NOMBRE_DOCUMENTO,
+  SaldoInicialRegistro,
+} from '../../models/saldo-inicial.model';
 
 /** Un dato de solo lectura: etiqueta arriba y valor abajo, como en el Figma. */
 interface Dato {
@@ -20,14 +31,17 @@ interface Dato {
 
 /**
  * «Detalle del saldo inicial»: la información consolidada de un registro aprobado (Figma 24028:69253). Se abre al pulsar
- * una fila de la pestaña Registros. Es de solo lectura: tipo de operación, movimiento interno, entidad financiera, el
+ * una fila de la pestaña Registros o una fila de la tabla de su documento (solicitud, apertura o ajuste); desde el
+ * documento, si todavía no está aprobado, muestra el saldo tal como está en el documento y «Regresar» vuelve a él.
+ * Es de solo lectura: tipo de operación, movimiento interno, entidad financiera, el
  * saldo con su cuenta bancaria, tipo de cambio, importes y cuentas de registro, el sustento, el estado del registro y
  * el documento que lo creó.
  */
 @Component({
   selector: 'siaf-saldo-inicial-detalle',
   standalone: true,
-  imports: [MessageBoxComponent, NgTemplateOutlet, SaldoDetalleComponent, SolicitudeFormCardComponent, SolicitudePageLayoutComponent, TooltipDirective],
+  imports: [
+    ReadonlyFieldComponent,MessageBoxComponent, NgTemplateOutlet, SaldoDetalleComponent, SolicitudeFormCardComponent, SolicitudePageLayoutComponent],
   template: `
     <div class="min-h-[calc(100vh-56px)] bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <siaf-solicitude-page-layout
@@ -64,14 +78,11 @@ interface Dato {
     </div>
 
     <ng-template #datos let-lista>
-      <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-3">
+      <div class="grid gap-x-siaf-lg gap-y-siaf-md sm:grid-cols-3">
         @for (d of lista; track d.etiqueta) {
-          <div class="min-w-0">
-            <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">{{ d.etiqueta }}</dt>
-            <dd class="m-0 truncate text-sm" siafTooltip>{{ d.valor }}</dd>
-          </div>
+          <readonly-field [caption]="d.etiqueta" [value]="d.valor" />
         }
-      </dl>
+      </div>
     </ng-template>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -80,6 +91,10 @@ export class SaldoInicialDetalleComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly saldosApi = inject(SaldosInicialesApiService);
+  private readonly solicitudesApi = inject(SolicitudesApiService);
+  private readonly location = inject(Location);
+  /** Abierto desde la tabla de un documento: «Regresar» vuelve a él. */
+  private readonly documentoId = this.route.snapshot.paramMap.get('documentoId');
 
   readonly breadcrumbs = buildProcessBreadcrumbs(PROCESS_ID, PROCESS_ROUTE);
   readonly cargando = signal(true);
@@ -95,6 +110,10 @@ export class SaldoInicialDetalleComponent {
   });
 
   constructor() {
+    if (this.documentoId) {
+      this.cargarDesdeDocumento(this.documentoId, this.route.snapshot.paramMap.get('saldoId'));
+      return;
+    }
     const id = this.route.snapshot.paramMap.get('registroId');
     this.saldosApi.listarRegistros().subscribe({
       next: (registros) => {
@@ -105,7 +124,41 @@ export class SaldoInicialDetalleComponent {
     });
   }
 
+  /** Aprobado: su registro. Si no, el saldo tal como está en el documento (todavía sin registro ni estado). */
+  private cargarDesdeDocumento(documentoId: string, saldoId: string | null): void {
+    forkJoin([this.saldosApi.listarRegistros(), this.solicitudesApi.obtenerDetalle(documentoId)]).subscribe({
+      next: ([registros, s]) => {
+        const registro = registros.find((r) => r.documentoId === documentoId && r.id === saldoId);
+        const saldo = s.detalleSaldosIniciales?.saldos.find((x) => x.id === saldoId);
+        const automatico = s.catDocumento?.codigo === CODIGO_AUTOMATICO;
+        this.registro.set(
+          registro ??
+            (saldo
+              ? {
+                  ...saldo,
+                  registroId: '',
+                  estado: 'Inactivo',
+                  movimiento: saldo.ajuste ? MOVIMIENTO_AJUSTE : automatico ? MOVIMIENTO_APERTURA : MOVIMIENTO_SALDO_INICIAL,
+                  entidadFinanciera: s.detalleSaldosIniciales?.entidadFinanciera ?? '',
+                  entidadSiglas: s.entidadCreadora?.siglas ?? '',
+                  documentoId,
+                  numeroDocumento: s.numero ?? '',
+                  fechaRegistro: s.createdAt,
+                  automatico,
+                }
+              : null),
+        );
+        this.cargando.set(false);
+      },
+      error: () => this.cargando.set(false),
+    });
+  }
+
   regresar(): void {
+    if (this.documentoId) {
+      this.location.back();
+      return;
+    }
     void this.router.navigate([PROCESS_ROUTE], { queryParams: { tab: 'records' } });
   }
 }

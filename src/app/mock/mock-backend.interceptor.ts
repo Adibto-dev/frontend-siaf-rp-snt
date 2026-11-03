@@ -571,7 +571,7 @@ const registrosAutorizacion: Manejador = ({ datos, sesion }) =>
   ok(datos.registrosAutorizacion.filter((r) => !sesion || r.entidadSiglas === sesion.perfil.entidadSiglas));
 
 /**
- * Autorizaciones vigentes para ajustar el saldo inicial: solo para el creador que hace el ajuste (Ana). Una por cuenta
+ * Autorizaciones vigentes para ajustar el saldo inicial: solo para el creador que hace el ajuste (Victoria). Una por cuenta
  * con saldo inicial (la de mayor fecha hasta).
  */
 const autorizacionesVigentes: Manejador = ({ datos, sesion }) => {
