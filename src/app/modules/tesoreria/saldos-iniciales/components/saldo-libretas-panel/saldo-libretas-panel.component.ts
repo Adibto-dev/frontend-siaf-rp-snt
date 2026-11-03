@@ -20,7 +20,7 @@ import {
   saldoActualizado,
 } from '../../models/saldo-inicial.model';
 
-type LibretaVista = CuentaRegistro & { importe: number; importeNacional: number; saldoActual: number };
+type LibretaVista = CuentaRegistro & { importe: number; importeNacional: number; saldoInicial: number; saldoActual: number };
 
 const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase().includes(busqueda.trim().toLowerCase());
 
@@ -102,7 +102,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                   <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
                   <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libretas</th>
                   @if (s.ajuste) {
-                    <th class="siaf-table-th siaf-table-th--grupo" colspan="1">Saldo</th>
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Saldo</th>
                   }
                 </tr>
                 <tr class="siaf-table-head-row">
@@ -112,7 +112,8 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                   <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
                   <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
                   @if (s.ajuste) {
-                    <th class="siaf-table-th w-[150px] text-right">Act.</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[150px] text-right" [siafTooltip]="abrev.saldoInicial.termino">{{ abrev.saldoInicial.abreviatura }}</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[150px] text-right" [siafTooltip]="abrev.saldoActualizadoEnGrupo.termino">{{ abrev.saldoActualizadoEnGrupo.abreviatura }}</th>
                   }
                 </tr>
               </thead>
@@ -126,12 +127,13 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                     <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importe) }}</td>
                     <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importeNacional) }}</td>
                     @if (s.ajuste) {
+                      <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoInicial) }}</td>
                       <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoActual) }}</td>
                     }
                   </tr>
                 } @empty {
                   <tr class="siaf-table-row">
-                    <td class="siaf-table-td text-center" [attr.colspan]="s.ajuste ? 7 : 6">No se encontraron cuentas de registro.</td>
+                    <td class="siaf-table-td text-center" [attr.colspan]="s.ajuste ? 8 : 6">No se encontraron cuentas de registro.</td>
                   </tr>
                 }
               </tbody>
@@ -204,6 +206,7 @@ export class SaldoLibretasPanelComponent {
           ...l,
           importe: libreta.importe,
           importeNacional: redondear(libreta.importe * s.tipoCambio),
+          saldoInicial: iniciales.get(l.idCorrelativo) ?? 0,
           saldoActual: s.ajuste ? saldoActualizado(iniciales.get(l.idCorrelativo) ?? 0, libreta.importe, libreta.naturaleza ?? s.ajuste.naturaleza) : 0,
         };
       })

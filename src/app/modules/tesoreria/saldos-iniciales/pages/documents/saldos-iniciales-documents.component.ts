@@ -32,8 +32,6 @@ import {
   entidadPorCodigo,
   formatoFecha,
   formatoImporte,
-  redondear,
-  saldoActualizado,
 } from '../../models/saldo-inicial.model';
 import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 
@@ -156,9 +154,6 @@ export class SaldosInicialesDocumentsComponent implements OnInit {
     // Lo último registrado arriba: secuencia de mayor a menor.
     const ordenados = [...this.registros()].sort((a, b) => (b.secuencia ?? '').localeCompare(a.secuencia ?? ''));
     const recordRows: DocumentsRecordsRow[] = ordenados.map((r) => {
-      // En un ajuste, libro bancos muestra el saldo después del ajuste.
-      const cuenta = r.ajuste ? saldoActualizado(r.ajuste.saldoInicial, r.importeCuenta, r.ajuste.naturaleza) : r.importeCuenta;
-      const nacional = r.ajuste ? redondear(cuenta * r.tipoCambio) : r.importeNacional;
       return {
       recordId: r.registroId,
       status: r.estado,
@@ -172,8 +167,9 @@ export class SaldosInicialesDocumentsComponent implements OnInit {
       movimiento: r.movimiento,
       descripcion: r.automatico ? NOMBRE_AUTOMATICO : NOMBRE_DOCUMENTO,
       sustento: r.sustento ?? undefined,
-      importeCuenta: formatoImporte(cuenta),
-      importeNacional: formatoImporte(nacional),
+      // Lo ingresado por el usuario (en un ajuste, el importe del ajuste; no el saldo acumulado).
+      importeCuenta: formatoImporte(r.importeCuenta),
+      importeNacional: formatoImporte(r.importeNacional),
       // Para el historial del registro: el documento que lo creó.
       document: r.automatico ? NOMBRE_AUTOMATICO : NOMBRE_DOCUMENTO,
       documentId: r.documentoId,

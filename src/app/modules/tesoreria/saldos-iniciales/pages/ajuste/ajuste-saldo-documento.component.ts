@@ -121,7 +121,7 @@ const ESTADOS: Record<string, FlowStatus> = {
                     <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Cuenta bancaria</th>
                     <th class="siaf-table-th siaf-table-th--grupo" colspan="2">{{ naturaleza() }}</th>
                     <th class="siaf-table-th w-[150px] text-right" rowspan="2">Saldo inicial</th>
-                    <th class="siaf-table-th w-[150px] text-right" rowspan="2">Saldo act.</th>
+                    <th class="siaf-table-th w-[150px] text-right" rowspan="2" [siafTooltip]="abrev.saldoActualizado.termino">{{ abrev.saldoActualizado.abreviatura }}</th>
                     <th class="siaf-table-th w-[96px]" rowspan="2"><span class="sr-only">Acciones</span></th>
                   </tr>
                   <tr class="siaf-table-head-row">

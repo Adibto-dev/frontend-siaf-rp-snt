@@ -121,8 +121,8 @@
                     <th class="siaf-table-th siaf-table-th--grupo-fin w-[90px]">Moneda</th>
                     <th class="siaf-table-th siaf-table-th--grupo-inicio w-[150px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
                     <th class="siaf-table-th siaf-table-th--grupo-fin w-[150px] text-right" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
-                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[140px] text-right">Inicial</th>
-                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[140px] text-right">Act.</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[140px] text-right" [siafTooltip]="abrev.saldoInicial.termino">{{ abrev.saldoInicial.abreviatura }}</th>
+                    <th class="siaf-table-th siaf-table-th--grupo-fin w-[140px] text-right" [siafTooltip]="abrev.saldoActualizadoEnGrupo.termino">{{ abrev.saldoActualizadoEnGrupo.abreviatura }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -485,8 +485,8 @@
                         <th class="siaf-table-th siaf-table-th--grupo-inicio w-[190px]" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
                         <th class="siaf-table-th siaf-table-th--grupo-fin w-[180px]" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
                         @if (esAjuste()) {
-                          <th class="siaf-table-th siaf-table-th--grupo-inicio w-[130px] text-right">Inicial</th>
-                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[130px] text-right">Act.</th>
+                          <th class="siaf-table-th siaf-table-th--grupo-inicio w-[130px] text-right" [siafTooltip]="abrev.saldoInicial.termino">{{ abrev.saldoInicial.abreviatura }}</th>
+                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[130px] text-right" [siafTooltip]="abrev.saldoActualizadoEnGrupo.termino">{{ abrev.saldoActualizadoEnGrupo.abreviatura }}</th>
                         }
                       </tr>
                     </thead>

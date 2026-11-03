@@ -17,6 +17,10 @@ export const ABREVIATURAS = {
   importeCuenta: { abreviatura: 'Imp. M. Cuenta', termino: 'Importe en moneda de la cuenta' },
   importeNacional: { abreviatura: 'Imp. M. Nacional', termino: 'Importe en moneda nacional' },
   idCorrelativo: { abreviatura: 'ID Corr.', termino: 'ID correlativo' },
+  saldoActualizado: { abreviatura: 'Saldo act.', termino: 'Saldo actualizado' },
+  /** Subcolumnas del grupo «Saldo» (ajuste de saldo inicial): Inicial y Act. */
+  saldoInicial: { abreviatura: 'Inicial', termino: 'Saldo inicial' },
+  saldoActualizadoEnGrupo: { abreviatura: 'Act.', termino: 'Saldo actualizado' },
 } as const satisfies Record<string, Abreviatura>;
 
 export type TerminoAbreviado = keyof typeof ABREVIATURAS;

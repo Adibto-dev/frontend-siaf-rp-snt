@@ -136,7 +136,7 @@ interface Dato {
                       <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
                       <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libretas</th>
                       @if (r.ajuste) {
-                        <th class="siaf-table-th w-[150px] text-right" rowspan="2">Saldo act.</th>
+                        <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Saldo</th>
                       }
                     </tr>
                     <tr class="siaf-table-head-row">
@@ -145,6 +145,10 @@ interface Dato {
                       <th class="siaf-table-th siaf-table-th--grupo-fin">Descripción</th>
                       <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
                       <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
+                      @if (r.ajuste) {
+                        <th class="siaf-table-th siaf-table-th--grupo-inicio w-[150px] text-right" [siafTooltip]="abrev.saldoInicial.termino">{{ abrev.saldoInicial.abreviatura }}</th>
+                        <th class="siaf-table-th siaf-table-th--grupo-fin w-[150px] text-right" [siafTooltip]="abrev.saldoActualizadoEnGrupo.termino">{{ abrev.saldoActualizadoEnGrupo.abreviatura }}</th>
+                      }
                     </tr>
                   </thead>
                   <tbody>
@@ -157,12 +161,13 @@ interface Dato {
                         <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importe) }}</td>
                         <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importeNacional) }}</td>
                         @if (r.ajuste) {
+                          <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoInicial) }}</td>
                           <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoActualizado) }}</td>
                         }
                       </tr>
                     } @empty {
                       <tr class="siaf-table-row">
-                        <td class="siaf-table-td text-center" [attr.colspan]="r.ajuste ? 7 : 6">No se encontraron cuentas de registro.</td>
+                        <td class="siaf-table-td text-center" [attr.colspan]="r.ajuste ? 8 : 6">No se encontraron cuentas de registro.</td>
                       </tr>
                     }
                   </tbody>
@@ -326,6 +331,7 @@ export class SaldoDetalleComponent {
     return cuentasRegistroDe(r.cuentaBancaria)
       .filter((l) => importes.has(l.idCorrelativo))
       .map((l) => ({ ...l, importe: importes.get(l.idCorrelativo)!, importeNacional: redondear(importes.get(l.idCorrelativo)! * r.tipoCambio),
+        saldoInicial: iniciales.get(l.idCorrelativo) ?? 0,
         saldoActualizado: r.ajuste ? saldoActualizado(iniciales.get(l.idCorrelativo) ?? 0, importes.get(l.idCorrelativo)!, r.ajuste.naturaleza) : 0,
       }))
       .filter((l) => !q || [l.idCorrelativo, l.numero, l.descripcion].some((v) => contiene(v, q)));

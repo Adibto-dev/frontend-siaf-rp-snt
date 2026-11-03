@@ -83,7 +83,7 @@ usuarios de demostración, el recorrido de la clase y cómo sumar un proceso.
 - **Abreviaturas en cabeceras**: salen del glosario `ABREVIATURAS` (`shared/utils/abreviaturas.util.ts`), nunca a mano.
   La cabecera muestra la abreviatura y el tooltip el término completo (`[siafTooltip]="abrev.x.termino"` en un `th`;
   `tooltip` en `DocumentsRecordsColumn`); el Excel exportado usa el término completo. Hoy: Sec., F. Operación,
-  Imp. M. Cuenta, Imp. M. Nacional e ID Corr. Un término nuevo se agrega primero al glosario.
+  Imp. M. Cuenta, Imp. M. Nacional, ID Corr., Saldo act. y, en el grupo «Saldo», Inicial y Act. Un término nuevo se agrega primero al glosario.
 - **Estados**: `siaf-flow-status-tag` (documento) y `siaf-record-status-tag` (registro).
 - **Formularios de solicitud**: «Grabar» solo con cambios (foto del formulario con `shared/utils/form-snapshot.util.ts`
   al entrar a editar); el sustento se toma en `(confirmed)` de `siaf-upload-side-nav`; las acciones de aprobar,
