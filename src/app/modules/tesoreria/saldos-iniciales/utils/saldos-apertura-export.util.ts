@@ -1,3 +1,4 @@
+import { ABREVIATURAS } from '../../../../shared/utils/abreviaturas.util';
 import { SaldoInicial, cuentaPorNumero, cuentasRegistroDe, entidadPorCodigo, formatoFecha, redondear } from '../models/saldo-inicial.model';
 
 function descargar(blob: Blob, nombre: string): void {
@@ -20,17 +21,17 @@ export async function descargarSaldosApertura(numero: string, entidadCodigo: str
   const entidad = entidadPorCodigo(entidadCodigo);
 
   hoja.columns = [
-    { header: 'Secuencia', key: 'secuencia', width: 12 },
-    { header: 'F. operación', key: 'fecha', width: 14 },
+    { header: ABREVIATURAS.secuencia.termino, key: 'secuencia', width: 12 },
+    { header: ABREVIATURAS.fechaOperacion.termino, key: 'fecha', width: 20 },
     { header: 'Entidad financiera', key: 'entidad', width: 34 },
     { header: 'Cuenta bancaria', key: 'cuenta', width: 24 },
     { header: 'Denominación', key: 'denominacion', width: 24 },
     { header: 'Moneda', key: 'moneda', width: 9 },
-    { header: 'ID corr.', key: 'idCorrelativo', width: 10 },
+    { header: ABREVIATURAS.idCorrelativo.termino, key: 'idCorrelativo', width: 16 },
     { header: 'Cuenta de registro', key: 'numero', width: 34 },
     { header: 'Descripción', key: 'descripcion', width: 44 },
-    { header: 'Imp. M. cuenta', key: 'importe', width: 16, style: { numFmt: '#,##0.00' } },
-    { header: 'Imp. M. nacional', key: 'nacional', width: 16, style: { numFmt: '#,##0.00' } },
+    { header: ABREVIATURAS.importeCuenta.termino, key: 'importe', width: 32, style: { numFmt: '#,##0.00' } },
+    { header: ABREVIATURAS.importeNacional.termino, key: 'nacional', width: 28, style: { numFmt: '#,##0.00' } },
   ];
   hoja.getRow(1).font = { bold: true };
 

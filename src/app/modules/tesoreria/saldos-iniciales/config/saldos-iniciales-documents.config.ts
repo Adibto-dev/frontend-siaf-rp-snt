@@ -1,3 +1,4 @@
+import { ABREVIATURAS } from '../../../../shared/utils/abreviaturas.util';
 import { ESTADO } from '../../../../core/models/documento.model';
 import type {
   DocumentsRecordsColumn,
@@ -38,13 +39,13 @@ const documentColumns: DocumentsRecordsColumn[] = [
 
 // Orden, textos y grupos de cabecera del Figma (tabla «Saldos-iniciales-cuentas-bancarias»).
 const recordColumns: DocumentsRecordsColumn[] = [
-  { key: 'secuencia', label: 'Sec.', visibility: 'visible', group: 'default', widthClass: 'w-[100px]' },
-  { key: 'fechaOperacion', label: 'F. operación', visibility: 'visible', group: 'default', widthClass: 'w-[140px]' },
+  { key: 'secuencia', label: ABREVIATURAS.secuencia.abreviatura, tooltip: ABREVIATURAS.secuencia.termino, visibility: 'visible', group: 'default', widthClass: 'w-[100px]' },
+  { key: 'fechaOperacion', label: ABREVIATURAS.fechaOperacion.abreviatura, tooltip: ABREVIATURAS.fechaOperacion.termino, visibility: 'visible', group: 'default', widthClass: 'w-[140px]' },
   { key: 'numeroCuenta', label: 'Número', headerGroup: 'Cuenta bancaria', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
   { key: 'moneda', label: 'Moneda', headerGroup: 'Cuenta bancaria', visibility: 'visible', group: 'default', widthClass: 'w-[90px]' },
   { key: 'movimiento', label: 'Movimiento', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
-  { key: 'importeCuenta', label: 'Imp. M. cuenta', headerGroup: 'Libro bancos', visibility: 'visible', group: 'default', widthClass: 'w-[160px]', align: 'right' },
-  { key: 'importeNacional', label: 'Imp. M. nacional', headerGroup: 'Libro bancos', visibility: 'visible', group: 'default', widthClass: 'w-[160px]', align: 'right' },
+  { key: 'importeCuenta', label: ABREVIATURAS.importeCuenta.abreviatura, tooltip: ABREVIATURAS.importeCuenta.termino, headerGroup: 'Libro bancos', visibility: 'visible', group: 'default', widthClass: 'w-[160px]', align: 'right' },
+  { key: 'importeNacional', label: ABREVIATURAS.importeNacional.abreviatura, tooltip: ABREVIATURAS.importeNacional.termino, headerGroup: 'Libro bancos', visibility: 'visible', group: 'default', widthClass: 'w-[160px]', align: 'right' },
   { key: 'status', label: 'Estado de registro', visibility: 'visible', group: 'default', widthClass: 'w-[120px]', kind: 'record-status' },
   { key: 'number', label: 'Número', headerGroup: 'Documentos', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
   { key: 'descripcion', label: 'Descripción', headerGroup: 'Documentos', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },

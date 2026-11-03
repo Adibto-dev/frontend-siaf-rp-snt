@@ -5,7 +5,8 @@ import { IconComponent } from '../../ui/icon/icon.component';
 /**
  * Tarjeta de sección de las pantallas de solicitud y de los formularios de Admin: cabecera con el título en
  * mayúsculas (`h2`), un ícono (i) opcional con `titleInfo` y las acciones proyectadas con el atributo `card-actions`,
- * y debajo el cuerpo proyectado.
+ * y debajo el cuerpo proyectado. Con `bordered` la tarjeta lleva borde (card lineal), para apilarla sobre otra
+ * superficie blanca, como en el historial de un registro.
  *
  * Con `loading` la cabecera muestra una barra gris animada en lugar del título. Sin `title` ni `loading` no se pinta
  * la cabecera, así que tampoco aparecen las `card-actions`.
@@ -41,7 +42,7 @@ import { IconComponent } from '../../ui/icon/icon.component';
   standalone: true,
   imports: [IconComponent],
   template: `
-    <section class="rounded-siaf-md bg-surface">
+    <section class="rounded-siaf-md bg-surface" [class.border]="bordered" [class.border-[var(--sys-color-divider-strong)]]="bordered">
       @if (loading) {
         <header class="flex min-h-14 items-center justify-between gap-siaf-md px-siaf-lg pt-siaf-md">
           <div class="h-4 w-48 rounded bg-[var(--sys-color-bg-surfaces-surface-low)] siaf-skeleton-pulse"></div>
@@ -85,4 +86,6 @@ export class SolicitudeFormCardComponent {
   /** Tooltip del ícono (i) junto al título; si está vacío no se muestra el ícono. */
   @Input() titleInfo = '';
   @Input() loading = false;
+  /** Card lineal: con borde, para secciones sobre una superficie blanca (historial de un registro). */
+  @Input() bordered = false;
 }

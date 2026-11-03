@@ -69,7 +69,7 @@ const TIPOS = [CODIGO_DOCUMENTO, CODIGO_AUTOMATICO];
     <siaf-saldo-libretas-panel [saldo]="registroCuentas()" (closed)="registroCuentas.set(null)" />
 
     <!-- Historial del registro: documentos de la misma cuenta bancaria -->
-    <siaf-saldo-historial-panel [registro]="registroHistorial()" [registros]="registrosCargados()" (closed)="registroHistorial.set(null)" />
+    <siaf-saldo-historial-panel [registro]="registroHistorial()" (closed)="registroHistorial.set(null)" />
 
     <!-- Ver documento de sustento en el visor de PDF (sin archivo guardado, uno de ejemplo) -->
     <siaf-saldo-sustento-visor [saldo]="sustentoVisto()" (closed)="sustentoVisto.set(null)" />
@@ -94,7 +94,6 @@ export class SaldosInicialesDocumentsComponent implements OnInit {
   readonly registroCuentas = signal<SaldoInicialRegistro | null>(null);
   /** Registro cuyo historial se ve a pantalla completa. */
   readonly registroHistorial = signal<SaldoInicialRegistro | null>(null);
-  readonly registrosCargados = this.registros.asReadonly();
   /** Registro cuyo documento de sustento se ve en el visor de PDF. */
   readonly sustentoVisto = signal<SaldoConSustento | null>(null);
 

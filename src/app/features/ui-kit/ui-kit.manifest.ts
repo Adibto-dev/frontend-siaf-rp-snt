@@ -11960,10 +11960,17 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "components",
     "importacion": "@siaf/shared/components/solicitude-form-card/solicitude-form-card.component",
     "archivo": "src/app/shared/components/solicitude-form-card/solicitude-form-card.component.ts",
-    "descripcion": "Tarjeta de sección de las pantallas de solicitud y de los formularios de Admin: cabecera con el título en\nmayúsculas (`h2`), un ícono (i) opcional con `titleInfo` y las acciones proyectadas con el atributo `card-actions`,\ny debajo el cuerpo proyectado.\n\nCon `loading` la cabecera muestra una barra gris animada en lugar del título. Sin `title` ni `loading` no se pinta\nla cabecera, así que tampoco aparecen las `card-actions`.",
+    "descripcion": "Tarjeta de sección de las pantallas de solicitud y de los formularios de Admin: cabecera con el título en\nmayúsculas (`h2`), un ícono (i) opcional con `titleInfo` y las acciones proyectadas con el atributo `card-actions`,\ny debajo el cuerpo proyectado. Con `bordered` la tarjeta lleva borde (card lineal), para apilarla sobre otra\nsuperficie blanca, como en el historial de un registro.\n\nCon `loading` la cabecera muestra una barra gris animada en lugar del título. Sin `title` ni `loading` no se pinta\nla cabecera, así que tampoco aparecen las `card-actions`.",
     "usaSesion": false,
     "proyectaContenido": true,
     "entradas": [
+      {
+        "nombre": "bordered",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Card lineal: con borde, para secciones sobre una superficie blanca (historial de un registro)."
+      },
       {
         "nombre": "loading",
         "tipo": "boolean",
@@ -12005,6 +12012,12 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       },
       {
         "token": "--sys-color-bg-surfaces-surface-low",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-divider-strong",
         "via": [
           "var()"
         ]
@@ -15562,6 +15575,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "proyectaContenido": false,
     "entradas": [
       {
+        "nombre": "downloadable",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Muestra «Descargar archivo»; al pulsarlo emite `downloaded` (quien la usa entrega el archivo)."
+      },
+      {
         "nombre": "error",
         "tipo": "string",
         "porDefecto": "''",
@@ -15592,6 +15612,11 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     ],
     "eventos": [
       {
+        "nombre": "downloaded",
+        "tipo": "void",
+        "descripcion": null
+      },
+      {
         "nombre": "removed",
         "tipo": "void",
         "descripcion": null
@@ -15602,9 +15627,9 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       }
     ],
-    "usar": "- Para el documento de sustento ya adjunto en las solicitudes: cuenta contable, carga masiva, clase de ajuste, tipo\n  de asiento, asiento de ajuste, evento, evento contable y apertura contable.\n- Con `[readonly]` en modo consulta o en un detalle, donde el adjunto se ve pero no se reemplaza ni se quita.\n- Con `[error]` cuando el archivo adjunto no se pudo cargar.\n- Con `[viewable]` para mostrar «Ver archivo» (`visibility`): emite `(viewed)` y quien la usa abre `siaf-pdf-viewer`.",
+    "usar": "- Para el documento de sustento ya adjunto en las solicitudes: cuenta contable, carga masiva, clase de ajuste, tipo\n  de asiento, asiento de ajuste, evento, evento contable y apertura contable.\n- Con `[readonly]` en modo consulta o en un detalle, donde el adjunto se ve pero no se reemplaza ni se quita.\n- Con `[error]` cuando el archivo adjunto no se pudo cargar.\n- Con `[viewable]` para mostrar «Ver archivo» (`visibility`): emite `(viewed)` y quien la usa abre `siaf-pdf-viewer`.\n- Con `[downloadable]` para mostrar «Descargar archivo» (`download`): emite `(downloaded)` y quien la usa entrega el\n  archivo (por ejemplo, en un historial de solo lectura).",
     "evitar": "- Para elegir o arrastrar el archivo: usar `siaf-upload-side-nav` (o `siaf-uploader` embebido); esta tarjeta solo\n  muestra el que ya está adjunto.\n- Para el aviso «No se han adjuntado archivos»: usar `message-box` en vez del bloque gris que hoy repiten a mano las\n  solicitudes.\n- Para el avance de una subida en curso: usar las tarjetas de progreso de `siaf-uploader`.",
-    "teclado": "- **Tab**: pasa por «Ver archivo» (con `viewable`) y «Quitar archivo»; con `readonly` y sin `viewable` la tarjeta no\n  recibe foco.\n- **Enter / Espacio**: ejecutan la acción del botón enfocado.",
+    "teclado": "- **Tab**: pasa por «Ver archivo» (con `viewable`), «Descargar archivo» (con `downloadable`) y «Quitar archivo»; con\n  `readonly` y sin esas acciones la tarjeta no recibe foco.\n- **Enter / Espacio**: ejecutan la acción del botón enfocado.",
     "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: «Quitar archivo» es un `<button>` nativo con `aria-label`; los íconos son\n  decorativos.\n- **4.1.3 Mensajes de estado (AA)**: el mensaje de error va con `role=\"alert\"` y se anuncia al aparecer.\n- **1.4.1 Uso del color (A)**: el estado fallido, además del rojo, muestra el mensaje en lugar del peso.\n- **Pendiente · 2.1.1 Teclado (A)**: un nombre largo se corta y el completo solo aparece con el mouse o una pulsación\n  larga: el `siafTooltip` está en un texto que no recibe foco.\n- **2.4.7 Foco visible (AA)**: los botones no definen estilo de foco; queda el anillo nativo del navegador.\n- **1.4.11 Contraste no textual (AA)**: los íconos de acción van en `text-neutral-low` 5.01:1 y, si falló, en\n  `text-feedback-danger` 9.84:1.\n- **1.4.3 Contraste mínimo (AA)**: nombre `text-neutral-high` 16.29:1, peso `text-neutral-low` 5.01:1 y error\n  `text-feedback-danger` 9.84:1.\n- **2.5.8 Tamaño del objetivo (AA)**: cada botón mide 24 × 24 px (`size-6`), justo el mínimo.",
     "figma": [
       {

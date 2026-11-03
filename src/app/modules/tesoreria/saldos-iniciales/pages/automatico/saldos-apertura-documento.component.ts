@@ -1,3 +1,4 @@
+import { ABREVIATURAS } from '../../../../../shared/utils/abreviaturas.util';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -132,8 +133,8 @@ function fechaHora(iso: string | null | undefined): string {
                   <caption class="sr-only">Saldos iniciales libro bancos del documento {{ s.numero }}</caption>
                   <thead>
                     <tr class="siaf-table-head-row">
-                      <th class="siaf-table-th w-[100px]" rowspan="2">Sec.</th>
-                      <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
+                      <th class="siaf-table-th w-[100px]" rowspan="2" [siafTooltip]="abrev.secuencia.termino">{{ abrev.secuencia.abreviatura }}</th>
+                      <th class="siaf-table-th w-[130px]" rowspan="2" [siafTooltip]="abrev.fechaOperacion.termino">{{ abrev.fechaOperacion.abreviatura }}</th>
                       <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Cuenta bancaria</th>
                       <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libro bancos</th>
                       <th class="siaf-table-th w-[64px]" rowspan="2"><span class="sr-only">Acciones</span></th>
@@ -141,8 +142,8 @@ function fechaHora(iso: string | null | undefined): string {
                     <tr class="siaf-table-head-row">
                       <th class="siaf-table-th siaf-table-th--grupo-inicio">Número</th>
                       <th class="siaf-table-th siaf-table-th--grupo-fin w-[100px]">Moneda</th>
-                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right">Imp. M. cuenta</th>
-                      <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right">Imp. M. nacional</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -227,6 +228,8 @@ function fechaHora(iso: string | null | undefined): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SaldosAperturaDocumentoComponent {
+  /** Abreviaturas de las cabeceras (tooltip con el término completo). */
+  readonly abrev = ABREVIATURAS;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly solicitudesApi = inject(SolicitudesApiService);

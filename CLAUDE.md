@@ -80,6 +80,10 @@ usuarios de demostración, el recorrido de la clase y cómo sumar un proceso.
 - **Tablas**: paginación con `siaf-pagination`; filas por página de 25 a 100 (`FILAS_POR_PAGINA_OPCIONES`, inicial
   `FILAS_POR_PAGINA`, en `pagination.component.ts`). Con 25 filas o menos el paginador se oculta solo. No pasar
   `rowsPerPageOptions` propias ni tamaños de 10.
+- **Abreviaturas en cabeceras**: salen del glosario `ABREVIATURAS` (`shared/utils/abreviaturas.util.ts`), nunca a mano.
+  La cabecera muestra la abreviatura y el tooltip el término completo (`[siafTooltip]="abrev.x.termino"` en un `th`;
+  `tooltip` en `DocumentsRecordsColumn`); el Excel exportado usa el término completo. Hoy: Sec., F. Operación,
+  Imp. M. Cuenta, Imp. M. Nacional e ID Corr. Un término nuevo se agrega primero al glosario.
 - **Estados**: `siaf-flow-status-tag` (documento) y `siaf-record-status-tag` (registro).
 - **Formularios de solicitud**: «Grabar» solo con cambios (foto del formulario con `shared/utils/form-snapshot.util.ts`
   al entrar a editar); el sustento se toma en `(confirmed)` de `siaf-upload-side-nav`; las acciones de aprobar,

@@ -87,7 +87,7 @@ export type DocumentsRecordsSelectionChange = {
             @for (celda of cabeceraSuperior; track celda.clave) {
               @if (celda.columna; as column) {
                 <!-- MFD RF-01: al superponer el mouse se muestra el texto completo de la columna -->
-                <th class="truncate px-siaf-md py-siaf-sm" scope="col" siafTooltip [attr.rowspan]="conGrupos ? 2 : null" [ngClass]="[column.widthClass || 'w-[180px]', column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left']">{{ column.label }}</th>
+                <th class="truncate px-siaf-md py-siaf-sm" scope="col" [siafTooltip]="column.tooltip ?? ''" [attr.rowspan]="conGrupos ? 2 : null" [ngClass]="[column.widthClass || 'w-[180px]', column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left']">{{ column.label }}</th>
               } @else {
                 <th class="siaf-table-th--grupo truncate px-siaf-md py-siaf-sm" scope="colgroup" siafTooltip [attr.colspan]="celda.span">{{ celda.grupo }}</th>
               }
@@ -97,7 +97,7 @@ export type DocumentsRecordsSelectionChange = {
           @if (conGrupos) {
             <tr class="siaf-text-caption-1-bold-caps h-10 bg-surface-high text-text">
               @for (column of columnasAgrupadas; track column.key) {
-                <th class="truncate px-siaf-md py-siaf-sm" scope="col" siafTooltip [class.siaf-table-th--grupo-inicio]="bordesDeGrupo.inicio.has(column.key)" [class.siaf-table-th--grupo-fin]="bordesDeGrupo.fin.has(column.key)" [ngClass]="[column.widthClass || 'w-[180px]', column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left']">{{ column.label }}</th>
+                <th class="truncate px-siaf-md py-siaf-sm" scope="col" [siafTooltip]="column.tooltip ?? ''" [class.siaf-table-th--grupo-inicio]="bordesDeGrupo.inicio.has(column.key)" [class.siaf-table-th--grupo-fin]="bordesDeGrupo.fin.has(column.key)" [ngClass]="[column.widthClass || 'w-[180px]', column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left']">{{ column.label }}</th>
               }
             </tr>
           }

@@ -41,6 +41,11 @@ import { DATOS_RESUMEN_DE_MUESTRA } from './reporte-de-muestra';
             <siaf-input label="Año fiscal" value="2026" />
           </div>
         </siaf-solicitude-form-card>
+        <div class="mt-siaf-md">
+          <siaf-solicitude-form-card title="Tipo de operación del saldo (bordered)" [bordered]="true">
+            <p class="m-0 text-sm">Card lineal: con borde, para apilar secciones sobre una superficie blanca.</p>
+          </siaf-solicitude-form-card>
+        </div>
       }
       @case ('siaf-solicitude-info-card') {
         <siaf-solicitude-info-card [fields]="datos" />

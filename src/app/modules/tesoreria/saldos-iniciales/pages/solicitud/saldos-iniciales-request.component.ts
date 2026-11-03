@@ -1,3 +1,4 @@
+import { ABREVIATURAS } from '../../../../../shared/utils/abreviaturas.util';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
@@ -82,6 +83,7 @@ import {
 } from '../../models/saldo-inicial.model';
 
 import { fechaElaboracion } from '../../../../../shared/utils/fecha.util';
+
 /** Lo que se está llenando en «Agregar saldo inicial libro bancos». */
 interface Borrador {
   fechaOperacion: string;
@@ -168,6 +170,8 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SaldosInicialesRequestComponent implements OnInit {
+  /** Abreviaturas de las cabeceras (tooltip con el término completo). */
+  readonly abrev = ABREVIATURAS;
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly currentUser = inject(CurrentUserService);
@@ -310,7 +314,7 @@ export class SaldosInicialesRequestComponent implements OnInit {
   readonly formatoImporte = formatoImporte;
   readonly formatoFecha = formatoFecha;
   readonly ayudaSecuencia = 'La secuencia será asignado automáticamente por el sistema tras la aprobación del registro.';
-  readonly ayudaImportes = 'Suma automática de las cuentas de registro.';
+  readonly ayudaImportes = 'Suma automática de los importes de las cuentas de registros.';
 
   readonly camposMovimiento: SummaryCardField[] = [
     { label: 'Código', value: MOVIMIENTO_INTERNO.codigo },

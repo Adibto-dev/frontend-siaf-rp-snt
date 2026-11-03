@@ -1,12 +1,12 @@
+import { ABREVIATURAS } from '../../../../../shared/utils/abreviaturas.util';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
 
 import { FormTableSearchComponent } from '../../../../../shared/components/form-table-search/form-table-search.component';
 import { PaginationComponent } from '../../../../../shared/components/pagination/pagination.component';
 import { ExpansionPanelComponent } from '../../../../../shared/ui/expansion-panel/expansion-panel.component';
-import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { SidePanelComponent } from '../../../../../shared/ui/side-panel/side-panel.component';
 import { SummaryCardComponent, SummaryCardField } from '../../../../../shared/ui/summary-card/summary-card.component';
-import { TextFieldComponent } from '../../../../../shared/ui/text-field/text-field.component';
+import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import {
   CuentaRegistro,
@@ -17,15 +17,19 @@ import {
   formatoFecha,
   formatoImporte,
   redondear,
+  saldoActualizado,
 } from '../../models/saldo-inicial.model';
 
-type LibretaVista = CuentaRegistro & { importe: number; importeNacional: number };
+type LibretaVista = CuentaRegistro & { importe: number; importeNacional: number; saldoActual: number };
 
 const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase().includes(busqueda.trim().toLowerCase());
 
 /**
  * Panel lateral «Saldos iniciales libretas»: datos de la cuenta bancaria de un saldo y la tabla de sus cuentas de
  * registro (libretas) con importes, buscador y paginación (Figma 23870:87733 y 23870:87777).
+ *
+ * En un ajuste (Figma 32428:112208) el título es «Ajuste de saldo inicial libretas» y suma la secuencia de referencia,
+ * la sección «Saldo inicial» (importe inicial, naturaleza y saldo actualizado) y el saldo actualizado de cada libreta.
  *
  * Lo abren «Ver saldos iniciales libretas» en la solicitud RSIN y en la pestaña Registros de Documentos de saldos
  * iniciales: con `saldo` en `null` queda cerrado.
@@ -36,22 +40,24 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
   imports: [
     ExpansionPanelComponent,
     FormTableSearchComponent,
-    IconComponent,
     PaginationComponent,
     SidePanelComponent,
     SummaryCardComponent,
-    TextFieldComponent,
+    ReadonlyFieldComponent,
     TooltipDirective,
   ],
   template: `
-    <siaf-side-panel title="Saldos iniciales libretas" [open]="!!saldoSig()" [showFooter]="false" (closed)="closed.emit()">
+    <siaf-side-panel [title]="saldoSig()?.ajuste ? 'Ajuste de saldo inicial libretas' : 'Saldos iniciales libretas'" [open]="!!saldoSig()" [showFooter]="false" (closed)="closed.emit()">
       @if (saldoSig(); as s) {
         <div class="grid gap-siaf-md">
           <siaf-expansion-panel title="Cuenta bancaria" [expanded]="false">
             <div class="grid gap-siaf-lg">
-              <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-2">
+              <dl class="m-0 grid gap-siaf-md px-siaf-sm" [class.sm:grid-cols-2]="!s.ajuste" [class.sm:grid-cols-3]="!!s.ajuste">
                 <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia</dt><dd class="m-0 text-sm">{{ s.secuencia || '-' }}</dd></div>
                 <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Fecha de operación</dt><dd class="m-0 text-sm">{{ formatoFecha(s.fechaOperacion) }}</dd></div>
+                @if (s.ajuste) {
+                  <div><dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia de referencia</dt><dd class="m-0 text-sm">{{ s.ajuste.secuenciaReferencia || '-' }}</dd></div>
+                }
               </dl>
               <section class="grid gap-siaf-sm">
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h4>
@@ -66,22 +72,21 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                   </dl>
                 </section>
               }
+              @if (s.ajuste; as a) {
+                <section class="grid gap-siaf-sm">
+                  <h4 class="m-0 text-sm font-bold uppercase text-text">Saldo inicial</h4>
+                  <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
+                    <readonly-field caption="Importe de saldo inicial" [value]="formatoImporte(a.saldoInicial)" [bold]="true" [highlight]="true" />
+                    <readonly-field caption="Naturaleza de la operación" [value]="a.naturaleza" [bold]="true" [highlight]="true" />
+                    <readonly-field caption="Saldo actualizado" [value]="formatoImporte(saldoActualizado(a.saldoInicial, s.importeCuenta, a.naturaleza))" [bold]="true" [highlight]="true" />
+                  </div>
+                </section>
+              }
               <section class="grid gap-siaf-sm">
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
                 <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                  <div class="relative">
-                    <siaf-input label="En moneda de la cuenta" [value]="formatoImporte(s.importeCuenta)" [disabled]="true" />
-                    <span
-                      class="absolute right-siaf-sm top-1/2 inline-flex -translate-y-1/2 rounded-full text-[var(--sys-color-text-neutral-medium)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
-                      tabindex="0"
-                      role="img"
-                      [attr.aria-label]="ayudaImportes"
-                      [siafTooltip]="ayudaImportes"
-                    >
-                      <siaf-icon name="info" [size]="24" />
-                    </span>
-                  </div>
-                  <siaf-input label="En moneda nacional" [value]="formatoImporte(s.importeNacional)" [disabled]="true" />
+                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(s.importeCuenta)" [bold]="true" [highlight]="true" [help]="ayudaImportes" />
+                  <readonly-field caption="En moneda nacional" [value]="formatoImporte(s.importeNacional)" [bold]="true" [highlight]="true" />
                 </div>
               </section>
             </div>
@@ -93,16 +98,22 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
               <caption class="sr-only">Cuentas de registro de la cuenta {{ s.cuentaBancaria }}</caption>
               <thead>
                 <tr class="siaf-table-head-row">
-                  <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
+                  <th class="siaf-table-th w-[130px]" rowspan="2" [siafTooltip]="abrev.fechaOperacion.termino">{{ abrev.fechaOperacion.abreviatura }}</th>
                   <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
                   <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libretas</th>
+                  @if (s.ajuste) {
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="1">Saldo</th>
+                  }
                 </tr>
                 <tr class="siaf-table-head-row">
-                  <th class="siaf-table-th siaf-table-th--grupo-inicio w-[100px]">ID corr.</th>
+                  <th class="siaf-table-th siaf-table-th--grupo-inicio w-[100px]" [siafTooltip]="abrev.idCorrelativo.termino">{{ abrev.idCorrelativo.abreviatura }}</th>
                   <th class="siaf-table-th">Número</th>
                   <th class="siaf-table-th siaf-table-th--grupo-fin">Descripción</th>
-                  <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right">Imp. M. cuenta</th>
-                  <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right">Imp. M. nacional</th>
+                  <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
+                  <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
+                  @if (s.ajuste) {
+                    <th class="siaf-table-th w-[150px] text-right">Act.</th>
+                  }
                 </tr>
               </thead>
               <tbody>
@@ -114,10 +125,13 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                     <td class="siaf-table-td">{{ libreta.descripcion }}</td>
                     <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importe) }}</td>
                     <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importeNacional) }}</td>
+                    @if (s.ajuste) {
+                      <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoActual) }}</td>
+                    }
                   </tr>
                 } @empty {
                   <tr class="siaf-table-row">
-                    <td class="siaf-table-td text-center" colspan="6">No se encontraron cuentas de registro.</td>
+                    <td class="siaf-table-td text-center" [attr.colspan]="s.ajuste ? 7 : 6">No se encontraron cuentas de registro.</td>
                   </tr>
                 }
               </tbody>
@@ -143,6 +157,8 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SaldoLibretasPanelComponent {
+  /** Abreviaturas de las cabeceras (tooltip con el término completo). */
+  readonly abrev = ABREVIATURAS;
   /** Saldo a mostrar; `null` cierra el panel. Al cambiar, el buscador y la página vuelven a cero. */
   @Input() set saldo(value: SaldoInicial | null | undefined) {
     this.saldoSig.set(value ?? null);
@@ -158,9 +174,10 @@ export class SaldoLibretasPanelComponent {
   readonly tamano = signal(25);
 
   readonly tipoCotizacion = TIPO_COTIZACION;
-  readonly ayudaImportes = 'Suma automática de las cuentas de registro.';
+  readonly ayudaImportes = 'Suma automática de los importes de las cuentas de registros.';
   readonly formatoFecha = formatoFecha;
   readonly formatoImporte = formatoImporte;
+  readonly saldoActualizado = saldoActualizado;
 
   readonly camposCuenta = computed((): SummaryCardField[] => {
     const s = this.saldoSig();
@@ -176,10 +193,20 @@ export class SaldoLibretasPanelComponent {
     const s = this.saldoSig();
     if (!s) return [];
     const q = this.busqueda();
-    const importes = new Map(s.libretas.map((l) => [l.idCorrelativo, l.importe]));
+    const libretas = new Map(s.libretas.map((l) => [l.idCorrelativo, l]));
+    // En un ajuste: saldo de la libreta antes del ajuste, para calcular su saldo actualizado.
+    const iniciales = new Map((s.ajuste?.libretasIniciales ?? []).map((l) => [l.idCorrelativo, l.importe]));
     return cuentasRegistroDe(s.cuentaBancaria)
-      .filter((l) => importes.has(l.idCorrelativo))
-      .map((l) => ({ ...l, importe: importes.get(l.idCorrelativo)!, importeNacional: redondear(importes.get(l.idCorrelativo)! * s.tipoCambio) }))
+      .filter((l) => libretas.has(l.idCorrelativo))
+      .map((l) => {
+        const libreta = libretas.get(l.idCorrelativo)!;
+        return {
+          ...l,
+          importe: libreta.importe,
+          importeNacional: redondear(libreta.importe * s.tipoCambio),
+          saldoActual: s.ajuste ? saldoActualizado(iniciales.get(l.idCorrelativo) ?? 0, libreta.importe, libreta.naturaleza ?? s.ajuste.naturaleza) : 0,
+        };
+      })
       .filter((l) => !q || [l.idCorrelativo, l.numero, l.descripcion].some((v) => contiene(v, q)));
   });
 

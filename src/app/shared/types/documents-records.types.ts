@@ -39,6 +39,8 @@ export type DocumentsRecordsColumn = {
   kind?: 'text' | 'document-link' | 'flow-status' | 'record-status';
   /** Cabecera agrupadora: las columnas seguidas con el mismo texto comparten una celda arriba (p. ej. «Libro bancos»). */
   headerGroup?: string;
+  /** Término completo cuando `label` es una abreviatura del glosario (`ABREVIATURAS`): sale como tooltip. */
+  tooltip?: string;
 };
 
 export type DocumentsRecordsFilterOption = {

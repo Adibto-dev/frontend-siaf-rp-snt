@@ -1,5 +1,6 @@
-import { SaldoInicial, calcularSaldo, cuentaPorNumero, cuentasRegistroDe } from '../models/saldo-inicial.model';
+import { ABREVIATURAS } from '../../../../shared/utils/abreviaturas.util';
 
+import { SaldoInicial, calcularSaldo, cuentaPorNumero, cuentasRegistroDe } from '../models/saldo-inicial.model';
 /** Columnas de la plantilla (fila 2): A fecha · B-D cuenta bancaria · E-G cuenta de registro · H importe. */
 const COLUMNAS = { fecha: 1, cuenta: 2, idCorrelativo: 5, importe: 8 } as const;
 /** Los datos empiezan después de las dos filas de cabecera. */
@@ -31,7 +32,7 @@ export async function descargarPlantillaSaldos(cuentas: string[]): Promise<void>
   const libro = new Workbook();
   const hoja = libro.addWorksheet('Plantilla');
   hoja.addRow(['Fecha de operación', 'Cuenta bancaria', '', '', 'Cuenta de registro', '', '', 'Libretas']);
-  hoja.addRow(['', 'Número', 'Moneda', 'Denominación', 'ID. corr.', 'Número', 'Descripción', 'Imp. M. cuenta']);
+  hoja.addRow(['', 'Número', 'Moneda', 'Denominación', ABREVIATURAS.idCorrelativo.termino, 'Número', 'Descripción', ABREVIATURAS.importeCuenta.termino]);
   hoja.mergeCells('A1:A2');
   hoja.mergeCells('B1:D1');
   hoja.mergeCells('E1:G1');
@@ -135,7 +136,7 @@ export async function leerPlantillaSaldos(
     const iso = fecha(valor(COLUMNAS.fecha));
     if (!iso) { errores.push(`Fila ${n}: ingrese la fecha de operación (dd/mm/aaaa).`); return; }
     const libreta = cuentasRegistroDe(numero).find((l) => l.idCorrelativo === id.padStart(6, '0'));
-    if (!libreta) { errores.push(`Fila ${n}: el ID. corr. ${id || '(vacío)'} no pertenece a la cuenta ${numero}.`); return; }
+    if (!libreta) { errores.push(`Fila ${n}: el ${ABREVIATURAS.idCorrelativo.termino} ${id || '(vacío)'} no pertenece a la cuenta ${numero}.`); return; }
     if (monto === null || monto < 0) { errores.push(`Fila ${n}: el importe debe ser un número mayor o igual a cero.`); return; }
 
     const grupo = grupos.get(numero) ?? { fecha: iso, importes: {} };

@@ -1,17 +1,18 @@
+import { ABREVIATURAS } from '../../../../../shared/utils/abreviaturas.util';
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
 
 import { FormTableSearchComponent } from '../../../../../shared/components/form-table-search/form-table-search.component';
 import { PaginationComponent } from '../../../../../shared/components/pagination/pagination.component';
 import { SolicitudeFormCardComponent } from '../../../../../shared/components/solicitude-form-card/solicitude-form-card.component';
-import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { MessageBoxComponent } from '../../../../../shared/ui/message-box/message-box.component';
 import { RecordStatusTagComponent } from '../../../../../shared/ui/record-status-tag/record-status-tag.component';
 import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { UploadedFileCardComponent } from '../../../../../shared/ui/uploaded-file-card/uploaded-file-card.component';
+import { SummaryCardComponent, type SummaryCardField } from '../../../../../shared/ui/summary-card/summary-card.component';
 import { SustentoVisorComponent } from '../sustento-visor/sustento-visor.component';
-import type { SaldoConSustento } from '../../utils/sustento-pdf.util';
+import { archivoDeSustento, type SaldoConSustento } from '../../utils/sustento-pdf.util';
 import {
   MOVIMIENTO_INTERNO,
   MOVIMIENTO_INTERNO_AJUSTE,
@@ -50,12 +51,12 @@ interface Dato {
   standalone: true,
   imports: [
     FormTableSearchComponent,
-    IconComponent,
     MessageBoxComponent,
     NgTemplateOutlet,
     PaginationComponent,
     RecordStatusTagComponent,
     SolicitudeFormCardComponent,
+    SummaryCardComponent,
     ReadonlyFieldComponent,
     TooltipDirective,
     UploadedFileCardComponent,
@@ -67,52 +68,27 @@ interface Dato {
     @if (registro(); as r) {
       <div class="flex flex-col gap-siaf-md">
         <!-- Tipo de operación del saldo -->
-        <siaf-solicitude-form-card title="Tipo de operación del saldo">
+        <siaf-solicitude-form-card [bordered]="lineal" title="Tipo de operación del saldo">
           <ng-container *ngTemplateOutlet="datos; context: { $implicit: tipoOperacion() }" />
         </siaf-solicitude-form-card>
   
         <!-- Movimiento interno -->
-        <siaf-solicitude-form-card title="Movimiento interno">
-          <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-4">
-            @for (d of movimiento(); track d.etiqueta) {
-              <div class="min-w-0">
-                <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">{{ d.etiqueta }}</dt>
-                <dd class="m-0 text-sm">{{ d.valor }}</dd>
-              </div>
-            }
-          </dl>
+        <siaf-solicitude-form-card [bordered]="lineal" title="Movimiento interno">
+          <siaf-summary-card [fields]="tarjeta(movimiento())" [bordered]="true" [showClose]="false" />
         </siaf-solicitude-form-card>
   
         <!-- Entidad financiera -->
-        <siaf-solicitude-form-card title="Entidad financiera">
-          <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-4">
-            @for (d of entidad(); track d.etiqueta) {
-              <div class="min-w-0">
-                <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">{{ d.etiqueta }}</dt>
-                <dd class="m-0 text-sm">{{ d.valor }}</dd>
-              </div>
-            }
-          </dl>
+        <siaf-solicitude-form-card [bordered]="lineal" title="Entidad financiera">
+          <siaf-summary-card [fields]="tarjeta(entidad())" [bordered]="true" [showClose]="false" />
         </siaf-solicitude-form-card>
   
         <!-- Saldo inicial libro bancos -->
-        <siaf-solicitude-form-card [title]="r.ajuste ? 'Ajuste de saldo inicial libro bancos' : 'Saldo inicial libro bancos'">
+        <siaf-solicitude-form-card [bordered]="lineal" [title]="r.ajuste ? 'Ajuste de saldo inicial libro bancos' : 'Saldo inicial libro bancos'">
           <div class="grid gap-siaf-lg">
             <dl class="m-0 grid gap-siaf-md px-siaf-sm sm:grid-cols-3">
-              <div class="flex items-start justify-between gap-siaf-sm">
-                <div>
-                  <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia</dt>
-                  <dd class="m-0 text-sm">{{ r.secuencia || '-' }}</dd>
-                </div>
-                <span
-                  class="inline-flex rounded-full text-[var(--sys-color-text-neutral-medium)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
-                  tabindex="0"
-                  role="img"
-                  [attr.aria-label]="ayudaSecuencia"
-                  [siafTooltip]="ayudaSecuencia"
-                >
-                  <siaf-icon name="info" [size]="24" />
-                </span>
+              <div>
+                <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Secuencia</dt>
+                <dd class="m-0 text-sm">{{ r.secuencia || '-' }}</dd>
               </div>
               <div>
                 <dt class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]">Fecha de operación</dt>
@@ -128,7 +104,7 @@ interface Dato {
   
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h4>
-              <ng-container *ngTemplateOutlet="datos; context: { $implicit: cuenta() }" />
+              <siaf-summary-card [fields]="tarjeta(cuenta())" [bordered]="true" [showClose]="false" />
             </section>
   
             @if (r.moneda === 'USD') {
@@ -141,26 +117,19 @@ interface Dato {
             @if (r.ajuste) {
               <section class="grid gap-siaf-sm">
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Saldo inicial</h4>
-                <ng-container *ngTemplateOutlet="datos; context: { $implicit: saldoInicial() }" />
+                <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
+                  @for (d of saldoInicial(); track d.etiqueta) {
+                    <readonly-field [caption]="d.etiqueta" [value]="d.valor" [bold]="true" [highlight]="true" />
+                  }
+                </div>
               </section>
             }
   
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
               <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                <div class="relative">
-                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" />
-                  <span
-                    class="absolute right-siaf-sm top-1/2 inline-flex -translate-y-1/2 rounded-full text-[var(--sys-color-text-neutral-medium)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
-                    tabindex="0"
-                    role="img"
-                    [attr.aria-label]="ayudaImportes"
-                    [siafTooltip]="ayudaImportes"
-                  >
-                    <siaf-icon name="info" [size]="24" />
-                  </span>
-                </div>
-                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" />
+                <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" [bold]="true" [highlight]="true" [help]="ayudaImportes" />
+                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" [bold]="true" [highlight]="true" />
               </div>
             </section>
   
@@ -172,7 +141,7 @@ interface Dato {
                   <caption class="sr-only">Cuentas de registro de la cuenta {{ r.cuentaBancaria }}</caption>
                   <thead>
                     <tr class="siaf-table-head-row">
-                      <th class="siaf-table-th w-[130px]" rowspan="2">F. operación</th>
+                      <th class="siaf-table-th w-[130px]" rowspan="2" [siafTooltip]="abrev.fechaOperacion.termino">{{ abrev.fechaOperacion.abreviatura }}</th>
                       <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
                       <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libretas</th>
                       @if (r.ajuste) {
@@ -180,11 +149,11 @@ interface Dato {
                       }
                     </tr>
                     <tr class="siaf-table-head-row">
-                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[100px]">ID corr.</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[100px]" [siafTooltip]="abrev.idCorrelativo.termino">{{ abrev.idCorrelativo.abreviatura }}</th>
                       <th class="siaf-table-th">Número</th>
                       <th class="siaf-table-th siaf-table-th--grupo-fin">Descripción</th>
-                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right">Imp. M. cuenta</th>
-                      <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right">Imp. M. nacional</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
+                      <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -224,21 +193,31 @@ interface Dato {
             </section>
   
             <!-- Los automáticos no tienen sustento: el archivo está en su documento. -->
-            @if (!r.automatico) {
+            <!-- Siempre se muestra (también en la apertura automática); sin archivo, el mismo aviso del formulario. -->
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Documento de sustento</h4>
               @if (r.sustento) {
-                <siaf-uploaded-file-card [file]="{ name: r.sustento }" [readonly]="true" [viewable]="true" (viewed)="sustentoVisto.set(r)" />
+                <!-- En el historial solo se descarga; en el detalle se ve en el visor. -->
+                <siaf-uploaded-file-card
+                  [file]="{ name: r.sustento }"
+                  [readonly]="true"
+                  [viewable]="!lineal"
+                  [downloadable]="lineal"
+                  (viewed)="sustentoVisto.set(r)"
+                  (downloaded)="descargarSustento(r)"
+                />
               } @else {
-                <message-box text="El saldo no tiene documento de sustento." />
+                <message-box text="No se ha adjuntado ningún archivo." />
               }
             </section>
-            }
   
+            <!-- En el historial el estado ya está en el bloque Documento. -->
+            @if (!lineal) {
             <div class="border-t border-[var(--sys-color-divider-default)] px-siaf-sm pt-siaf-md">
               <p class="siaf-text-caption-1 m-0 mb-siaf-xxs text-[var(--sys-color-text-neutral-low)]">Estado de registro</p>
               <siaf-record-status-tag [status]="r.estado" />
             </div>
+            }
           </div>
         </siaf-solicitude-form-card>
       </div>
@@ -258,7 +237,11 @@ interface Dato {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SaldoDetalleComponent {
+  /** Abreviaturas de las cabeceras (tooltip con el término completo). */
+  readonly abrev = ABREVIATURAS;
   readonly registro = signal<SaldoInicialRegistro | null>(null);
+  /** Cards lineales (con borde), sin estado al final y el sustento solo para descargar: así se ve en el historial. */
+  @Input() lineal = false;
   /** Registro cuyo documento de sustento se ve en el visor de PDF. */
   readonly sustentoVisto = signal<SaldoConSustento | null>(null);
 
@@ -269,10 +252,25 @@ export class SaldoDetalleComponent {
     this.pagina.set(1);
   }
 
-  readonly ayudaSecuencia = 'La secuencia será asignado automáticamente por el sistema tras la aprobación del registro.';
-  readonly ayudaImportes = 'Suma automática de las cuentas de registro.';
+  readonly ayudaImportes = 'Suma automática de los importes de las cuentas de registros.';
   readonly formatoFecha = formatoFecha;
   readonly formatoImporte = formatoImporte;
+
+  /** Descarga el sustento (el archivo subido o, si no hay, el PDF de ejemplo) con su nombre. */
+  async descargarSustento(r: SaldoInicialRegistro): Promise<void> {
+    if (!r.sustento) return;
+    const url = URL.createObjectURL(await archivoDeSustento(r));
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = r.sustento;
+    enlace.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /** Datos etiqueta/valor en el formato de `siaf-summary-card`. */
+  tarjeta(datos: { etiqueta: string; valor: string }[]): SummaryCardField[] {
+    return datos.map((d) => ({ label: d.etiqueta, value: d.valor }));
+  }
 
   readonly tipoOperacion = computed((): Dato[] => [
     { etiqueta: 'Tipo de operación del saldo', valor: this.registro()?.ajuste ? TIPO_OPERACION_AJUSTE : this.registro()?.automatico ? TIPO_OPERACION_APERTURA : TIPO_OPERACION },

@@ -24,6 +24,8 @@ export type UploadedFileInfo = File | { name: string; size?: number };
  * - Con `[readonly]` en modo consulta o en un detalle, donde el adjunto se ve pero no se reemplaza ni se quita.
  * - Con `[error]` cuando el archivo adjunto no se pudo cargar.
  * - Con `[viewable]` para mostrar «Ver archivo» (`visibility`): emite `(viewed)` y quien la usa abre `siaf-pdf-viewer`.
+ * - Con `[downloadable]` para mostrar «Descargar archivo» (`download`): emite `(downloaded)` y quien la usa entrega el
+ *   archivo (por ejemplo, en un historial de solo lectura).
  * @evitar
  * - Para elegir o arrastrar el archivo: usar `siaf-upload-side-nav` (o `siaf-uploader` embebido); esta tarjeta solo
  *   muestra el que ya está adjunto.
@@ -31,8 +33,8 @@ export type UploadedFileInfo = File | { name: string; size?: number };
  *   solicitudes.
  * - Para el avance de una subida en curso: usar las tarjetas de progreso de `siaf-uploader`.
  * @teclado
- * - **Tab**: pasa por «Ver archivo» (con `viewable`) y «Quitar archivo»; con `readonly` y sin `viewable` la tarjeta no
- *   recibe foco.
+ * - **Tab**: pasa por «Ver archivo» (con `viewable`), «Descargar archivo» (con `downloadable`) y «Quitar archivo»; con
+ *   `readonly` y sin esas acciones la tarjeta no recibe foco.
  * - **Enter / Espacio**: ejecutan la acción del botón enfocado.
  * @accesibilidad
  * - **4.1.2 Nombre, función y valor (A)**: «Quitar archivo» es un `<button>` nativo con `aria-label`; los íconos son
@@ -79,7 +81,7 @@ export type UploadedFileInfo = File | { name: string; size?: number };
             <span class="siaf-text-caption-1 text-text-muted">{{ formattedSize }}</span>
           }
         </div>
-        @if (viewable || !readonly) {
+        @if (viewable || downloadable || !readonly) {
           <div class="flex shrink-0 items-center gap-1">
             @if (viewable && !fallido) {
               <button
@@ -90,6 +92,17 @@ export type UploadedFileInfo = File | { name: string; size?: number };
                 (click)="viewed.emit()"
               >
                 <siaf-icon name="visibility" [size]="24" class="text-text-muted" />
+              </button>
+            }
+            @if (downloadable && !fallido) {
+              <button
+                class="inline-flex size-6 items-center justify-center rounded-siaf-sm transition hover:bg-surface-muted"
+                type="button"
+                aria-label="Descargar archivo"
+                siafTooltip="Descargar archivo"
+                (click)="downloaded.emit()"
+              >
+                <siaf-icon name="download" [size]="24" class="text-text-muted" />
               </button>
             }
             @if (!readonly) {
@@ -117,9 +130,12 @@ export class UploadedFileCardComponent {
 
   /** Muestra «Ver archivo»; al pulsarlo emite `viewed` (quien la usa abre el visor). */
   @Input() viewable = false;
+  /** Muestra «Descargar archivo»; al pulsarlo emite `downloaded` (quien la usa entrega el archivo). */
+  @Input() downloadable = false;
 
   @Output() removed = new EventEmitter<void>();
   @Output() viewed = new EventEmitter<void>();
+  @Output() downloaded = new EventEmitter<void>();
 
   get fallido(): boolean {
     return this.error.trim().length > 0;

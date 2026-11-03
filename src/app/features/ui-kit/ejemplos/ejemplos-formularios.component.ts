@@ -137,6 +137,10 @@ import { UploaderComponent } from '../../../shared/ui/uploader/uploader.componen
             <p class="mb-2 text-[11px] font-bold uppercase tracking-widest text-text-muted">Solo lectura (readonly)</p>
             <siaf-uploaded-file-card [file]="archivo" [readonly]="true" />
           </div>
+          <div>
+            <p class="mb-2 text-[11px] font-bold uppercase tracking-widest text-text-muted">Solo descarga (downloadable)</p>
+            <siaf-uploaded-file-card [file]="archivo" [readonly]="true" [downloadable]="true" />
+          </div>
         </div>
       }
       @case ('readonly-field') {
