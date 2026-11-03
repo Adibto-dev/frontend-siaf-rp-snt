@@ -110,7 +110,7 @@ interface Dato {
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Saldo inicial</h4>
                 <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
                   @for (d of saldoInicial(); track d.etiqueta) {
-                    <readonly-field [caption]="d.etiqueta" [value]="d.valor" [highlight]="true" />
+                    <readonly-field [caption]="d.etiqueta" [value]="d.valor" [bold]="true" [highlight]="true" />
                   }
                 </div>
               </section>
@@ -119,8 +119,8 @@ interface Dato {
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
               <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" [highlight]="true" [help]="ayudaImportes" />
-                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" [highlight]="true" />
+                <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(r.importeCuenta)" [bold]="true" [highlight]="true" [help]="ayudaImportes" />
+                <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" [bold]="true" [highlight]="true" />
               </div>
             </section>
   

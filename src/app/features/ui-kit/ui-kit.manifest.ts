@@ -277,7 +277,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "ui",
     "importacion": "@siaf/ui/readonly-field/readonly-field.component",
     "archivo": "src/app/shared/ui/readonly-field/readonly-field.component.ts",
-    "descripcion": "Campo de solo lectura del Figma «Readonly forms»: caption flotante y el valor sin contenedor, borde ni íconos de\nedición. Muestra `--` cuando está vacío. Es lo que pintan `siaf-input`, `siaf-date-time-picker` y\n`text-area-control` con `[readonly]`: un formulario en modo lectura se ve así sin duplicar el markup.\n\nVariantes de Figma: texto, importe (`align=\"right\"`), negrita por defecto (`bold`, `false` para valor normal), resaltado (`highlight`, fondo\n`bg-surfaces-highlight`), varios valores como chips (`tags`), estado de registro (`status`), texto largo con\n«Leer más» (`multiline`) e ícono info con ayuda (`help`, solo si hay texto).",
+    "descripcion": "Campo de solo lectura del Figma «Readonly forms»: caption flotante y el valor sin contenedor, borde ni íconos de\nedición. Muestra `--` cuando está vacío. Es lo que pintan `siaf-input`, `siaf-date-time-picker` y\n`text-area-control` con `[readonly]`: un formulario en modo lectura se ve así sin duplicar el markup.\n\nVariantes de Figma: texto, importe (`align=\"right\"`), negrita (`bold`), resaltado (`highlight`, fondo\n`bg-surfaces-highlight`), varios valores como chips (`tags`), estado de registro (`status`), texto largo con\n«Leer más» (`multiline`) e ícono info con ayuda (`help`, solo si hay texto).",
     "usaSesion": false,
     "proyectaContenido": false,
     "entradas": [
@@ -291,9 +291,9 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       {
         "nombre": "bold",
         "tipo": "boolean",
-        "porDefecto": "true",
+        "porDefecto": "false",
         "requerida": false,
-        "descripcion": "Valor en negrita (por defecto); `false` para un valor normal."
+        "descripcion": "Valor en negrita (summary-card y datos resaltados)."
       },
       {
         "nombre": "caption",
@@ -360,7 +360,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       }
     ],
     "eventos": [],
-    "usar": "- En el modo lectura de una solicitud: mejor `[readonly]=\"soloLectura()\"` en el campo editable, que pinta este\n  componente con su mismo caption, valor y asterisco.\n- Directo para los criterios de búsqueda sobre los resultados de las consultas y la cabecera de un detalle o reporte.\n- `align=\"right\"` para importes; `highlight` para el dato que hay que destacar (total, número).\n- `tags` para varios valores (select múltiple) y `status` para el estado de un registro.\n- `multiline` para un texto largo (justificación, descripción): se recorta y «Leer más» lo despliega.\n- `help` para el ícono info con su explicación; sin texto no se muestra.",
+    "usar": "- En el modo lectura de una solicitud: mejor `[readonly]=\"soloLectura()\"` en el campo editable, que pinta este\n  componente con su mismo caption, valor y asterisco.\n- Directo para los criterios de búsqueda sobre los resultados de las consultas y la cabecera de un detalle o reporte.\n- `align=\"right\"` para importes; `highlight` con `bold` para el dato que hay que destacar (total, número).\n- `tags` para varios valores (select múltiple) y `status` para el estado de un registro.\n- `multiline` para un texto largo (justificación, descripción): se recorta y «Leer más» lo despliega.\n- `help` para el ícono info con su explicación; sin texto no se muestra.",
     "evitar": "- Para un dato que el usuario puede cambiar: usar `siaf-input`, `text-area-control` o `siaf-date-time-picker`.\n- Para un dato fijo dentro de un formulario en edición (ej. el periodo): ahí va el campo `[disabled]`.\n- Para el ítem elegido desde un panel lateral: usar `siaf-summary-card`; para un aviso breve, `message-box`.\n- Confundirlo con `siaf-readonly`, el recuadro gris con etiqueta en mayúsculas que ninguna pantalla usa.",
     "teclado": "- Solo «Leer más» / «Leer menos» y el ícono info reciben foco (Tab); Enter o Espacio despliegan el texto.",
     "accesibilidad": "- **1.3.1 Información y relaciones (A)**: es texto estático, no un campo: el caption va antes del valor en el DOM,\n  así que se leen juntos y en orden; los chips van en una lista.\n- **1.4.3 Contraste mínimo (AA)**: caption `text-neutral-low` 5.01:1, valor `text-neutral-medium` 14.53:1 (también\n  sobre `bg-surfaces-highlight`), «Leer más» `text-brand-primary` y asterisco `text-feedback-danger`.\n- **4.1.2 Nombre, función y valor (A)**: «Leer más» es un botón con `aria-expanded`; el ícono info se llama «Ayuda».\n- **1.4.1 Uso del color (A)**: el obligatorio se marca con un asterisco, no solo con el color.",
@@ -6298,7 +6298,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       {
         "nombre": "readonlyBold",
         "tipo": "boolean",
-        "porDefecto": "true",
+        "porDefecto": "false",
         "requerida": false,
         "descripcion": "En lectura: valor en negrita."
       },

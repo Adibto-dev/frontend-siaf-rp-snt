@@ -76,17 +76,17 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                 <section class="grid gap-siaf-sm">
                   <h4 class="m-0 text-sm font-bold uppercase text-text">Saldo inicial</h4>
                   <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                    <readonly-field caption="Importe de saldo inicial" [value]="formatoImporte(a.saldoInicial)" [highlight]="true" />
-                    <readonly-field caption="Naturaleza de la operación" [value]="a.naturaleza" [highlight]="true" />
-                    <readonly-field caption="Saldo actualizado" [value]="formatoImporte(saldoActualizado(a.saldoInicial, s.importeCuenta, a.naturaleza))" [highlight]="true" />
+                    <readonly-field caption="Importe de saldo inicial" [value]="formatoImporte(a.saldoInicial)" [bold]="true" [highlight]="true" />
+                    <readonly-field caption="Naturaleza de la operación" [value]="a.naturaleza" [bold]="true" [highlight]="true" />
+                    <readonly-field caption="Saldo actualizado" [value]="formatoImporte(saldoActualizado(a.saldoInicial, s.importeCuenta, a.naturaleza))" [bold]="true" [highlight]="true" />
                   </div>
                 </section>
               }
               <section class="grid gap-siaf-sm">
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
                 <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(s.importeCuenta)" [highlight]="true" [help]="ayudaImportes" />
-                  <readonly-field caption="En moneda nacional" [value]="formatoImporte(s.importeNacional)" [highlight]="true" />
+                  <readonly-field caption="En moneda de la cuenta" [value]="formatoImporte(s.importeCuenta)" [bold]="true" [highlight]="true" [help]="ayudaImportes" />
+                  <readonly-field caption="En moneda nacional" [value]="formatoImporte(s.importeNacional)" [bold]="true" [highlight]="true" />
                 </div>
               </section>
             </div>

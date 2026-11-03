@@ -300,7 +300,7 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
   /** Modo lectura (Figma «Readonly forms»): pinta `readonly-field` con el caption y el valor, sin el campo. */
   @Input() readonly = false;
   /** En lectura: valor en negrita. */
-  @Input() readonlyBold = true;
+  @Input() readonlyBold = false;
   /** En lectura: fondo `bg-surfaces-highlight` para destacar el dato. */
   @Input() readonlyHighlight = false;
   /** En lectura: explicación del ícono info (sin texto no se muestra). */

@@ -68,7 +68,7 @@ export interface SummaryCardField {
       <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-siaf-md gap-y-siaf-lg">
         @for (field of fields; track field.label) {
           <div class="flex min-w-[160px] flex-1 basis-full items-center gap-siaf-xs sm:basis-[calc(50%-var(--sys-gap-base-md))] lg:basis-0">
-            <readonly-field class="min-w-0 flex-1" [caption]="field.label" [value]="field.value" />
+            <readonly-field class="min-w-0 flex-1" [caption]="field.label" [value]="field.value" [bold]="true" />
             @if (field.icon) {
               <siaf-icon
                 class="shrink-0 text-[var(--sys-color-text-neutral-low)]"
