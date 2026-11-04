@@ -13,6 +13,11 @@ export const TESORERIA_ROUTES: Routes = [
       import('./autorizaciones/pages/solicitud/autorizacion-request.component').then((m) => m.AutorizacionRequestComponent),
   },
   {
+    path: 'procesos/autorizaciones/registro/:registroId',
+    loadComponent: () =>
+      import('./autorizaciones/pages/registro/autorizacion-registro-detalle.component').then((m) => m.AutorizacionRegistroDetalleComponent),
+  },
+  {
     path: 'procesos/autorizaciones/solicitud/:id',
     loadComponent: () =>
       import('./autorizaciones/pages/solicitud/autorizacion-request.component').then((m) => m.AutorizacionRequestComponent),

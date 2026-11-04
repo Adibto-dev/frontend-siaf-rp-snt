@@ -5,6 +5,8 @@ import { NOMBRE_DOCUMENTO } from '../models/autorizacion.model';
 export const PROCESS_ROUTE = '/procesos/autorizaciones';
 export const REQUEST_SEGMENT = 'solicitud';
 export const REQUEST_ROUTE = `${PROCESS_ROUTE}/${REQUEST_SEGMENT}`;
+/** Detalle de una autorización registrada (pestaña Registros): `${RECORD_ROUTE}/:registroId`. */
+export const RECORD_ROUTE = `${PROCESS_ROUTE}/registro`;
 
 /** MFD «Documentos de autorización» en `docs/menu-procesos.xlsx` (columna id). */
 export const PROCESS_ID = 'doc-autorizacion';

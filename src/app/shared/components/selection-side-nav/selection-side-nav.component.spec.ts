@@ -12,7 +12,7 @@ const SAMPLE_CLASES: Clase[] = [
 ];
 
 const COLUMNS: SelectionColumn<Clase>[] = [
-  { key: 'codigo',      label: 'Código',      widthClass: 'w-[120px]', cellClass: 'font-mono' },
+  { key: 'codigo',      label: 'Código',      widthClass: 'w-[120px]', cellClass: 'text-right' },
   { key: 'descripcion', label: 'Descripción' },
 ];
 
@@ -62,9 +62,9 @@ describe('SelectionSideNavComponent', () => {
     render();
     const rows = fixture.debugElement.queryAll(By.css('tbody tr'));
     expect(rows.length).toBe(3);
-    // La celda de codigo debe tener la clase font-mono
+    // La celda de codigo debe tener la clase de cellClass
     const codeCell = rows[0].queryAll(By.css('td'))[1].nativeElement as HTMLElement;
-    expect(codeCell.classList).toContain('font-mono');
+    expect(codeCell.classList).toContain('text-right');
     expect(codeCell.textContent?.trim()).toBe('C01');
   });
 

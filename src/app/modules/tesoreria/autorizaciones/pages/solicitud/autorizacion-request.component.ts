@@ -97,7 +97,7 @@ const COLUMNAS: Record<Panel, SelectionColumn<Fila>[]> = {
   ],
   cuenta: [
     // Figma 24415:138420: número, denominación, moneda y entidad financiera.
-    { key: 'numero', label: 'Número de cuenta', widthClass: 'w-[200px]', cellClass: 'font-mono' },
+    { key: 'numero', label: 'Número de cuenta', widthClass: 'w-[200px]' },
     { key: 'denominacion', label: 'Denominación' },
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[90px]' },
     { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[260px]' },
@@ -107,7 +107,7 @@ const COLUMNAS: Record<Panel, SelectionColumn<Fila>[]> = {
     { key: 'procedimiento', label: 'Procedimiento', widthClass: 'w-[260px]' },
     { key: 'usuario', label: 'Usuario', widthClass: 'w-[100px]' },
     { key: 'nombres', label: 'Nombres y apellidos', widthClass: 'w-[200px]' },
-    { key: 'cuenta', label: 'Número de cuenta', widthClass: 'w-[190px]', cellClass: 'font-mono' },
+    { key: 'cuenta', label: 'Número de cuenta', widthClass: 'w-[190px]' },
     { key: 'denominacion', label: 'Denominación', widthClass: 'w-[180px]' },
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[80px]' },
     { key: 'entidad', label: 'Entidad', widthClass: 'w-[220px]' },

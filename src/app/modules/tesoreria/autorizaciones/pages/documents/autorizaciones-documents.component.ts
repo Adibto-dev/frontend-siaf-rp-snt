@@ -6,11 +6,18 @@ import { SolicitudesFacadeService } from '../../../../../core/state/solicitudes-
 import { SolicitudesStateService } from '../../../../../core/state/solicitudes-state.service';
 import { DocumentsRecordsPageComponent } from '../../../../../shared/components/documents-records-page/documents-records-page.component';
 import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
-import type { DocumentsQuery, DocumentsRecordsConfig, DocumentsRecordsRow } from '../../../../../shared/types/documents-records.types';
+import {
+  ACCION_HISTORIAL_REGISTRO,
+  type DocumentsQuery,
+  type DocumentsRecordsConfig,
+  type DocumentsRecordsRow,
+  type DocumentsRecordsRowActionEvent,
+} from '../../../../../shared/types/documents-records.types';
 import { createNewDocumentIdsSignal } from '../../../../../shared/utils/new-document-ids.util';
 import { AutorizacionesApiService } from '../../api/autorizaciones-api.service';
 import { AUTORIZACIONES_DOCUMENTS_CONFIG } from '../../config/autorizaciones-documents.config';
-import { REQUEST_ROUTE } from '../../config/autorizaciones.rutas';
+import { AutorizacionHistorialPanelComponent } from '../../components/autorizacion-historial-panel/autorizacion-historial-panel.component';
+import { RECORD_ROUTE, REQUEST_ROUTE } from '../../config/autorizaciones.rutas';
 import {
   AutorizacionRegistro,
   CODIGO_DOCUMENTO,
@@ -28,18 +35,22 @@ import {
 /**
  * «Documentos de autorización». La pantalla la arma `siaf-documents-records-page`: esta página carga la bandeja
  * (documentos RAUT de creación y modificación) y las autorizaciones aprobadas (registros) y las pasa como filas.
- * Solo el creador autorizador ve «Crear documento»; los demás perfiles consultan.
+ * Solo el creador autorizador ve «Crear documento»; los demás perfiles consultan. En Registros, la fila abre el detalle
+ * de la autorización y el ícono de historial, la línea de tiempo de sus documentos (historial del registro).
  */
 @Component({
   selector: 'siaf-autorizaciones-documents',
   standalone: true,
-  imports: [DocumentsRecordsPageComponent],
+  imports: [AutorizacionHistorialPanelComponent, DocumentsRecordsPageComponent],
   template: `
     <siaf-documents-records-page
       [config]="pageConfig()"
       [loading]="cargando()"
       (documentsQueryChange)="onDocumentsQuery($event)"
+      (recordActionTriggered)="onRecordAction($event)"
     />
+
+    <siaf-autorizacion-historial-panel [registro]="registroHistorial()" (closed)="registroHistorial.set(null)" />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -53,6 +64,13 @@ export class AutorizacionesDocumentsComponent implements OnInit {
 
   private readonly registros = signal<AutorizacionRegistro[]>([]);
   readonly cargando = signal(true);
+  /** Registro cuyo historial se ve a pantalla completa. */
+  readonly registroHistorial = signal<AutorizacionRegistro | null>(null);
+
+  onRecordAction({ actionId, row }: DocumentsRecordsRowActionEvent): void {
+    const registro = this.registros().find((r) => r.id === row['recordId']);
+    if (registro && actionId === ACCION_HISTORIAL_REGISTRO) this.registroHistorial.set(registro);
+  }
 
   ngOnInit(): void {
     // RAUT no pasa por el aprobador: todos los perfiles consultan la misma bandeja.
@@ -126,6 +144,7 @@ export class AutorizacionesDocumentsComponent implements OnInit {
       documentRows,
       recordRows,
       serverQuery: { total: this.solicitudesState.bandejaTotal() },
+      recordRoute: (row) => `${RECORD_ROUTE}/${row['recordId']}`,
     };
   });
 }

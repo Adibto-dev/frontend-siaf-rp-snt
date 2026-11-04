@@ -54,8 +54,8 @@ export const AUTORIZACIONES_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   flujoDirecto: true,
   recordTrackKey: 'recordId',
   recordHistoryDocumentLabel: NOMBRE_DOCUMENTO,
-  // El historial de un registro es el del último documento que lo creó o modificó.
-  recordHistoryKind: 'documento',
+  // El historial del registro es propio (línea de tiempo de sus documentos): lo abre la página.
+  recordHistoryKind: 'propio',
   statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.APROBADO],
   actionTypeFilterOptions: ACCIONES,
   filterCampoOptions: [

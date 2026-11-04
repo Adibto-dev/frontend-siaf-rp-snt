@@ -16,7 +16,7 @@ export interface SelectionColumn<T = Record<string, unknown>> {
   label: string;
   /** Clase Tailwind para el ancho (`w-[120px]`, `w-20`, etc.). */
   widthClass?: string;
-  /** Clase Tailwind extra para las celdas (p.ej. `font-mono`). */
+  /** Clase Tailwind extra para las celdas (p.ej. `text-right`). */
   cellClass?: string;
   /** Renderer opcional. Si no se da, se usa `row[key]` como string. */
   render?: (row: T) => string;
