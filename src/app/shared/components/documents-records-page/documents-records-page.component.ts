@@ -28,6 +28,7 @@ import { ModalComponent } from '../../ui/modal/modal.component';
 import { SnackbarComponent } from '../../ui/snackbar/snackbar.component';
 import { TableSkeletonComponent } from '../../ui/table-skeleton/table-skeleton.component';
 import { ESTADO } from '../../../core/models/documento.model';
+import { exportarRegistrosExcel } from '../../utils/exportar-registros.util';
 import { FocoDirective } from '../../ui/foco/foco.directive';
 import { FILAS_POR_PAGINA, FILAS_POR_PAGINA_OPCIONES } from '../pagination/pagination.component';
 
@@ -324,6 +325,14 @@ type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
                   [disabled]="visibleSelectableElaboradoDocuments.length === 0"
                   (selectionChange)="toggleVisibleElaboradoDocuments($event)"
                 />
+              } @else {
+                <siaf-table-controls
+                  selectAllLabel="Seleccionar registros"
+                  [checked]="todosLosRegistrosVisiblesMarcados"
+                  [indeterminate]="algunRegistroVisibleMarcado"
+                  [disabled]="paginatedRows.length === 0"
+                  (selectionChange)="marcarRegistrosVisibles($event)"
+                />
               }
 
               @if (loading) {
@@ -547,9 +556,13 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   ];
 
   /** Items del menú "Más opciones" (more_vert). */
-  readonly moreOptionsMenuItems: IconDropdownMenuItem[] = [
-    { label: 'Ocultar o mostrar columnas', value: 'open-columns' },
-  ];
+  get moreOptionsMenuItems(): IconDropdownMenuItem[] {
+    return this.activeTab === 'records'
+      ? [...this.opcionesDeColumnas, { label: 'Exportar a Excel', value: 'export-records' }]
+      : this.opcionesDeColumnas;
+  }
+
+  private readonly opcionesDeColumnas: IconDropdownMenuItem[] = [{ label: 'Ocultar o mostrar columnas', value: 'open-columns' }];
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['config'] || !this.config) {
@@ -841,6 +854,25 @@ export class DocumentsRecordsPageComponent implements OnChanges {
     change.row.selected = change.selected;
   }
 
+  get todosLosRegistrosVisiblesMarcados(): boolean {
+    return this.paginatedRows.length > 0 && this.paginatedRows.every((row) => row.selected);
+  }
+
+  get algunRegistroVisibleMarcado(): boolean {
+    return this.paginatedRows.some((row) => row.selected) && !this.todosLosRegistrosVisiblesMarcados;
+  }
+
+  marcarRegistrosVisibles(selected: boolean): void {
+    this.paginatedRows.forEach((row) => (row.selected = selected));
+  }
+
+  /** «Exportar a Excel» de Registros: los registros marcados o, si no hay ninguno, todos los filtrados. */
+  exportarRegistros(): void {
+    const marcados = this.visibleRows.filter((row) => row.selected);
+    const filas = marcados.length ? marcados : this.visibleRows;
+    void exportarRegistrosExcel(this.effectiveConfig.title, this.visibleColumns, filas);
+  }
+
   toggleVisibleElaboradoDocuments(selected: boolean): void {
     const selectableStatus = this.selectableDocumentStatus;
 
@@ -1101,6 +1133,8 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   onMoreOptionsAction(action: string): void {
     if (action === 'open-columns') {
       this.openColumnPanel();
+    } else if (action === 'export-records') {
+      this.exportarRegistros();
     }
   }
 

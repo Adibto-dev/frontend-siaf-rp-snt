@@ -5,27 +5,28 @@ import { ESTADO } from '../../../../../core/models/documento.model';
 import { SolicitudesFacadeService } from '../../../../../core/state/solicitudes-facade.service';
 import { SolicitudesStateService } from '../../../../../core/state/solicitudes-state.service';
 import { DocumentsRecordsPageComponent } from '../../../../../shared/components/documents-records-page/documents-records-page.component';
+import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 import type { DocumentsQuery, DocumentsRecordsConfig, DocumentsRecordsRow } from '../../../../../shared/types/documents-records.types';
 import { createNewDocumentIdsSignal } from '../../../../../shared/utils/new-document-ids.util';
-import { CuentasBancariasApiService } from '../../api/cuentas-bancarias-api.service';
-import { CUENTAS_BANCARIAS_DOCUMENTS_CONFIG } from '../../config/cuentas-bancarias-documents.config';
-import { REQUEST_ROUTE } from '../../config/cuentas-bancarias.rutas';
-import {
-  CODIGO_DOCUMENTO,
-  CuentaBancariaRegistro,
-  NOMBRE_DOCUMENTO,
-  nombreBanco,
-  nombreMoneda,
-  nombreTipoCuenta,
-} from '../../models/cuenta-bancaria.model';
-import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
+import { cuentaPorNumero, formatoImporte } from '../../../saldos-iniciales/models/saldo-inicial.model';
+import { TrasladosApiService } from '../../api/traslados-api.service';
+import { TRASLADOS_DOCUMENTS_CONFIG } from '../../config/traslados-documents.config';
+import { REQUEST_ROUTE } from '../../config/traslados.rutas';
+import { CODIGO_DOCUMENTO, NOMBRE_DOCUMENTO, TrasladoRegistro } from '../../models/traslado.model';
+
+const MONEDA: Record<string, string> = { PEN: 'Soles', USD: 'Dólares' };
+
+/** «000032, 000033» para las columnas Origen y Destino. */
+const cuentas = (r: TrasladoRegistro, naturaleza: 'Débito' | 'Crédito'): string =>
+  r.movimientos.filter((m) => m.naturaleza === naturaleza).map((m) => m.idCorrelativo).join(', ');
 
 /**
- * «Documentos y registros» del proceso de ejemplo. La pantalla entera la arma `siaf-documents-records-page`:
- * esta página solo carga la bandeja (documentos) y las cuentas aprobadas (registros) y las pasa como filas.
+ * «Documentos y registros» del traslado entre cuentas de registros. La pantalla entera la arma
+ * `siaf-documents-records-page`: esta página solo carga la bandeja (documentos) y los traslados procesados
+ * (registros) y los pasa como filas.
  */
 @Component({
-  selector: 'siaf-cuentas-bancarias-documents',
+  selector: 'siaf-traslados-documents',
   standalone: true,
   imports: [DocumentsRecordsPageComponent],
   template: `
@@ -37,22 +38,21 @@ import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pa
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CuentasBancariasDocumentsComponent implements OnInit {
+export class TrasladosDocumentsComponent implements OnInit {
   private readonly solicitudesState = inject(SolicitudesStateService);
   private readonly solicitudesFacade = inject(SolicitudesFacadeService);
   private readonly permissions = inject(PermissionService);
-  private readonly cuentasApi = inject(CuentasBancariasApiService);
+  private readonly trasladosApi = inject(TrasladosApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly nuevos = createNewDocumentIdsSignal();
 
-  private readonly registros = signal<CuentaBancariaRegistro[]>([]);
+  private readonly registros = signal<TrasladoRegistro[]>([]);
   readonly cargando = signal(true);
 
   ngOnInit(): void {
-    // Bandeja según el rol (el aprobador además refresca cada 30 s).
-    // La primera página la resuelve el backend (simulado), igual que las siguientes.
+    // Bandeja según el rol (el aprobador además refresca cada 30 s). La primera página la resuelve el backend.
     this.solicitudesFacade.iniciarBandeja(this.permissions.currentRole(), this.destroyRef, [CODIGO_DOCUMENTO], { page: 1, limit: FILAS_POR_PAGINA });
-    this.cuentasApi.listarRegistros().subscribe({
+    this.trasladosApi.listarRegistros().subscribe({
       next: (registros) => { this.registros.set(registros); this.cargando.set(false); },
       error: () => this.cargando.set(false),
     });
@@ -81,7 +81,7 @@ export class CuentasBancariasDocumentsComponent implements OnInit {
         number: s.numero || '—',
         actionType: s.tipoAccion === 'creacion' ? 'Creación' : s.tipoAccion,
         status: s.estado,
-        system: 'Sistema Nacional de Tesorería',
+        system: 'Tesorería',
         date: s.fecha,
         entity: s.entidad || '—',
         creator: s.creador,
@@ -98,14 +98,16 @@ export class CuentasBancariasDocumentsComponent implements OnInit {
     const recordRows: DocumentsRecordsRow[] = this.registros().map((r) => ({
       recordId: r.id,
       status: r.estado,
-      codigo: r.codigo,
-      banco: nombreBanco(r.bancoCodigo),
-      numeroCuenta: r.numeroCuenta,
-      denominacion: r.denominacion,
-      moneda: nombreMoneda(r.moneda),
-      tipoCuenta: nombreTipoCuenta(r.tipoCuenta),
-      fechaApertura: r.fechaApertura.split('-').reverse().join('/'),
-      // Para el historial del registro: la solicitud que lo creó.
+      secuencia: r.secuencia,
+      cuentaBancaria: r.cuentaBancaria,
+      denominacion: cuentaPorNumero(r.cuentaBancaria)?.denominacion ?? '—',
+      modalidad: r.modalidad,
+      origenes: cuentas(r, 'Débito'),
+      destinos: cuentas(r, 'Crédito'),
+      moneda: MONEDA[r.moneda] ?? r.moneda,
+      total: formatoImporte(r.total),
+      fechaRegistro: new Date(r.fechaRegistro).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      // Para el historial del registro: el documento que lo creó.
       document: NOMBRE_DOCUMENTO,
       documentId: r.documentoId,
       number: r.numeroDocumento,
@@ -114,7 +116,7 @@ export class CuentasBancariasDocumentsComponent implements OnInit {
     }));
 
     return {
-      ...CUENTAS_BANCARIAS_DOCUMENTS_CONFIG,
+      ...TRASLADOS_DOCUMENTS_CONFIG,
       documentRows,
       recordRows,
       serverQuery: { total: this.solicitudesState.bandejaTotal() },

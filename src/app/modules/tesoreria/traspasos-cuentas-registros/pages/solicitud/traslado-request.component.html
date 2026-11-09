@@ -1,0 +1,288 @@
+<div class="min-h-[calc(100vh-56px)] bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
+  <!-- La cabecera (migas, título, estado y botones según rol y estado) la pinta el layout de solicitudes. -->
+  <siaf-solicitude-page-layout
+    [breadcrumbs]="breadcrumbs"
+    [role]="headerRole()"
+    [state]="headerState()"
+    [loading]="cargando()"
+    [heading]="heading"
+    secondaryText="Creación"
+    [showReturn]="true"
+    [showButtonGroup]="!visualizador()"
+    [saveDisabled]="!formValido() || saving()"
+    [verifyDisabled]="verificarDeshabilitado()"
+    (returned)="regresar()"
+    (canceled)="regresar()"
+    (saved)="modalGrabar.set(true)"
+    (edited)="editar()"
+    (verified)="modalVerificar.set(true)"
+    (deleted)="modalEliminar.set(true)"
+    (approved)="abrirAprobar()"
+    (observed)="abrirObservar()"
+    (rejected)="abrirRechazar()"
+  >
+    @if (cargando()) {
+      <div class="rounded-siaf-md bg-surface p-siaf-xl">
+        <div class="grid grid-cols-3 gap-siaf-md">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="siaf-skeleton-pulse h-4 w-32 rounded bg-[var(--sys-color-bg-surfaces-surface-low)]"></div>
+          }
+        </div>
+      </div>
+    } @else {
+      @if (elaborado()) {
+        <section class="grid gap-siaf-md lg:grid-cols-[1fr_360px]">
+          <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
+          <siaf-document-summary-card [documentNumber]="numeroDocumento()" [status]="estadoDocumento()" />
+        </section>
+      } @else {
+        <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
+      }
+
+      <!-- ── Movimiento interno ── -->
+      <siaf-solicitude-form-card title="Movimiento interno">
+        <siaf-summary-card [fields]="movimientoInterno" [bordered]="true" [showClose]="false" />
+      </siaf-solicitude-form-card>
+
+      <!-- ── Cuenta bancaria ── -->
+      <siaf-solicitude-form-card>
+        @if (cuentaElegida()) {
+          <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+            <h3 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h3>
+            @if (!soloLectura()) {
+              <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Buscar cuenta bancaria" (click)="abrirPanelCuenta()" />
+            }
+          </div>
+          <siaf-summary-card [fields]="datosCuenta()" [bordered]="true" [showClose]="!soloLectura()" closeLabel="Quitar cuenta bancaria" (closed)="elegirCuenta('')" />
+        } @else {
+          <empty-section title="Cuenta bancaria" [disabled]="soloLectura()" (actionClicked)="abrirPanelCuenta()" />
+        }
+      </siaf-solicitude-form-card>
+
+      <!-- ── Modalidad de traslado ── -->
+      <siaf-solicitude-form-card title="Modalidad de traslado">
+        <siaf-radio-group
+          name="modalidad-traslado"
+          [cards]="true"
+          [options]="opcionesForma"
+          [value]="forma()"
+          [disabled]="soloLectura() || !cuentaElegida()"
+          (valueChange)="elegirForma($event)"
+        />
+      </siaf-solicitude-form-card>
+
+      <!-- ── Traslado entre cuentas de registro ── -->
+      <siaf-solicitude-form-card title="Traslado entre cuentas de registro">
+        @if (!forma() || !cuentaElegida()) {
+          <message-box text="No se ha seleccionado ningún tipo. Elija la cuenta bancaria y la modalidad de traslado." />
+        } @else {
+          <div class="grid gap-siaf-md rounded-siaf-md bg-[var(--sys-color-bg-surfaces-surface-low)] p-siaf-md md:grid-cols-3">
+            @for (i of indicadores(); track i.caption) {
+              <readonly-field [caption]="i.caption" [value]="i.value" />
+            }
+          </div>
+
+          @if (tarjetas().length === 0) {
+            <empty-section [title]="textos().principales" [disabled]="soloLectura() || cargandoLibretas()" (actionClicked)="abrirPanelPrincipales()" />
+          } @else {
+            <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+              <h3 class="m-0 text-sm font-bold uppercase text-text">{{ textos().principales }}</h3>
+              @if (!soloLectura()) {
+                <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" [ariaLabel]="textos().panelPrincipales" (click)="abrirPanelPrincipales()" />
+              }
+            </div>
+            @for (t of tarjetas(); track t.id) {
+              <siaf-collapsible-card
+                [expanded]="estaAbierta(t.id)"
+                [closable]="!soloLectura()"
+                [closeLabel]="'Quitar ' + t.id"
+                (expandedChange)="alternar(t.id, $event)"
+                (closed)="quitarPrincipal(t.id)"
+              >
+                <div card-info class="grid items-center gap-siaf-md md:grid-cols-[1fr_140px_170px_170px]">
+                  <div class="min-w-0">
+                    <p class="siaf-text-body-2-bold m-0 truncate text-text">{{ t.id }} - {{ t.libreta?.descripcion }}</p>
+                    <p class="siaf-text-caption-1 m-0 truncate">{{ t.libreta?.numero }}</p>
+                  </div>
+                  <span class="siaf-text-body-2 inline-flex items-center gap-siaf-xs">
+                    <siaf-icon name="account_tree" [size]="20" />{{ cantidadAsignadas(t.filas.length) }}
+                  </span>
+                  <readonly-field [caption]="abrev.saldoCuenta.abreviatura" [value]="formatoImporte(t.libreta?.saldoDisponible ?? 0)" />
+                  <readonly-field [caption]="textos().importePrincipal" [value]="formatoImporte(t.total)" />
+                </div>
+
+                <div class="flex flex-col gap-siaf-md p-siaf-md">
+                  @if (forma() === 'origen' && excedeSaldo(t.id)) {
+                    <message-box text="El importe a debitar supera el saldo disponible de la cuenta de origen." />
+                  }
+                  <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+                    <h4 class="m-0 text-sm font-bold uppercase text-text">{{ textos().secundarias }}</h4>
+                    @if (!soloLectura()) {
+                      <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" [ariaLabel]="textos().panelSecundarias" (click)="abrirPanelSecundarias(t.id)" />
+                    }
+                  </div>
+                  @if (t.filas.length === 0) {
+                    <message-box [text]="textos().sinSecundarias" />
+                  } @else {
+                    <div class="siaf-table-shell">
+                      <table class="siaf-table min-w-[900px]">
+                        <caption class="sr-only">{{ textos().secundarias }} de {{ t.id }}</caption>
+                        <thead>
+                          <tr class="siaf-table-head-row">
+                            <th class="siaf-table-th w-[48px]"><span class="sr-only">Asignada</span></th>
+                            <th class="siaf-table-th">Descripción</th>
+                            <th class="siaf-table-th w-[300px]">Número</th>
+                            <th class="siaf-table-th w-[170px] text-right" [siafTooltip]="abrev.saldoCuenta.termino">{{ abrev.saldoCuenta.abreviatura }}</th>
+                            <th class="siaf-table-th w-[200px]" [siafTooltip]="textos().importeSecundariaTermino">{{ textos().importeSecundaria }}</th>
+                            @if (!soloLectura()) {
+                              <th class="siaf-table-th w-[56px]"><span class="sr-only">Quitar</span></th>
+                            }
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (f of t.filas; track f.id) {
+                            <tr class="siaf-table-row">
+                              <td class="siaf-table-td"><siaf-icon name="subdirectory_arrow_right" [size]="20" /></td>
+                              <td class="siaf-table-td">{{ f.id }} - {{ f.libreta?.descripcion }}</td>
+                              <td class="siaf-table-td">{{ f.libreta?.numero }}</td>
+                              <td class="siaf-table-td text-right">{{ formatoImporte(f.libreta?.saldoDisponible ?? 0) }}</td>
+                              @if (soloLectura()) {
+                                <td class="siaf-table-td text-right">{{ formatoImporte(f.importe) }}</td>
+                              } @else {
+                                <td class="siaf-table-td py-siaf-xs">
+                                  <siaf-input
+                                    [label]="textos().importeSecundariaTermino + ' ' + f.id"
+                                    type="decimal"
+                                    [autoSuccess]="false"
+                                    [value]="f.importe || ''"
+                                    [error]="forma() === 'destino' && excedeSaldo(f.id) ? 'Supera el saldo disponible.' : ''"
+                                    (valueChange)="cambiarImporte(t.id, f.id, $event)"
+                                  />
+                                </td>
+                                <td class="siaf-table-td">
+                                  <siaf-button variant="text" size="sm" icon="delete" [iconOnly]="true" [ariaLabel]="'Quitar ' + f.id" (click)="quitarSecundaria(t.id, f.id)" />
+                                </td>
+                              }
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </div>
+              </siaf-collapsible-card>
+            }
+          }
+        }
+      </siaf-solicitude-form-card>
+
+      <!-- ── Motivo del traslado ── -->
+      <siaf-solicitude-form-card title="Motivo del traslado">
+        <text-area-control
+          placeholder="Descripción"
+          [required]="true"
+          [maxlength]="200"
+          [minlength]="minCaracteresTexto"
+          [readonly]="soloLectura()"
+          [value]="motivo()"
+          (valueChange)="motivo.set($event)"
+        />
+      </siaf-solicitude-form-card>
+
+      <!-- ── Comentarios del aprobador y trazabilidad ── -->
+      @if (historial().length > 0 || comentarioActual()) {
+        <siaf-detail-history-tabs [comentario]="comentarioActual()" [entries]="historial()" />
+      }
+
+      @if (numeroDocumento()) {
+        <siaf-action-tracker [showSummaryCards]="true" [showTabs]="false" [summaryItems]="trazabilidad()" />
+      }
+    }
+  </siaf-solicitude-page-layout>
+
+  <!-- Errores de la verificación: campo, valor, motivo y regla incumplida. -->
+  <siaf-side-panel
+    [open]="panelErroresAbierto()"
+    title="Errores de verificación"
+    [showFooter]="true"
+    confirmLabel="Entendido"
+    cancelLabel="Cerrar"
+    (closed)="panelErroresAbierto.set(false)"
+    (canceled)="panelErroresAbierto.set(false)"
+    (confirmed)="panelErroresAbierto.set(false)"
+  >
+    <div class="flex flex-col gap-siaf-md">
+      <p class="siaf-text-body-2 m-0">El documento sigue en estado Elaborado. Corrija estos datos y vuelva a verificar.</p>
+      @for (e of errores(); track $index) {
+        <siaf-summary-card
+          [fields]="[{ label: 'Campo', value: e.campo }, { label: 'Valor', value: e.valor }, { label: 'Motivo', value: e.motivo }, { label: 'Regla', value: e.regla }]"
+          [bordered]="true"
+          [showClose]="false"
+        />
+      }
+    </div>
+  </siaf-side-panel>
+
+  <siaf-selection-side-nav
+    [open]="panelCuentaAbierto()"
+    title="Seleccionar cuenta bancaria"
+    mode="single"
+    idKey="numero"
+    [rows]="cuentasFiltradas()"
+    [columns]="columnasCuenta"
+    [searchValue]="busquedaCuenta()"
+    [selectedIds]="cuentaTemporal() ? [cuentaTemporal()!] : []"
+    (searchChange)="busquedaCuenta.set($event)"
+    (selectionChange)="cuentaTemporal.set($event[0] || null)"
+    (closed)="panelCuentaAbierto.set(false)"
+    (accepted)="aceptarCuenta($event)"
+  />
+
+  <siaf-selection-side-nav
+    [open]="!!panelLibretas()"
+    [title]="tituloPanelLibretas()"
+    mode="multiple"
+    idKey="idCorrelativo"
+    [rows]="libretasFiltradas()"
+    [columns]="columnasLibreta"
+    [searchValue]="busquedaLibreta()"
+    [selectedIds]="libretasTemporales()"
+    [disabledIds]="libretasBloqueadas()"
+    [requireSelection]="false"
+    emptyMessage="La cuenta bancaria no tiene cuentas de registro."
+    (searchChange)="busquedaLibreta.set($event)"
+    (selectionChange)="libretasTemporales.set($event)"
+    (closed)="panelLibretas.set(null)"
+    (accepted)="aceptarLibretas($event)"
+  />
+
+  <siaf-request-approval-modals
+    [saveOpen]="modalGrabar()"
+    [verifyOpen]="modalVerificar()"
+    [deleteOpen]="modalEliminar()"
+    [approveOpen]="modalAprobar()"
+    [observeOpen]="modalObservar()"
+    [rejectOpen]="modalRechazar()"
+    [saving]="saving()"
+    [reason]="comentario()"
+    [rejectReasonType]="motivoRechazo()"
+    [rejectReasonTypeOptions]="motivosRechazo"
+    [snackbarVariant]="aviso()"
+    [snackbarOpen]="avisoAbierto()"
+    requestType="creación"
+    [requestNumber]="numeroDocumento()"
+    (saveConfirmed)="onConfirmarGrabar()"
+    (verifyConfirmed)="onConfirmarVerificar()"
+    (deleteConfirmed)="onConfirmarEliminar()"
+    (approveConfirmed)="onConfirmarAprobar()"
+    (observeConfirmed)="onConfirmarObservar()"
+    (rejectConfirmed)="onConfirmarRechazar()"
+    (saveClosed)="modalGrabar.set(false)"
+    (verifyClosed)="modalVerificar.set(false)"
+    (deleteClosed)="modalEliminar.set(false)"
+    (approvalClosed)="cerrarModalesAprobador()"
+    (reasonChange)="comentario.set($event)"
+    (rejectReasonTypeChange)="motivoRechazo.set($event)"
+    (snackbarClosed)="avisoAbierto.set(false)"
+  />
+</div>

@@ -105,18 +105,34 @@ describe('DocumentsRecordsTableComponent — cabecera agrupada', () => {
     const filas = fixture.nativeElement.querySelectorAll('thead tr') as NodeListOf<HTMLTableRowElement>;
     expect(filas.length).toBe(2);
     const arriba = Array.from(filas[0].cells).map((c) => [c.textContent!.trim(), c.rowSpan, c.colSpan]);
-    expect(arriba).toEqual([['Sec.', 2, 1], ['Cuenta bancaria', 1, 2], ['', 2, 1]]);
+    expect(arriba).toEqual([['', 2, 1], ['Sec.', 2, 1], ['Cuenta bancaria', 1, 2], ['', 2, 1]]);
     expect(Array.from(filas[1].cells).map((c) => c.textContent!.trim())).toEqual(['Número', 'Moneda']);
-    expect(filas[0].cells[1].getAttribute('scope')).toBe('colgroup');
+    expect(filas[0].cells[2].getAttribute('scope')).toBe('colgroup');
     // Líneas del grupo, solo en la cabecera: abajo y a los lados del título, y a los lados de sus columnas.
-    const grupo = filas[0].cells[1];
+    const grupo = filas[0].cells[2];
     expect(grupo.classList).toContain('siaf-table-th--grupo');
     const [numero, moneda] = Array.from(filas[1].cells);
     expect(numero.classList).toContain('siaf-table-th--grupo-inicio');
     expect(numero.classList).not.toContain('siaf-table-th--grupo-fin');
     expect(moneda.classList).toContain('siaf-table-th--grupo-fin');
-    expect(filas[0].cells[0].className).not.toContain('siaf-table-th--grupo');
-    expect(fixture.nativeElement.querySelectorAll('tbody td').length).withContext('3 columnas + historial').toBe(4);
+    expect(filas[0].cells[1].className).not.toContain('siaf-table-th--grupo');
+    expect(fixture.nativeElement.querySelectorAll('tbody td').length).withContext('checkbox + 3 columnas + historial').toBe(5);
+  });
+
+  it('en Registros cada fila tiene su checkbox y lo marca (para exportar)', async () => {
+    await TestBed.configureTestingModule({ imports: [DocumentsRecordsTableComponent], providers: [provideRouter([]), provideHttpClient()] }).compileComponents();
+    const fixture = TestBed.createComponent(DocumentsRecordsTableComponent);
+    fixture.componentRef.setInput('activeTab', 'records');
+    fixture.componentRef.setInput('columns', [{ key: 'a', label: 'A', visibility: 'visible', group: 'default' }] as DocumentsRecordsColumn[]);
+    const fila = { a: '1' };
+    fixture.componentRef.setInput('rows', [fila]);
+    fixture.detectChanges();
+    const cambios: unknown[] = [];
+    fixture.componentInstance.selectionChanged.subscribe((c) => cambios.push(c));
+    const checkbox = fixture.nativeElement.querySelector('tbody input[type="checkbox"]') as HTMLInputElement;
+    expect(checkbox.disabled).toBeFalse();
+    checkbox.click();
+    expect(cambios).toEqual([jasmine.objectContaining({ row: fila, selected: true })]);
   });
 
   it('sin headerGroup la cabecera sigue en una fila', async () => {

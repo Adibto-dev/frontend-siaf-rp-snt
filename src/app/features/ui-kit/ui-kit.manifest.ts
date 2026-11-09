@@ -2856,7 +2856,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       }
     ],
-    "usar": "- Ítems de una lista que se revisan de a uno: un documento o un asiento con su resumen en la cabecera y todos sus\n  datos al abrir.\n- Cuando además el usuario puede quitar el ítem con la X y el padre decide qué pasa con `closed`.\n- Hoy sin uso en la app; empieza cerrada y `[(expanded)]` sirve para abrir la primera o recordar el estado.",
+    "usar": "- Ítems de una lista que se revisan de a uno: un documento o un asiento con su resumen en la cabecera y todos sus\n  datos al abrir.\n- Cuando además el usuario puede quitar el ítem con la X y el padre decide qué pasa con `closed`.\n- Cada cuenta principal del traslado entre cuentas de registros, con sus cuentas asignadas al abrir; empieza\n  cerrada y `[(expanded)]` sirve para abrir la primera o recordar el estado.",
     "evitar": "- Para 2 o más registros comparables en una solicitud: usar la grilla estándar (`siaf-table-controls` + tabla +\n  `siaf-pagination`).\n- Para el único ítem elegido desde un panel lateral, sin detalle que desplegar: usar `siaf-summary-card`.\n- Para secciones con título y menú ⋮, sin X: usar `siaf-expansion-panel`; para preguntas de solo texto,\n  `siaf-accordion`.\n- Con la X visible en modo consulta: ocultarla con `[closable]=\"false\"`.",
     "teclado": "- **Tab**: pasa por la flecha, lo que el padre proyecte en la cabecera y la X.\n- **Enter / Espacio** en la flecha: abren o cierran el detalle y emiten `expandedChange`.\n- **Enter / Espacio** en la X: emiten `closed`; si el padre quita la tarjeta, el foco no se mueve solo.",
     "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: la flecha es un `button` con `aria-expanded`, `aria-controls` hacia el\n  detalle y nombre «Expandir detalle» / «Contraer detalle»; la X toma su nombre de `closeLabel`, que el padre debe\n  completar con el ítem (por ejemplo «Quitar documento PAA-…») cuando hay varias tarjetas.\n- **1.3.1 Información y relaciones (A)**: el detalle abierto es `role=\"region\"` rotulado por la cabecera\n  (`aria-labelledby`).\n- **1.1.1 Contenido no textual (A)**: la marca azul y los íconos de los botones son decorativos (`aria-hidden`).\n- **1.4.1 Uso del color (A)**: abierta o cerrada se distingue por la flecha y por el detalle visible; la marca azul\n  no indica estado.\n- **2.4.3 Orden del foco (A)**: al quitar la tarjeta, el padre debe llevar el foco al ítem siguiente o a la acción\n  de agregar: el componente no lo mueve.\n- **2.4.7 Foco visible (AA)**: los dos botones muestran un contorno de 2 px `border-states-focus` separado 2 px.\n- **1.4.11 Contraste no textual (AA)**: ese contorno es el azul del kit (`border-states-focus`, 5.35:1 claro /\n  10.15:1 oscuro sobre la superficie).\n- **2.5.8 Tamaño del objetivo (AA)**: flecha y X miden 32 × 32 px.",
@@ -2961,7 +2961,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "usa": [
       "siaf-icon"
     ],
-    "sinUso": true
+    "sinUso": false
   },
   {
     "selector": "siaf-column-visibility-panel",
@@ -5173,9 +5173,9 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       }
     ],
-    "usar": "- En las pestañas Documentos / Registros de `siaf-documents-records-page` (plan de cuentas, asiento de ajuste,\n  catálogo de ajuste, catálogos de eventos, apertura contable y contabilización).\n- Cuando las columnas vienen de configuración (`DocumentsRecordsColumn` con `kind`, `align` y `widthClass`) y el\n  panel de columnas decide cuáles se ven.\n- Con `headerGroup` en columnas seguidas para agruparlas bajo una cabecera común (Saldos iniciales: «Cuenta\n  bancaria», «Libro bancos» y «Documentos»): la cabecera pasa a dos filas.\n- Con `rowActions` para íconos por fila en Registros antes del historial (Saldos iniciales: ver documento de\n  sustento, deshabilitado sin archivo, y ver saldos iniciales libretas); se deshabilitan por fila con `disabled`.\n- Con `selectionDisabled` para dejar marcables solo los documentos de la acción masiva: Elaborados para el creador\n  (Verificar) y Verificados para el aprobador (Aprobar).",
+    "usar": "- En las pestañas Documentos / Registros de `siaf-documents-records-page` (plan de cuentas, asiento de ajuste,\n  catálogo de ajuste, catálogos de eventos, apertura contable y contabilización).\n- Cuando las columnas vienen de configuración (`DocumentsRecordsColumn` con `kind`, `align` y `widthClass`) y el\n  panel de columnas decide cuáles se ven.\n- Con `headerGroup` en columnas seguidas para agruparlas bajo una cabecera común (Saldos iniciales: «Cuenta\n  bancaria», «Libro bancos» y «Documentos»): la cabecera pasa a dos filas.\n- Con `rowActions` para íconos por fila en Registros antes del historial (Saldos iniciales: ver documento de\n  sustento, deshabilitado sin archivo, y ver saldos iniciales libretas); se deshabilitan por fila con `disabled`.\n- Con `selectionDisabled` para dejar marcables solo los documentos de la acción masiva: Elaborados para el creador\n  (Verificar) y Verificados para el aprobador (Aprobar). En Registros todas las filas son marcables (para exportar).",
     "evitar": "- Para un listado de solo lectura con texto plano: `siaf-table`.\n- Usarla sola, sin barra ni paginado: va dentro de la grilla estándar (`siaf-table-controls` arriba, con el\n  seleccionar todo, y `siaf-pagination` con `position=\"Bottom\"` y `rowPage` abajo).\n- Mientras llegan las filas: `siaf-table-skeleton` con las mismas columnas y `minWidthClass`, no la tabla vacía.\n- Copiar su marcado en otra pantalla: `siaf-tray-documents-view` todavía tiene una tabla parecida hecha a mano.",
-    "teclado": "- **Tab**: recorre, fila por fila, el checkbox (solo en Documentos), el enlace al documento y el botón de historial;\n  un checkbox deshabilitado queda fuera.\n- **Espacio**: marca o desmarca el checkbox de la fila (emite `selectionChanged`).\n- **Enter**: en el enlace, abre el documento (`routerLink`).\n- **Enter / Espacio**: en el botón de historial, emiten `historyOpened`; en una acción de `rowActions`,\n  `rowActionTriggered`. Una acción deshabilitada queda fuera del Tab.",
+    "teclado": "- **Tab**: recorre, fila por fila, el checkbox, el enlace al documento y el botón de historial;\n  un checkbox deshabilitado queda fuera.\n- **Espacio**: marca o desmarca el checkbox de la fila (emite `selectionChanged`).\n- **Enter**: en el enlace, abre el documento (`routerLink`).\n- **Enter / Espacio**: en el botón de historial, emiten `historyOpened`; en una acción de `rowActions`,\n  `rowActionTriggered`. Una acción deshabilitada queda fuera del Tab.",
     "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `<table>` con `<thead>` y un `<th scope=\"col\">` por columna; los grupos\n  (`headerGroup`) van en una primera fila con `<th scope=\"colgroup\">` y `colspan` (línea abajo y a los lados del grupo, solo en la cabecera), y las columnas sueltas y las del\n  checkbox e historial ocupan las dos filas (`rowspan`). Las del checkbox y del historial tienen el `<th>` vacío. No\n  ordena columnas, así que no aplica `aria-sort`.\n- **Pendiente · 4.1.2 Nombre, función y valor (A)**: el checkbox de cada fila no tiene nombre (ni `aria-label` ni\n  `<label>`). El botón de historial sí lleva `aria-label`, pero en Registros dice siempre «Ver historial de cuenta\n  contable», también en los asientos de ajuste.\n- **Pendiente · 2.1.1 Teclado (A)**: la fila no es clicable y sus acciones son nativas, pero el texto completo de\n  las cabeceras y celdas cortadas solo sale con `siafTooltip` al pasar el mouse: esas celdas no reciben foco (el\n  enlace sí lo muestra al enfocarlo).\n- **1.4.13 Contenido en hover o foco (AA)**: ese tooltip se cierra con Escape y se puede recorrer con el puntero.\n- **Pendiente · 1.4.3 Contraste mínimo (AA)**: el enlace va en `text-neutral-high` (16.29:1 / 16.53:1) y «Nuevo» en\n  blanco sobre `bg-brand-primary` (8.79:1 / 6.67:1), pero la etiqueta Observado de `siaf-flow-status-tag` (también\n  Pendiente y Fallido) da 3.39:1 en claro, y el enlace en hover (`text-brand-primary`) pinta en oscuro con\n  `bg-brand-primary` (2.66:1 sobre la superficie).\n- **1.4.1 Uso del color (A)**: los estados llevan su nombre en la etiqueta y «Nuevo» es texto.\n- **2.4.7 Foco visible (AA)**: sin estilo propio: enlace, checkbox y botón muestran el anillo nativo del navegador.\n- **2.5.8 Tamaño del objetivo (AA)**: botón de historial de 32 px; el checkbox mide 16 px, pero cumple por\n  espaciado (celda de 40 × 58 px).",
     "figma": [],
     "aria": {
@@ -9691,6 +9691,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "proyectaContenido": false,
     "entradas": [
       {
+        "nombre": "cards",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Opciones como tarjetas lado a lado, con `description` bajo la etiqueta."
+      },
+      {
         "nombre": "disabled",
         "tipo": "boolean",
         "porDefecto": "false",
@@ -9747,7 +9754,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       }
     ],
-    "usar": "- Para las preguntas Sí/No en una línea con `[inline]`: «Cuenta Única del Tesoro (CUT)» y «¿Vigente?» en el catálogo\n  de eventos, «¿Tiene vigencia?» en el de eventos contables.\n- Para una sola opción entre pocas (2 a 5) que conviene ver todas a la vez; sin `inline` van apiladas.\n- Con `label`, para que el grupo tenga `legend`, y con un `name` propio por grupo.",
+    "usar": "- Para las preguntas Sí/No en una línea con `[inline]`: «Cuenta Única del Tesoro (CUT)» y «¿Vigente?» en el catálogo\n  de eventos, «¿Tiene vigencia?» en el de eventos contables.\n- Para una sola opción entre pocas (2 a 5) que conviene ver todas a la vez; sin `inline` van apiladas.\n- Con `cards` cuando cada opción necesita explicarse: van como tarjetas lado a lado, con la etiqueta y su\n  `description`, y la elegida resaltada. Así se elige la modalidad del traslado entre cuentas de registros\n  («Por cuenta de origen» / «Por cuenta de destino»).\n- Con `label`, para que el grupo tenga `legend`, y con un `name` propio por grupo.",
     "evitar": "- Para listas largas o que vienen de un catálogo: usar `siaf-input` con `type=\"select\"` o, si hay que buscar,\n  `siaf-selection-side-nav`.\n- Para marcar varias opciones o encender algo al instante: casillas o `siaf-switch`.\n- Repetir a mano los `input type=\"radio\"` con `accent-brand-primary`, como aún hacen las secciones de vigencia y de\n  dinámica del formulario de cuenta contable.\n- Dos grupos en la misma pantalla con el `name` por defecto: comparten `radio-group` y se desmarcan entre sí.",
     "teclado": "- **Tab**: entra al grupo por la opción marcada y sale de él.\n- **Flechas**: pasan a la opción anterior o siguiente y la marcan (radio nativo).\n- **Espacio**: marca la opción enfocada.",
     "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `fieldset` con `legend` (el `label`) y cada radio dentro de su `<label>`.\n  El padre debe dar `label`: sin él el grupo queda sin nombre, como hoy en los formularios de eventos, que ponen la\n  pregunta fuera del componente.\n- **4.1.2 Nombre, función y valor (A)**: radios nativos: el navegador publica el rol, el marcado y `disabled`. El\n  padre debe dar un `name` único por grupo.\n- **Pendiente · 3.3.2 Etiquetas o instrucciones (A)**: el asterisco solo existe en la `legend`, y `aria-required` va\n  en cada radio, rol que no lo admite en ARIA 1.2 (sí `radiogroup`).\n- **Pendiente · 3.3.1 Identificación de errores (A)**: no tiene entrada de error ni `aria-invalid`; el aviso de un\n  grupo obligatorio sin respuesta lo tiene que pintar y asociar el padre.\n- **2.4.7 Foco visible (AA)**: no define estilo propio; queda el anillo de foco nativo del navegador.\n- **Pendiente · 1.4.11 Contraste no textual (AA)**: el círculo lo dibuja el navegador y, marcado, lo pinta\n  `accent-brand-primary`: 8.79:1 en claro, pero 2.66:1 en oscuro.\n- **2.5.8 Tamaño del objetivo (AA)**: cada opción es una `label` de 40 px de alto, clicable entera.\n- **1.4.3 Contraste mínimo (AA)**: opciones y `legend` en `text-neutral-high` 16.29:1; asterisco\n  `text-feedback-danger` 9.84:1.",
@@ -9766,6 +9773,24 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         ]
       },
       {
+        "token": "--sys-color-bg-states-light-selected",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-border-states-focus",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-divider-strong",
+        "via": [
+          "var()"
+        ]
+      },
+      {
         "token": "--sys-color-text-feedback-danger",
         "via": [
           "var()"
@@ -9778,15 +9803,34 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         ]
       },
       {
+        "token": "--sys-color-text-neutral-medium",
+        "via": [
+          "var()"
+        ]
+      },
+      {
         "token": "--sys-gap-base-md",
         "via": [
-          "gap-siaf-md"
+          "gap-siaf-md",
+          "px-siaf-md"
+        ]
+      },
+      {
+        "token": "--sys-gap-base-sm",
+        "via": [
+          "py-siaf-sm"
         ]
       },
       {
         "token": "--sys-gap-base-xs",
         "via": [
           "gap-siaf-xs"
+        ]
+      },
+      {
+        "token": "--sys-radius-sm",
+        "via": [
+          "rounded-siaf-sm"
         ]
       }
     ],

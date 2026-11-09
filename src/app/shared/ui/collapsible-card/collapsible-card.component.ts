@@ -17,7 +17,8 @@ let siguienteId = 0;
  * - Ítems de una lista que se revisan de a uno: un documento o un asiento con su resumen en la cabecera y todos sus
  *   datos al abrir.
  * - Cuando además el usuario puede quitar el ítem con la X y el padre decide qué pasa con `closed`.
- * - Hoy sin uso en la app; empieza cerrada y `[(expanded)]` sirve para abrir la primera o recordar el estado.
+ * - Cada cuenta principal del traslado entre cuentas de registros, con sus cuentas asignadas al abrir; empieza
+ *   cerrada y `[(expanded)]` sirve para abrir la primera o recordar el estado.
  * @evitar
  * - Para 2 o más registros comparables en una solicitud: usar la grilla estándar (`siaf-table-controls` + tabla +
  *   `siaf-pagination`).

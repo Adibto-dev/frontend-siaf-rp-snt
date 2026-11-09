@@ -30,29 +30,29 @@ export const TESORERIA_ROUTES: Routes = [
   {
     path: 'procesos/traspasos-cuentas-registros',
     loadComponent: () =>
-      import('./traspasos-cuentas-registros/pages/documents/cuentas-bancarias-documents.component').then(
-        (m) => m.CuentasBancariasDocumentsComponent,
+      import('./traspasos-cuentas-registros/pages/documents/traslados-documents.component').then(
+        (m) => m.TrasladosDocumentsComponent,
       ),
   },
   {
     path: 'procesos/traspasos-cuentas-registros/solicitud',
     loadComponent: () =>
-      import('./traspasos-cuentas-registros/pages/solicitud/cuenta-bancaria-request.component').then(
-        (m) => m.CuentaBancariaRequestComponent,
+      import('./traspasos-cuentas-registros/pages/solicitud/traslado-request.component').then(
+        (m) => m.TrasladoRequestComponent,
       ),
   },
   {
     path: 'procesos/traspasos-cuentas-registros/solicitud/:id',
     loadComponent: () =>
-      import('./traspasos-cuentas-registros/pages/solicitud/cuenta-bancaria-request.component').then(
-        (m) => m.CuentaBancariaRequestComponent,
+      import('./traspasos-cuentas-registros/pages/solicitud/traslado-request.component').then(
+        (m) => m.TrasladoRequestComponent,
       ),
   },
   {
     path: 'procesos/traspasos-cuentas-registros/consultas',
     loadComponent: () =>
-      import('./traspasos-cuentas-registros/pages/consultas/cuentas-bancarias-consultas.component').then(
-        (m) => m.CuentasBancariasConsultasComponent,
+      import('./traspasos-cuentas-registros/pages/consultas/traslados-consultas.component').then(
+        (m) => m.TrasladosConsultasComponent,
       ),
   },
   {

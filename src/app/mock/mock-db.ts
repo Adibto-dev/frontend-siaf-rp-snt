@@ -4,10 +4,14 @@ import { borrarArchivos } from './archivos-demo';
 import type { EstadoDocumento } from '../core/models/documento.model';
 import {
   CODIGO_DOCUMENTO,
-  CuentaBancariaDatos,
-  CuentaBancariaRegistro,
+  LibretaSaldo,
+  MovimientoTraslado,
   NOMBRE_DOCUMENTO,
-} from '../modules/tesoreria/traspasos-cuentas-registros/models/cuenta-bancaria.model';
+  PREFIJO_NUMERO as PREFIJO_TRASLADO,
+  TrasladoRegistro,
+  modalidad,
+  sumar,
+} from '../modules/tesoreria/traspasos-cuentas-registros/models/traslado.model';
 import {
   CODIGO_AUTOMATICO,
   CODIGO_DOCUMENTO as CODIGO_SALDOS,
@@ -20,7 +24,9 @@ import {
   SaldoInicial,
   SaldoInicialRegistro,
   calcularSaldo,
+  cuentaPorNumero,
   cuentasRegistroDe,
+  importeFirmado,
   redondear,
 } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import {
@@ -40,7 +46,7 @@ import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo'
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 18;
+const VERSION = 19;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -51,7 +57,8 @@ export interface NotificacionMock extends NotificacionResponse {
 export interface DatosTaller {
   version: number;
   solicitudes: SolicitudResponse[];
-  registros: CuentaBancariaRegistro[];
+  /** Traslados entre cuentas de registros procesados (documentos RTCR). */
+  registrosTraslado: TrasladoRegistro[];
   /** Saldos iniciales aprobados (documentos RSIN). */
   registrosSaldos: SaldoInicialRegistro[];
   /** Autorizaciones aprobadas (documentos RAUT). */
@@ -61,7 +68,8 @@ export interface DatosTaller {
   correlativos: Record<string, number>;
   /** Secuencia que se asigna a cada saldo inicial al aprobarse. */
   secuenciaSaldo: number;
-  correlativoRegistro: number;
+  /** Secuencia que se asigna a cada traslado al procesarse. */
+  secuenciaTraslado: number;
   secuencia: number;
 }
 
@@ -155,10 +163,10 @@ export const PREFIJO_SALDOS = 'SI-DRSI';
 
 /**
  * Siguiente número de documento: PCB-<código>-<correlativo>-<año>-<entidad>-<unidad>. Los de saldos (RSIN y RASA)
- * usan el prefijo SI-DRSI y un solo correlativo.
+ * usan el prefijo SI-DRSI y un solo correlativo; los traslados (RTCR), TR-DTCR con su propio correlativo.
  */
 export function numeroDocumento(datos: DatosTaller, codigo: string, fecha: Date, entidad = ENTIDAD_CREADORA.siglas, unidad = UNIDAD_CREADORA.sigla): string {
-  const prefijo = codigo === CODIGO_SALDOS || codigo === CODIGO_AUTOMATICO ? PREFIJO_SALDOS : `PCB-${codigo}`;
+  const prefijo = codigo === CODIGO_SALDOS || codigo === CODIGO_AUTOMATICO ? PREFIJO_SALDOS : codigo === CODIGO_DOCUMENTO ? PREFIJO_TRASLADO : `PCB-${codigo}`;
   const correlativo = (datos.correlativos[prefijo] ?? 0) + 1;
   datos.correlativos[prefijo] = correlativo;
   return `${prefijo}-${String(correlativo).padStart(5, '0')}-${fecha.getFullYear()}-${entidad}-${unidad}`;
@@ -277,43 +285,6 @@ export const ROL_SISTEMA = { codigo: 'SISTEMA', nombre: 'Sistema' };
 const ROL_CREADOR = { codigo: 'CREADOR', nombre: 'Creador' };
 const ROL_APROBADOR = { codigo: 'APROBADOR', nombre: 'Aprobador' };
 
-interface Semilla {
-  datos: CuentaBancariaDatos;
-  /** Día en que se creó la solicitud (yyyy-mm-dd). */
-  creada: string;
-  estado: 'ELABORADO' | 'VERIFICADO' | 'APROBADO' | 'OBSERVADO' | 'RECHAZADO';
-  justificacion: string;
-  comentario?: string;
-  registroInactivo?: boolean;
-}
-
-function cuenta(banco: string, tipo: 'CORRIENTE' | 'AHORROS', moneda: 'PEN' | 'USD', n: number, denominacion: string, apertura: string, recaudadora: boolean): CuentaBancariaDatos {
-  return {
-    bancoCodigo: banco,
-    tipoCuenta: tipo,
-    moneda,
-    numeroCuenta: `${banco}100${String(58213400000000 + n * 7919).slice(-14)}`,
-    denominacion,
-    fechaApertura: apertura,
-    esRecaudadora: recaudadora,
-  };
-}
-
-const SEMILLAS: Semilla[] = [
-  { creada: '2026-01-16', estado: 'APROBADO', justificacion: 'Cuenta para la recaudación de tasas por procedimientos administrativos.', datos: cuenta('018', 'CORRIENTE', 'PEN', 1, 'Recaudación de tasas administrativas', '2026-01-15', true) },
-  { creada: '2026-02-04', estado: 'APROBADO', justificacion: 'Cuenta para pagos a proveedores del exterior en dólares.', datos: cuenta('002', 'CORRIENTE', 'USD', 2, 'Pagos a proveedores del exterior', '2026-02-03', false) },
-  { creada: '2026-02-23', estado: 'APROBADO', justificacion: 'Cuenta de ahorros para el fondo de caja chica de la oficina.', datos: cuenta('003', 'AHORROS', 'PEN', 3, 'Fondo de caja chica', '2026-02-20', false) },
-  { creada: '2026-03-12', estado: 'APROBADO', justificacion: 'Cuenta para la recaudación de multas administrativas.', datos: cuenta('011', 'CORRIENTE', 'PEN', 4, 'Recaudación de multas', '2026-03-11', true) },
-  { creada: '2026-04-09', estado: 'APROBADO', justificacion: 'Cuenta para las transferencias a unidades ejecutoras.', datos: cuenta('018', 'CORRIENTE', 'PEN', 5, 'Transferencias a unidades ejecutoras', '2026-04-08', false) },
-  { creada: '2026-05-20', estado: 'APROBADO', justificacion: 'Cuenta para garantías recibidas en moneda extranjera.', datos: cuenta('009', 'AHORROS', 'USD', 6, 'Garantías en moneda extranjera', '2026-05-19', false), registroInactivo: true },
-  { creada: '2026-06-03', estado: 'APROBADO', justificacion: 'Cuenta para la recaudación de servicios no exclusivos.', datos: cuenta('018', 'CORRIENTE', 'PEN', 7, 'Recaudación de servicios no exclusivos', '2026-06-02', true) },
-  { creada: '2026-07-15', estado: 'APROBADO', justificacion: 'Cuenta de ahorros para encargos a las oficinas desconcentradas.', datos: cuenta('002', 'AHORROS', 'PEN', 8, 'Encargos a oficinas desconcentradas', '2026-07-14', false) },
-  { creada: '2026-08-06', estado: 'RECHAZADO', justificacion: 'Cuenta para la recaudación de derechos de trámite.', datos: cuenta('009', 'CORRIENTE', 'PEN', 9, 'Recaudación de derechos de trámite', '2026-08-05', true), comentario: '[Información incorrecta] La cuenta ya está registrada con el código CB-0004.' },
-  { creada: '2026-08-24', estado: 'VERIFICADO', justificacion: 'Cuenta en dólares para los fondos de cooperación internacional.', datos: cuenta('003', 'CORRIENTE', 'USD', 10, 'Fondos de cooperación internacional', '2026-08-21', false) },
-  { creada: '2026-09-02', estado: 'OBSERVADO', justificacion: 'Cuenta para la recaudación por alquiler de ambientes.', datos: cuenta('011', 'CORRIENTE', 'PEN', 11, 'Recaudación de alquileres', '2026-09-01', true), comentario: 'Adjunte la constancia de apertura emitida por el banco.' },
-  { creada: '2026-09-09', estado: 'ELABORADO', justificacion: 'Cuenta de ahorros para el fondo de viáticos.', datos: cuenta('018', 'AHORROS', 'PEN', 12, 'Fondo de viáticos', '2026-09-08', false) },
-];
-
 function enFecha(dia: string, horas: number, dias = 0): string {
   const fecha = new Date(`${dia}T00:00:00`);
   fecha.setDate(fecha.getDate() + dias);
@@ -325,79 +296,23 @@ function crearDatosIniciales(): DatosTaller {
   const datos: DatosTaller = {
     version: VERSION,
     solicitudes: [],
-    registros: [],
+    registrosTraslado: [],
     registrosSaldos: [],
     registrosAutorizacion: [],
     notificaciones: [],
     correlativos: {},
     secuenciaSaldo: 0,
-    correlativoRegistro: 0,
+    secuenciaTraslado: 0,
     secuencia: 0,
   };
   const ana = USUARIOS_DEMO[0];
   const luis = USUARIOS_DEMO[1];
 
-  for (const semilla of SEMILLAS) {
-    const id = nuevoId(datos, 'sol');
-    const creada = enFecha(semilla.creada, 9);
-    const numero = numeroDocumento(datos, CODIGO_DOCUMENTO, new Date(creada));
-    const historial: HistorialItem[] = [
-      filaHistorial(datos, null, 'NUEVO', creada, ana, ROL_CREADOR),
-      filaHistorial(datos, 'NUEVO', 'ELABORADO', enFecha(semilla.creada, 9, 0), ana, ROL_CREADOR),
-    ];
-    if (semilla.estado !== 'ELABORADO') {
-      historial.push(filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10, 1), ana, ROL_CREADOR));
-    }
-    if (['APROBADO', 'OBSERVADO', 'RECHAZADO'].includes(semilla.estado)) {
-      historial.push(filaHistorial(datos, 'VERIFICADO', semilla.estado, enFecha(semilla.creada, 11, 2), luis, ROL_APROBADOR, semilla.comentario ?? null));
-    }
-    const ultima = historial[historial.length - 1].createdAt;
-
-    const solicitud: SolicitudResponse = {
-      id,
-      numero,
-      catDocumento: TIPO_DOCUMENTO,
-      tipoAccion: 'creacion',
-      estado: semilla.estado,
-      asuntoMotivo: `[OFICINA GENERAL DE ADMINISTRACIÓN] ${semilla.justificacion}`,
-      entidadCreadora: ENTIDAD_CREADORA,
-      unidadCreadora: UNIDAD_CREADORA,
-      creador: { id: ana.id, nombres: ana.nombres, apellidoPaterno: ana.apellidoPaterno, apellidoMaterno: ana.apellidoMaterno },
-      fechaRegistro: creada,
-      createdAt: creada,
-      updatedAt: ultima,
-      itemsCuenta: [],
-      detalleCuentaBancaria: { documentoId: id, ...semilla.datos },
-      sustentos: [
-        {
-          id: nuevoId(datos, 'sus'),
-          tipoSustento: 'sustento',
-          archivo: { nombreOriginal: `Constancia de apertura ${String(datos.correlativos[CODIGO_DOCUMENTO]).padStart(2, '0')}.pdf`, storagePath: 'taller' },
-        },
-      ],
-      historialEstados: historial,
-    };
-    datos.solicitudes.push(solicitud);
-
-    if (semilla.estado === 'APROBADO') {
-      datos.correlativoRegistro += 1;
-      datos.registros.push({
-        id: nuevoId(datos, 'cb'),
-        codigo: `CB-${String(datos.correlativoRegistro).padStart(4, '0')}`,
-        estado: semilla.registroInactivo ? 'Inactivo' : 'Activo',
-        entidadSiglas: 'MEF',
-        documentoId: id,
-        numeroDocumento: numero,
-        fechaRegistro: ultima,
-        ...semilla.datos,
-      });
-    }
-  }
-
   crearSaldosIniciales(datos);
   crearAjustesSaldo(datos);
   crearAutorizaciones(datos);
   crearSaldosApertura(datos);
+  crearTraslados(datos);
 
   // Notificaciones: el aprobador tiene una solicitud por aprobar; el creador, una observada y otras ya leídas.
   const aviso = (s: SolicitudResponse, tipo: string, titulo: string, mensaje: string, leida: boolean, destino: Pick<NotificacionMock, 'paraUsuarioId' | 'paraRolCodigo'>): NotificacionMock => ({
@@ -701,5 +616,140 @@ function crearSaldosApertura(datos: DatosTaller): void {
     };
     datos.solicitudes.push(solicitud);
     if (semilla.estado === 'PROCESADO') registrarSaldos(datos, solicitud, ultima);
+  }
+}
+
+// ─── Traslados entre cuentas de registros (RTCR) ───────────────────
+
+/**
+ * Cuentas de registro de una cuenta bancaria con su saldo disponible: lo que dejaron los saldos iniciales activos
+ * (los ajustes con su signo) más lo que movieron los traslados procesados (el crédito suma y el débito resta).
+ */
+export function libretasConSaldo(datos: DatosTaller, cuentaBancaria: string): LibretaSaldo[] {
+  const saldo = new Map<string, number>();
+  const sumarA = (id: string, importe: number) => saldo.set(id, (saldo.get(id) ?? 0) + importe);
+  for (const r of datos.registrosSaldos) {
+    if (r.estado !== 'Activo' || r.cuentaBancaria !== cuentaBancaria) continue;
+    for (const l of r.libretas) sumarA(l.idCorrelativo, importeFirmado(l));
+  }
+  for (const t of datos.registrosTraslado) {
+    if (t.estado !== 'Activo' || t.cuentaBancaria !== cuentaBancaria) continue;
+    for (const m of t.movimientos) sumarA(m.idCorrelativo, m.naturaleza === 'Débito' ? -m.importe : m.importe);
+  }
+  return cuentasRegistroDe(cuentaBancaria).map((c) => ({
+    idCorrelativo: c.idCorrelativo,
+    numero: c.numero,
+    descripcion: c.descripcion,
+    saldoDisponible: redondear(saldo.get(c.idCorrelativo) ?? 0),
+  }));
+}
+
+/** Al procesarse un RTCR: el traslado pasa a los registros con su secuencia y mueve el saldo de las libretas. */
+export function registrarTraslado(datos: DatosTaller, s: SolicitudResponse, fecha: string): void {
+  const d = s.detalleTraslado;
+  if (!d || datos.registrosTraslado.some((r) => r.documentoId === s.id)) return;
+  datos.secuenciaTraslado += 1;
+  datos.registrosTraslado.push({
+    id: nuevoId(datos, 'tr'),
+    secuencia: String(datos.secuenciaTraslado).padStart(6, '0'),
+    estado: 'Activo',
+    cuentaBancaria: d.cuentaBancaria,
+    movimientos: d.movimientos,
+    moneda: cuentaPorNumero(d.cuentaBancaria)?.moneda ?? 'PEN',
+    modalidad: modalidad(d.movimientos) ?? '1 a 1',
+    total: sumar(d.movimientos, 'Débito'),
+    entidadSiglas: s.entidadCreadora?.siglas ?? '',
+    documentoId: s.id,
+    numeroDocumento: s.numero ?? '',
+    fechaRegistro: fecha,
+  });
+}
+
+/** Traslado procesado: avisa al creador y a los aprobadores que las libretas quedaron actualizadas. */
+export function notificarProcesado(datos: DatosTaller, s: SolicitudResponse, fecha: string, leida = false): void {
+  const base = {
+    tipo: 'DOCUMENTO_PROCESADO',
+    titulo: 'Traslado procesado',
+    mensaje: `El documento ${s.numero} se registró en las libretas de las cuentas de registro.`,
+    leida,
+    leidaEn: leida ? fecha : null,
+    createdAt: fecha,
+    documento: { id: s.id, numero: s.numero, catDocumento: TIPO_DOCUMENTO },
+  };
+  datos.notificaciones.push({ id: nuevoId(datos, 'not'), ...base, paraUsuarioId: s.creador?.id });
+  datos.notificaciones.push({ id: nuevoId(datos, 'not'), ...base, paraRolCodigo: 'APROBADOR' });
+}
+
+interface SemillaTraslado {
+  creada: string;
+  estado: 'ELABORADO' | 'VERIFICADO' | 'OBSERVADO' | 'RECHAZADO' | 'PROCESADO';
+  cuenta: string;
+  /** [idCorrelativo, naturaleza, importe] */
+  movimientos: [string, 'Débito' | 'Crédito', number][];
+  justificacion: string;
+  comentario?: string;
+}
+
+/** Cuenta Única del Tesoro (6 libretas) y Recursos Ordinarios (5 libretas): las que tienen saldo inicial aprobado. */
+const CUT = '00000281794000000005';
+const RO = '11040103570200000000';
+
+const SEMILLAS_TRASLADO: SemillaTraslado[] = [
+  { creada: '2026-09-14', estado: 'PROCESADO', cuenta: CUT, justificacion: 'Consolidar lo recaudado por IPM e Impuesto al Rodaje en FONCOMUN.',
+    movimientos: [['000032', 'Débito', 100000], ['000033', 'Débito', 50000], ['000034', 'Crédito', 150000]] },
+  { creada: '2026-09-22', estado: 'PROCESADO', cuenta: RO, justificacion: 'Distribuir recursos ordinarios entre dos cuentas de registro.',
+    movimientos: [['000012', 'Débito', 10000], ['000013', 'Crédito', 6000], ['000014', 'Crédito', 4000]] },
+  { creada: '2026-10-06', estado: 'RECHAZADO', cuenta: CUT, justificacion: 'Trasladar el saldo de la cuenta de registro 5 a la 6.',
+    movimientos: [['000036', 'Débito', 30000], ['000037', 'Crédito', 30000]], comentario: '[Información incorrecta] La cuenta de destino no corresponde al recurso.' },
+  { creada: '2026-10-20', estado: 'OBSERVADO', cuenta: RO, justificacion: 'Reasignar recursos ordinarios a la cuenta de registro 5.',
+    movimientos: [['000015', 'Débito', 3000], ['000016', 'Crédito', 3000]], comentario: 'Indique en la justificación el recurso de destino.' },
+  { creada: '2026-10-28', estado: 'VERIFICADO', cuenta: CUT, justificacion: 'Trasladar recursos de la cuenta de registro 4 a la 5.',
+    movimientos: [['000035', 'Débito', 80000], ['000036', 'Crédito', 80000]] },
+  { creada: '2026-11-03', estado: 'ELABORADO', cuenta: CUT, justificacion: 'Repartir el saldo de la cuenta de registro 6 entre las cuentas 1 y 2.',
+    movimientos: [['000037', 'Débito', 20000], ['000032', 'Crédito', 12000], ['000033', 'Crédito', 8000]] },
+];
+
+function crearTraslados(datos: DatosTaller): void {
+  const ana = USUARIOS_DEMO[0];
+  const luis = USUARIOS_DEMO[1];
+  for (const semilla of SEMILLAS_TRASLADO) {
+    const id = nuevoId(datos, 'sol');
+    const creada = enFecha(semilla.creada, 9);
+    const historial: HistorialItem[] = [
+      filaHistorial(datos, null, 'NUEVO', creada, ana, ROL_CREADOR),
+      filaHistorial(datos, 'NUEVO', 'ELABORADO', creada, ana, ROL_CREADOR),
+    ];
+    if (semilla.estado !== 'ELABORADO') historial.push(filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10, 1), ana, ROL_CREADOR));
+    if (semilla.estado === 'OBSERVADO' || semilla.estado === 'RECHAZADO') {
+      historial.push(filaHistorial(datos, 'VERIFICADO', semilla.estado, enFecha(semilla.creada, 11, 2), luis, ROL_APROBADOR, semilla.comentario ?? null));
+    }
+    if (semilla.estado === 'PROCESADO') {
+      const aprobado = enFecha(semilla.creada, 11, 2);
+      historial.push(filaHistorial(datos, 'VERIFICADO', 'APROBADO', aprobado, luis, ROL_APROBADOR));
+      historial.push(filaHistorial(datos, 'APROBADO', 'PROCESADO', aprobado, SISTEMA, ROL_SISTEMA));
+    }
+    const ultima = historial[historial.length - 1].createdAt;
+    const movimientos: MovimientoTraslado[] = semilla.movimientos.map(([idCorrelativo, naturaleza, importe]) => ({ idCorrelativo, naturaleza, importe }));
+    const solicitud: SolicitudResponse = {
+      id,
+      numero: numeroDocumento(datos, CODIGO_DOCUMENTO, new Date(creada)),
+      catDocumento: TIPO_DOCUMENTO,
+      tipoAccion: 'creacion',
+      estado: semilla.estado,
+      asuntoMotivo: `[OFICINA GENERAL DE ADMINISTRACIÓN] ${semilla.justificacion}`,
+      entidadCreadora: ENTIDAD_CREADORA,
+      unidadCreadora: UNIDAD_CREADORA,
+      creador: { id: ana.id, nombres: ana.nombres, apellidoPaterno: ana.apellidoPaterno, apellidoMaterno: ana.apellidoMaterno },
+      fechaRegistro: creada,
+      createdAt: creada,
+      updatedAt: ultima,
+      itemsCuenta: [],
+      detalleTraslado: { documentoId: id, cuentaBancaria: semilla.cuenta, movimientos },
+      sustentos: [],
+      historialEstados: historial,
+    };
+    if (semilla.estado === 'PROCESADO') solicitud.fechaAprobacion = ultima;
+    datos.solicitudes.push(solicitud);
+    if (semilla.estado === 'PROCESADO') registrarTraslado(datos, solicitud, ultima);
   }
 }

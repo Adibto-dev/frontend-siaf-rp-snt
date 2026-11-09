@@ -4,6 +4,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 export interface RadioOption {
   label: string;
   value: string;
+  /** Texto de apoyo bajo la etiqueta; solo se pinta con `cards`. */
+  description?: string;
 }
 
 /**
@@ -17,6 +19,9 @@ export interface RadioOption {
  * - Para las preguntas Sí/No en una línea con `[inline]`: «Cuenta Única del Tesoro (CUT)» y «¿Vigente?» en el catálogo
  *   de eventos, «¿Tiene vigencia?» en el de eventos contables.
  * - Para una sola opción entre pocas (2 a 5) que conviene ver todas a la vez; sin `inline` van apiladas.
+ * - Con `cards` cuando cada opción necesita explicarse: van como tarjetas lado a lado, con la etiqueta y su
+ *   `description`, y la elegida resaltada. Así se elige la modalidad del traslado entre cuentas de registros
+ *   («Por cuenta de origen» / «Por cuenta de destino»).
  * - Con `label`, para que el grupo tenga `legend`, y con un `name` propio por grupo.
  * @evitar
  * - Para listas largas o que vienen de un catálogo: usar `siaf-input` con `type="select"` o, si hay que buscar,
@@ -58,11 +63,37 @@ export interface RadioOption {
   ],
   template: `
     <!-- 16px entre opciones, apiladas o en línea (sys/gap/base/md). -->
-    <fieldset [class]="inline ? 'flex flex-wrap items-center gap-siaf-md' : 'grid gap-siaf-md'">
+    <fieldset [class]="cards ? 'grid gap-siaf-md md:grid-cols-2' : inline ? 'flex flex-wrap items-center gap-siaf-md' : 'grid gap-siaf-md'">
       @if (label) {
         <legend class="siaf-text-body-2-medium text-text">{{ label }}@if (required) { <span class="text-[var(--sys-color-text-feedback-danger)]">*</span> }</legend>
       }
       @for (option of options; track option.value) {
+        @if (cards) {
+          <label
+            class="flex cursor-pointer items-center gap-siaf-md rounded-siaf-sm border px-siaf-md py-siaf-sm text-text"
+            [class]="(option.value === value
+              ? 'border-[var(--sys-color-border-states-focus)] bg-[var(--sys-color-bg-states-light-selected)]'
+              : 'border-[var(--sys-color-divider-strong)]') + (disabled ? ' opacity-60' : '')"
+          >
+            <input
+              class="size-5 shrink-0 accent-brand-primary"
+              type="radio"
+              [name]="name"
+              [value]="option.value"
+              [checked]="option.value === value"
+              [disabled]="disabled"
+              [attr.aria-required]="required"
+              (change)="selectValue(option.value)"
+              (blur)="markTouched()"
+            />
+            <span class="flex flex-col">
+              <span class="siaf-text-body-2">{{ option.label }}</span>
+              @if (option.description) {
+                <span class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-medium)]">{{ option.description }}</span>
+              }
+            </span>
+          </label>
+        } @else {
         <label class="siaf-text-body-2 inline-flex h-10 items-center gap-siaf-xs text-text">
           <input
             class="size-4 accent-brand-primary"
@@ -77,6 +108,7 @@ export interface RadioOption {
           />
           <span>{{ option.label }}</span>
         </label>
+        }
       }
     </fieldset>
   `,
@@ -93,6 +125,8 @@ export class RadioComponent implements ControlValueAccessor {
   @Input() required = false;
   /** Opciones en una sola línea (ej. Si/No), en vez de apiladas. */
   @Input() inline = false;
+  /** Opciones como tarjetas lado a lado, con `description` bajo la etiqueta. */
+  @Input() cards = false;
 
   @Output() valueChange = new EventEmitter<string>();
 

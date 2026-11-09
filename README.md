@@ -40,17 +40,20 @@ verificación es `654321`.
 ## Recorrido sugerido para la clase
 
 1. **Login** como Victoria. El escritorio virtual muestra la bandeja, los contadores y sus notificaciones.
-2. **Procesos → Gestión de tesorería → Registro de cuentas bancarias → Documentos y registros**. La pestaña Documentos
-   es la bandeja; Registros, las cuentas ya aprobadas (con el historial de la solicitud que las creó).
-3. **Crear documento → Solicitud de Registro de Cuenta Bancaria**: llenar el formulario, adjuntar un PDF de sustento
-   y **Grabar**. La solicitud recibe su número (`PCB-RTCR-00013-2026-MEF-OGA`) y queda Elaborada; luego **Verificar**.
+2. **Procesos → Conciliación bancaria → Traspasos entre cuentas de registros → Documento de Traspasos entre cuentas de
+   registros**. La pestaña Documentos es la bandeja; Registros, los traslados ya procesados.
+3. **Crear documento → Solicitud de Reporte de Traslado de Recursos entre Cuentas de Registro**: elegir la cuenta
+   bancaria (por ejemplo, la Cuenta Única del Tesoro), marcar los orígenes (débito) y destinos (crédito) con sus importes
+   y ver cómo cuadran los totales; **Grabar**. El documento recibe su número (`TR-DTCR-00007-2026-MEF-OGA`) y queda
+   Elaborado. **Verificar** con un débito mayor que el saldo abre el panel de errores; corregido, queda Verificado.
 4. **Cerrar sesión** y entrar como Mateo: tiene la notificación «Solicitud por aprobar». Abrir la solicitud y
-   **Aprobar** (la cuenta aparece en Registros con el código `CB-0009`), **Observar** o **Rechazar** (piden comentario).
+   **Aprobar** (el sistema revalida el saldo y el documento queda Procesado: las libretas cambian y el traslado aparece
+   en Registros), **Observar** o **Rechazar** (piden comentario).
 5. Volver a entrar como Victoria: le llega el aviso. Una solicitud observada se corrige y se vuelve a verificar, pero ya no
    se puede eliminar.
 6. Entrar como Ariana y cambiar de perfil desde el menú del usuario: el avatar pasa de «CR» a «AP» y cambian la bandeja,
    los botones y las notificaciones.
-7. **Consultas y reportes**: elegir el rango de fechas de apertura y consultar. Probar los filtros, la **vista de
+7. **Consultas y reportes**: elegir el rango de fechas de procesamiento y consultar. Probar los filtros, la **vista de
    gráficas** (KPI, barras, dona y línea) y **Exportar** a Excel, CSV o PDF.
 8. **Catálogo de componentes** en `/ui-kit` (enlace «Ver componentes» del login): cada componente con su ficha, sus
    entradas y su ejemplo.
@@ -65,7 +68,7 @@ Para empezar de cero: **Reiniciar datos** en el login (o borrar el almacenamient
 | `/login/recuperar-contrasena` | Recuperar contraseña con código | — |
 | `/panel` | Escritorio virtual | `siaf-desk-card` |
 | `/procesos/traspasos-cuentas-registros` | Documentos y registros | `siaf-documents-records-page` |
-| `/procesos/traspasos-cuentas-registros/solicitud` y `/solicitud/:id` | Solicitud de Registro de Cuenta Bancaria | `siaf-solicitude-page-layout` |
+| `/procesos/traspasos-cuentas-registros/solicitud` y `/solicitud/:id` | Solicitud de Reporte de Traslado de Recursos entre Cuentas de Registro | `siaf-solicitude-page-layout` |
 | `/procesos/traspasos-cuentas-registros/consultas` | Consultas y reportes | `siaf-query-report-page` |
 | `/ui-kit` | Catálogo de componentes (sin sesión) | — |
 

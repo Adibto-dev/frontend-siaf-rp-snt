@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 
 import type { LoginResponse } from '../core/api/auth-api.service';
 import type { SolicitudResponse } from '../core/api/solicitudes-api.service';
-import type { CuentaBancariaDatos, CuentaBancariaRegistro } from '../modules/tesoreria/traspasos-cuentas-registros/models/cuenta-bancaria.model';
+import type { ErrorTraslado, LibretaSaldo, TrasladoDatos, TrasladoRegistro } from '../modules/tesoreria/traspasos-cuentas-registros/models/traslado.model';
 import { cuentasRegistroDe, type SaldoInicialRegistro, type SaldosInicialesDatos } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import { sumarDias, type AutorizacionRegistro, type AutorizacionVigente } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
@@ -21,15 +21,8 @@ describe('mockBackendInterceptor', () => {
   let http: HttpClient;
   let red: HttpTestingController;
 
-  const CUENTA: CuentaBancariaDatos = {
-    bancoCodigo: '002',
-    tipoCuenta: 'CORRIENTE',
-    moneda: 'PEN',
-    numeroCuenta: '19412345678901',
-    denominacion: 'Cuenta de prueba',
-    fechaApertura: '2026-09-10',
-    esRecaudadora: false,
-  };
+  /** Cuenta Única del Tesoro: 6 cuentas de registro con saldo inicial aprobado. */
+  const CUT = '00000281794000000005';
 
   /** Resuelve la petición simulada (tiene una latencia de 250 ms) y devuelve la respuesta o el error. */
   function esperar<T>(peticion: Observable<T>): { valor?: T; error?: HttpErrorResponse } {
@@ -88,43 +81,63 @@ describe('mockBackendInterceptor', () => {
     const { valor } = esperar(http.get<{ data: SolicitudResponse[]; total: number }>(`${API}/solicitudes/bandeja-creador?tipos=RTCR&page=1&limit=5`, { headers }));
 
     expect(valor?.data.length).toBe(5);
-    expect(valor?.total).toBe(12);
+    expect(valor?.total).toBe(6);
   }));
 
-  it('recorre el flujo completo: elaborar, verificar y aprobar crea la cuenta y avisa a cada rol', fakeAsync(() => {
-    const ana = entrar('45872163');
-    const creada = esperar(http.post<SolicitudResponse>(`${API}/solicitudes`, { tipoAccion: 'creacion', organoLinea: 'OGA', justificacion: 'Cuenta nueva' }, { headers: ana }));
-    const id = creada.valor!.id;
+  describe('traslado entre cuentas de registros (RTCR)', () => {
+    function crearTraslado(headers: HttpHeaders, datos: TrasladoDatos): string {
+      const tipos = esperar(http.get<{ id: string; codigo: string }[]>(`${API}/tipos-documento`, { headers })).valor!;
+      const tipo = tipos.find((t) => t.codigo === 'RTCR')!;
+      const creada = esperar(http.post<SolicitudResponse>(`${API}/solicitudes`, { tipoDocumentoId: tipo.id, tipoAccion: 'creacion', organoLinea: 'OGA', justificacion: 'Traslado de prueba' }, { headers }));
+      const id = creada.valor!.id;
+      esperar(http.post(`${API}/solicitudes/${id}/traslado`, datos, { headers }));
+      return id;
+    }
 
-    // Sin datos ni sustento no se puede elaborar.
-    expect(esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana })).error?.status).toBe(400);
+    it('recorre el flujo: número TR-DTCR correlativo, verificar, y aprobar deja el documento Procesado con las libretas movidas', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const antes = esperar(http.get<LibretaSaldo[]>(`${API}/traslados/libretas?cuenta=${CUT}`, { headers: ana })).valor!;
+      const [origen, destino] = antes;
+      const id = crearTraslado(ana, { cuentaBancaria: CUT, movimientos: [{ idCorrelativo: origen.idCorrelativo, naturaleza: 'Débito', importe: 1000 }, { idCorrelativo: destino.idCorrelativo, naturaleza: 'Crédito', importe: 1000 }] });
 
-    esperar(http.post(`${API}/solicitudes/${id}/cuenta-bancaria`, CUENTA, { headers: ana }));
-    esperar(http.post(`${API}/solicitudes/${id}/sustentos`, archivo(), { headers: ana }));
-    const elaborada = esperar(http.patch<{ numero: string }>(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
-    expect(elaborada.valor?.numero).toMatch(/^PCB-RTCR-00013-\d{4}-MEF-OGA$/);
+      // Hay 6 traslados de ejemplo: el nuevo es el 7.
+      const elaborada = esperar(http.patch<{ numero: string }>(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
+      expect(elaborada.valor?.numero).toMatch(/^TR-DTCR-00007-\d{4}-MEF-OGA$/);
+      esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'VERIFICADO' }, { headers: ana }));
 
-    // El creador no puede aprobar.
-    expect(esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'APROBADO' }, { headers: ana })).error?.status).toBe(409);
-    esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'VERIFICADO' }, { headers: ana }));
+      const luis = entrar('70318246');
+      esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'APROBADO' }, { headers: luis }));
 
-    const luis = entrar('70318246');
-    const avisos = esperar(http.get<{ titulo: string; documento: { id: string } }[]>(`${API}/notificaciones`, { headers: luis }));
-    expect(avisos.valor?.some((n) => n.documento.id === id && n.titulo === 'Solicitud por aprobar')).toBeTrue();
+      const detalle = esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: luis })).valor!;
+      expect(detalle.estado).toBe('PROCESADO');
+      expect(detalle.historialEstados?.map((h) => h.estadoNuevo)).toEqual(['NUEVO', 'ELABORADO', 'VERIFICADO', 'APROBADO', 'PROCESADO']);
 
-    esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'APROBADO' }, { headers: luis }));
+      const despues = esperar(http.get<LibretaSaldo[]>(`${API}/traslados/libretas?cuenta=${CUT}`, { headers: ana })).valor!;
+      expect(despues[0].saldoDisponible).toBe(origen.saldoDisponible - 1000);
+      expect(despues[1].saldoDisponible).toBe(destino.saldoDisponible + 1000);
 
-    const registros = esperar(http.get<CuentaBancariaRegistro[]>(`${API}/cuentas-bancarias`, { headers: luis }));
-    const cuenta = registros.valor?.find((r) => r.documentoId === id);
-    expect(cuenta?.codigo).toBe('CB-0009');
-    expect(cuenta?.numeroCuenta).toBe(CUENTA.numeroCuenta);
+      const registro = esperar(http.get<TrasladoRegistro[]>(`${API}/traslados`, { headers: ana })).valor!.find((r) => r.documentoId === id);
+      expect(registro?.modalidad).toBe('1 a 1');
+      expect(registro?.secuencia).toBe('000003');
 
-    const detalle = esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: luis }));
-    expect(detalle.valor?.historialEstados?.map((h) => h.estadoNuevo)).toEqual(['NUEVO', 'ELABORADO', 'VERIFICADO', 'APROBADO']);
+      const avisos = esperar(http.get<{ titulo: string; documento: { id: string } }[]>(`${API}/notificaciones`, { headers: ana })).valor!;
+      expect(avisos.some((n) => n.documento.id === id && n.titulo === 'Traslado procesado')).toBeTrue();
+    }));
 
-    const avisosAna = esperar(http.get<{ titulo: string; documento: { id: string } }[]>(`${API}/notificaciones`, { headers: ana }));
-    expect(avisosAna.valor?.some((n) => n.documento.id === id && n.titulo === 'Solicitud aprobada')).toBeTrue();
-  }));
+    it('verificar revisa todas las reglas: débito mayor al saldo y totales que no cuadran', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const [origen, destino] = esperar(http.get<LibretaSaldo[]>(`${API}/traslados/libretas?cuenta=${CUT}`, { headers: ana })).valor!;
+      const id = crearTraslado(ana, { cuentaBancaria: CUT, movimientos: [{ idCorrelativo: origen.idCorrelativo, naturaleza: 'Débito', importe: origen.saldoDisponible + 1 }, { idCorrelativo: destino.idCorrelativo, naturaleza: 'Crédito', importe: 5 }] });
+      esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
+
+      const verificar = esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'VERIFICADO' }, { headers: ana }));
+      const reglas = (verificar.error?.error.errores as ErrorTraslado[]).map((e) => e.regla);
+      expect(verificar.error?.status).toBe(400);
+      expect(reglas).toContain('El débito de cada origen no supera su saldo disponible.');
+      expect(reglas).toContain('El total de débitos es igual al total de créditos.');
+      expect(esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: ana })).valor?.estado).toBe('ELABORADO');
+    }));
+  });
 
   it('observar pide comentario y una solicitud observada ya no se puede eliminar', fakeAsync(() => {
     const luis = entrar('70318246');

@@ -22,8 +22,8 @@ usuarios de demostración, el recorrido de la clase y cómo sumar un proceso.
   patrón y manejador) con las reglas del flujo de la solicitud; `mock-db.ts` guarda los datos en `localStorage`
   (clave `taller-siaf-rp:datos`, con `VERSION`: al cambiar la forma de los datos, subirla); `usuarios-demo.ts`, los
   usuarios (contraseña común `Demo-DGTP2026`). Su spec documenta las reglas: si se cambia una, actualizarlo.
-- `src/app/modules/tesoreria/traspasos-cuentas-registros/`: **proceso de ejemplo** «Registro de cuentas bancarias» (documento
-  RTCR). Es el modelo para un proceso nuevo: `api/`, `config/`, `models/`, `pages/{documents,solicitud,consultas}` y
+- `src/app/modules/tesoreria/traspasos-cuentas-registros/`: **proceso de ejemplo** «Traslado de recursos entre cuentas de
+  registros» (documento RTCR, número `TR-DTCR-…`; usa las cuentas y libretas de Saldos iniciales). Es el modelo para un proceso nuevo: `api/`, `config/`, `models/`, `pages/{documents,solicitud,consultas}` y
   `utils/`.
 - `src/app/core/`: API (`core/api`, mismo contrato que el backend real), sesión, permisos por rol
   (`ROLE_PERMISSIONS`: creador y aprobador), interceptores, estado de solicitudes y notificaciones. El socket de
@@ -83,7 +83,7 @@ usuarios de demostración, el recorrido de la clase y cómo sumar un proceso.
 - **Abreviaturas en cabeceras**: salen del glosario `ABREVIATURAS` (`shared/utils/abreviaturas.util.ts`), nunca a mano.
   La cabecera muestra la abreviatura y el tooltip el término completo (`[siafTooltip]="abrev.x.termino"` en un `th`;
   `tooltip` en `DocumentsRecordsColumn`); el Excel exportado usa el término completo. Hoy: Sec., F. Operación,
-  Imp. M. Cuenta, Imp. M. Nacional, ID Corr., Saldo act. y, en el grupo «Saldo», Inicial y Act. Un término nuevo se agrega primero al glosario.
+  Imp. M. Cuenta, Imp. M. Nacional, ID Corr., Saldo act., Saldo m. cuenta, Imp. a debitar, Imp. a acreditar y, en el grupo «Saldo», Inicial y Act. Un término nuevo se agrega primero al glosario.
 - **Estados**: `siaf-flow-status-tag` (documento) y `siaf-record-status-tag` (registro).
 - **Formularios de solicitud**: «Grabar» solo con cambios (foto del formulario con `shared/utils/form-snapshot.util.ts`
   al entrar a editar); el sustento se toma en `(confirmed)` de `siaf-upload-side-nav`; las acciones de aprobar,

@@ -7,12 +7,13 @@ import type {
 } from '../../../../shared/types/documents-records.types';
 import { buildProcessBreadcrumbs } from '../../../../shared/utils/breadcrumbs.util';
 import { nombreDeProceso } from '../../../../shared/utils/process-tree.util';
-import { NOMBRE_DOCUMENTO } from '../models/cuenta-bancaria.model';
-import { CREATE_DOCUMENT_OPTIONS, PROCESS_ID, PROCESS_ROUTE, REQUEST_ROUTE } from './cuentas-bancarias.rutas';
+import { ABREVIATURAS } from '../../../../shared/utils/abreviaturas.util';
+import { NOMBRE_DOCUMENTO } from '../models/traslado.model';
+import { CREATE_DOCUMENT_OPTIONS, PROCESS_ID, PROCESS_ROUTE, REQUEST_ROUTE } from './traslados.rutas';
 
 /**
- * Configuración de «Documentos y registros» del proceso de ejemplo. La pantalla completa la pinta
- * `siaf-documents-records-page`: aquí solo se dice qué columnas, filtros y opciones tiene.
+ * Configuración de «Documentos y registros» del traslado entre cuentas de registros (Figma 2.10.6.6). La pantalla
+ * completa la pinta `siaf-documents-records-page`: aquí solo se dice qué columnas, filtros y opciones tiene.
  */
 
 const documentColumns: DocumentsRecordsColumn[] = [
@@ -20,12 +21,12 @@ const documentColumns: DocumentsRecordsColumn[] = [
   { key: 'number', label: 'Número', visibility: 'visible', group: 'default', widthClass: 'w-[280px]' },
   { key: 'actionType', label: 'Tipo de acción', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
   { key: 'status', label: 'Estado', visibility: 'visible', group: 'default', widthClass: 'w-[150px]', kind: 'flow-status' },
-  { key: 'system', label: 'Sistemas Nacionales', visibility: 'visible', group: 'default', widthClass: 'w-[240px]' },
+  { key: 'system', label: 'Sistema', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
   { key: 'date', label: 'Fecha de registro', visibility: 'visible', group: 'default', widthClass: 'w-[170px]' },
-  { key: 'creator', label: 'Creador', visibility: 'visible', group: 'more', widthClass: 'w-[220px]' },
+  { key: 'entity', label: 'Entidad', visibility: 'visible', group: 'default', widthClass: 'w-[320px]' },
+  { key: 'creator', label: 'Creador', visibility: 'hidden', group: 'more', widthClass: 'w-[220px]' },
   { key: 'subject', label: 'Asunto/Motivo', visibility: 'hidden', group: 'more', widthClass: 'w-[280px]' },
   { key: 'requesterArea', label: 'Área solicitante', visibility: 'hidden', group: 'more', widthClass: 'w-[240px]' },
-  { key: 'entity', label: 'Entidad', visibility: 'visible', group: 'more', widthClass: 'w-[320px]' },
   { key: 'evaluationDate', label: 'Fecha de evaluación', visibility: 'hidden', group: 'more', widthClass: 'w-[200px]' },
   { key: 'evaluationUser', label: 'Usuario de evaluación', visibility: 'hidden', group: 'more', widthClass: 'w-[220px]' },
   { key: 'approvalDate', label: 'Fecha de aprobación', visibility: 'hidden', group: 'more', widthClass: 'w-[200px]' },
@@ -33,14 +34,17 @@ const documentColumns: DocumentsRecordsColumn[] = [
 ];
 
 const recordColumns: DocumentsRecordsColumn[] = [
-  { key: 'status', label: 'Estado', visibility: 'visible', group: 'default', widthClass: 'w-[120px]', kind: 'record-status' },
-  { key: 'codigo', label: 'Código', visibility: 'visible', group: 'default', widthClass: 'w-[110px]' },
-  { key: 'banco', label: 'Banco', visibility: 'visible', group: 'default', widthClass: 'w-[220px]' },
-  { key: 'numeroCuenta', label: 'Número de cuenta', visibility: 'visible', group: 'default', widthClass: 'w-[200px]' },
-  { key: 'denominacion', label: 'Denominación', visibility: 'visible', group: 'default', widthClass: 'min-w-[260px]' },
+  { key: 'secuencia', label: ABREVIATURAS.secuencia.abreviatura, tooltip: ABREVIATURAS.secuencia.termino, visibility: 'visible', group: 'default', widthClass: 'w-[100px]' },
+  { key: 'cuentaBancaria', label: 'Cuenta bancaria', visibility: 'visible', group: 'default', widthClass: 'w-[210px]' },
+  { key: 'denominacion', label: 'Denominación', visibility: 'visible', group: 'default', widthClass: 'w-[260px]' },
+  { key: 'modalidad', label: 'Modalidad', visibility: 'visible', group: 'default', widthClass: 'w-[120px]' },
+  { key: 'origenes', label: 'Origen', visibility: 'visible', group: 'default', widthClass: 'w-[180px]' },
+  { key: 'destinos', label: 'Destino', visibility: 'visible', group: 'default', widthClass: 'w-[180px]' },
   { key: 'moneda', label: 'Moneda', visibility: 'visible', group: 'default', widthClass: 'w-[110px]' },
-  { key: 'tipoCuenta', label: 'Tipo de cuenta', visibility: 'visible', group: 'default', widthClass: 'w-[140px]' },
-  { key: 'fechaApertura', label: 'Fecha de apertura', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
+  { key: 'total', label: 'Importe trasladado', visibility: 'visible', group: 'default', widthClass: 'w-[170px]', align: 'right' },
+  { key: 'number', label: 'N° documento', visibility: 'visible', group: 'default', widthClass: 'w-[280px]' },
+  { key: 'fechaRegistro', label: 'Fecha de registro', visibility: 'visible', group: 'default', widthClass: 'w-[160px]' },
+  { key: 'status', label: 'Estado', visibility: 'visible', group: 'default', widthClass: 'w-[120px]', kind: 'record-status' },
 ];
 
 const fieldsMenuOptions: DocumentsRecordsMenuOption[] = [
@@ -63,13 +67,13 @@ const filterCampoOptions: DocumentsRecordsFilterOption[] = [
 const filterValorOptions: DocumentsRecordsFilterOption[] = [
   { label: ESTADO.ELABORADO, value: ESTADO.ELABORADO },
   { label: ESTADO.VERIFICADO, value: ESTADO.VERIFICADO },
-  { label: ESTADO.APROBADO, value: ESTADO.APROBADO },
+  { label: ESTADO.PROCESADO, value: ESTADO.PROCESADO },
   { label: 'Creación', value: 'Creación' },
 ];
 
-export const CUENTAS_BANCARIAS_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
+export const TRASLADOS_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   // Título = nombre del MFD en el menú de procesos.
-  title: nombreDeProceso(PROCESS_ID, 'Registro de cuentas bancarias'),
+  title: nombreDeProceso(PROCESS_ID, 'Traslado de recursos entre cuentas de registros'),
   processId: PROCESS_ID,
   defaultRequestRoute: REQUEST_ROUTE,
   createDocumentOptions: CREATE_DOCUMENT_OPTIONS,
@@ -78,31 +82,33 @@ export const CUENTAS_BANCARIAS_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   recordRows: [],
   documentColumns,
   recordColumns,
-  documentTableMinWidthClass: 'min-w-[2200px]',
-  recordTableMinWidthClass: 'min-w-[1300px]',
+  documentTableMinWidthClass: 'min-w-[1800px]',
+  recordTableMinWidthClass: 'min-w-[1900px]',
   recordTrackKey: 'recordId',
   recordHistoryDocumentLabel: NOMBRE_DOCUMENTO,
-  // El historial de un registro es el de la solicitud que lo creó.
+  // El historial de un registro es el del documento que lo creó.
   recordHistoryKind: 'documento',
-  statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.OBSERVADO, ESTADO.APROBADO, ESTADO.RECHAZADO],
+  statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.OBSERVADO, ESTADO.PROCESADO, ESTADO.RECHAZADO],
   actionTypeFilterOptions: ['Creación'],
   filterCampoOptions,
   filterValorOptions,
   fieldsMenuOptions,
-  recordFilter1Label: 'Estado',
-  recordFilter1Key: 'status',
-  recordFilter1Options: ['Activo', 'Inactivo'],
+  recordFilter1Label: 'Modalidad',
+  recordFilter1Key: 'modalidad',
+  recordFilter1Options: ['1 a 1', '1 a N', 'N a 1', 'N a N'],
   recordFilter2Label: 'Moneda',
   recordFilter2Key: 'moneda',
   recordFilter2Options: ['Soles', 'Dólares'],
   recordFilterCampoOptions: [
-    { label: 'Estado', value: 'status' },
-    { label: 'Banco', value: 'banco' },
+    { label: 'Cuenta bancaria', value: 'cuentaBancaria' },
+    { label: 'Modalidad', value: 'modalidad' },
     { label: 'Moneda', value: 'moneda' },
   ],
   recordFilterValorOptions: [
-    { label: 'Activo', value: 'Activo' },
-    { label: 'Inactivo', value: 'Inactivo' },
+    { label: '1 a 1', value: '1 a 1' },
+    { label: '1 a N', value: '1 a N' },
+    { label: 'N a 1', value: 'N a 1' },
+    { label: 'N a N', value: 'N a N' },
     { label: 'Soles', value: 'Soles' },
     { label: 'Dólares', value: 'Dólares' },
   ],

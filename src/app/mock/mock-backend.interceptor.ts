@@ -6,7 +6,7 @@ import type { CambiarPerfilResponse, LoginResponse, PerfilItem } from '../core/a
 import type { SolicitudResponse } from '../core/api/solicitudes-api.service';
 import { APP_CONFIG } from '../core/config/app.config';
 import type { EstadoDocumento } from '../core/models/documento.model';
-import type { CuentaBancariaDatos } from '../modules/tesoreria/traspasos-cuentas-registros/models/cuenta-bancaria.model';
+import { CODIGO_DOCUMENTO as CODIGO_TRASLADO, TrasladoDatos, validarTraslado } from '../modules/tesoreria/traspasos-cuentas-registros/models/traslado.model';
 import { AutorizacionDatos, AutorizacionVigente, CODIGO_DOCUMENTO as CODIGO_AUTORIZACION, PERMISO_AUTORIZAR, PROCEDIMIENTOS, USUARIO_AJUSTE_SALDO, cuentaDeAutorizacion, errorAmpliacion, errorVigencia, estaVigente, responsablePorUsuario } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { CODIGO_DOCUMENTO as CODIGO_SALDOS, SaldosInicialesDatos, calcularAjuste, calcularSaldo, cuentaPorNumero, entidadPorCodigo } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import {
@@ -17,6 +17,9 @@ import {
   TIPOS_DOCUMENTO,
   UNIDAD_CREADORA,
   filaHistorial,
+  libretasConSaldo,
+  notificarProcesado,
+  registrarTraslado,
   guardarDatos,
   leerDatos,
   nuevoId,
@@ -82,7 +85,7 @@ function sesionDelToken(token: string | null | undefined): Sesion | null {
 // ─── Respuestas ────────────────────────────────────────────────────
 
 const ok = (body: unknown = null, status = 200): Respuesta => ({ status, body });
-const error = (status: number, message: string): Respuesta => ({ status, body: { message } });
+const error = (status: number, message: string, extra: Record<string, unknown> = {}): Respuesta => ({ status, body: { message, ...extra } });
 
 function nombreCompleto(u: { nombres: string; apellidoPaterno: string; apellidoMaterno: string }): string {
   return `${u.nombres} ${u.apellidoPaterno} ${u.apellidoMaterno}`;
@@ -142,7 +145,7 @@ const tiposDocumento: Manejador = () => ok([
     modulo: 'tesoreria',
     esActivo: true,
     accionesPermitidas: [{ tipoAccion: 'creacion' }],
-    proceso: { codigo: 'registro-cuentas-bancarias', nombre: 'Registro de cuentas bancarias', modulo: 'tesoreria' },
+    proceso: { codigo: 'traslado-cuentas-registros', nombre: 'Traslado de recursos entre cuentas de registros', modulo: 'tesoreria' },
   },
   {
     ...TIPOS_DOCUMENTO[1],
@@ -277,7 +280,7 @@ const crearSolicitud: Manejador = ({ req, datos, sesion }) => {
     createdAt: ahora,
     updatedAt: ahora,
     itemsCuenta: [],
-    detalleCuentaBancaria: null,
+    detalleTraslado: null,
     sustentos: [],
     historialEstados: [filaHistorial(datos, null, 'NUEVO', ahora, sesion.usuario, rolDe(sesion.perfil))],
   };
@@ -298,17 +301,22 @@ const actualizarSolicitud: Manejador = ({ req, datos, params, sesion }) => {
   return ok(s);
 };
 
-const guardarCuentaBancaria: Manejador = ({ req, datos, params }) => {
+const guardarTraslado: Manejador = ({ req, datos, params }) => {
   const s = buscarSolicitud(datos, params[0]);
   if (!s) return error(404, 'La solicitud no existe.');
+  if (s.catDocumento?.codigo !== CODIGO_TRASLADO) return error(409, 'La solicitud no es un traslado entre cuentas de registros.');
   if (!['NUEVO', 'ELABORADO', 'OBSERVADO'].includes(s.estado)) return error(409, 'La solicitud ya no admite cambios.');
-  const cuenta = req.body as CuentaBancariaDatos;
-  if (!/^\d{10,20}$/.test(cuenta?.numeroCuenta ?? '')) return error(400, 'El número de cuenta debe tener entre 10 y 20 dígitos.');
-  s.detalleCuentaBancaria = { documentoId: s.id, ...cuenta };
+  const dto = req.body as TrasladoDatos;
+  if (!cuentaPorNumero(dto?.cuentaBancaria)) return error(400, 'Seleccione la cuenta bancaria.');
+  if (!dto.movimientos?.length) return error(400, 'Agregue al menos una cuenta de registro.');
+  s.detalleTraslado = { documentoId: s.id, cuentaBancaria: dto.cuentaBancaria, movimientos: dto.movimientos, asignaciones: dto.asignaciones, forma: dto.forma };
   s.updatedAt = new Date().toISOString();
   guardarDatos(datos);
-  return ok({ message: 'Cuenta guardada' });
+  return ok({ message: 'Traslado guardado' });
 };
+
+/** Cuentas de registro de una cuenta bancaria con su saldo disponible (Saldos iniciales + traslados procesados). */
+const libretasTraslado: Manejador = ({ datos, query }) => ok(libretasConSaldo(datos, query.get('cuenta') ?? ''));
 
 const guardarSaldosIniciales: Manejador = ({ req, datos, params }) => {
   const s = buscarSolicitud(datos, params[0]);
@@ -495,9 +503,17 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
     if (s.catDocumento?.codigo === CODIGO_SALDOS) {
       // En saldos iniciales el sustento es opcional.
       if (!s.detalleSaldosIniciales?.saldos.length) return error(400, 'Agregue al menos un saldo inicial.');
-    } else {
-      if (!s.detalleCuentaBancaria) return error(400, 'Registre los datos de la cuenta bancaria.');
-      if (!(s.sustentos ?? []).length) return error(400, 'Adjunte el documento de sustento.');
+    } else if (s.catDocumento?.codigo === CODIGO_TRASLADO) {
+      // En el traslado el sustento es opcional.
+      if (!s.detalleTraslado?.movimientos.length) return error(400, 'Registre la cuenta bancaria y las cuentas de registro.');
+    }
+  }
+  // Traslado: el sistema revisa todas las reglas al verificar y revalida el saldo al aprobar.
+  if (s.catDocumento?.codigo === CODIGO_TRASLADO && (nuevo === 'VERIFICADO' || nuevo === 'APROBADO')) {
+    const errores = validarTraslado(s.detalleTraslado, libretasConSaldo(datos, s.detalleTraslado?.cuentaBancaria ?? ''));
+    if (errores.length) {
+      const mensaje = nuevo === 'APROBADO' ? 'El saldo disponible cambió y ya no alcanza: no se puede aprobar.' : 'El documento tiene errores de verificación.';
+      return error(nuevo === 'APROBADO' ? 409 : 400, mensaje, { errores });
     }
   }
 
@@ -526,20 +542,13 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
   if (nuevo === 'VERIFICADO') s.fechaEvaluacion = ahora;
   if (nuevo === 'APROBADO') s.fechaAprobacion = ahora;
 
-  // Al aprobar, la cuenta pasa a los registros.
-  if (nuevo === 'APROBADO' && s.detalleCuentaBancaria && !datos.registros.some((r) => r.documentoId === s.id)) {
-    const { documentoId: _documento, ...cuenta } = s.detalleCuentaBancaria;
-    datos.correlativoRegistro += 1;
-    datos.registros.push({
-      id: nuevoId(datos, 'cb'),
-      codigo: `CB-${String(datos.correlativoRegistro).padStart(4, '0')}`,
-      estado: 'Activo',
-      entidadSiglas: s.entidadCreadora?.siglas ?? '',
-      documentoId: s.id,
-      numeroDocumento: s.numero ?? '',
-      fechaRegistro: ahora,
-      ...cuenta,
-    });
+  // Traslado aprobado: se reserva el saldo, el Motor de Conciliación (simulado) responde conforme al instante y el
+  // documento queda PROCESADO con las libretas actualizadas.
+  if (nuevo === 'APROBADO' && s.catDocumento?.codigo === CODIGO_TRASLADO) {
+    s.historialEstados = [...(s.historialEstados ?? []), filaHistorial(datos, 'APROBADO', 'PROCESADO', ahora, USUARIO_SISTEMA, ROL_SISTEMA)];
+    s.estado = 'PROCESADO';
+    registrarTraslado(datos, s, ahora);
+    notificarProcesado(datos, s, ahora);
   }
 
   // Al aprobar saldos iniciales, cada saldo recibe su secuencia y pasa a los registros.
@@ -561,8 +570,8 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
 
 // ─── Proceso de ejemplo ────────────────────────────────────────────
 
-const registrosCuentas: Manejador = ({ datos, sesion }) =>
-  ok(datos.registros.filter((r) => !sesion || r.entidadSiglas === sesion.perfil.entidadSiglas));
+const registrosTraslado: Manejador = ({ datos, sesion }) =>
+  ok(datos.registrosTraslado.filter((r) => !sesion || r.entidadSiglas === sesion.perfil.entidadSiglas));
 
 const registrosSaldos: Manejador = ({ datos, sesion }) =>
   ok(datos.registrosSaldos.filter((r) => !sesion || r.entidadSiglas === sesion.perfil.entidadSiglas));
@@ -613,7 +622,7 @@ const RUTAS: [string, RegExp, Manejador][] = [
   ['GET', /^\/solicitudes\/bandeja-aprobador$/, bandejaAprobador],
   ['POST', /^\/solicitudes$/, crearSolicitud],
   ['PATCH', /^\/solicitudes\/([^/]+)\/estado$/, cambiarEstado],
-  ['POST', /^\/solicitudes\/([^/]+)\/cuenta-bancaria$/, guardarCuentaBancaria],
+  ['POST', /^\/solicitudes\/([^/]+)\/traslado$/, guardarTraslado],
   ['POST', /^\/solicitudes\/([^/]+)\/saldos-iniciales$/, guardarSaldosIniciales],
   ['POST', /^\/solicitudes\/([^/]+)\/autorizacion$/, guardarAutorizacion],
   ['GET', /^\/autorizaciones\/vigentes$/, autorizacionesVigentes],
@@ -623,7 +632,8 @@ const RUTAS: [string, RegExp, Manejador][] = [
   ['DELETE', /^\/solicitudes\/([^/]+)\/sustentos\/([^/]+)$/, eliminarSustento],
   ['GET', /^\/solicitudes\/([^/]+)$/, detalleSolicitud],
   ['PATCH', /^\/solicitudes\/([^/]+)$/, actualizarSolicitud],
-  ['GET', /^\/cuentas-bancarias$/, registrosCuentas],
+  ['GET', /^\/traslados\/libretas$/, libretasTraslado],
+  ['GET', /^\/traslados$/, registrosTraslado],
   ['GET', /^\/saldos-iniciales$/, registrosSaldos],
 ];
 

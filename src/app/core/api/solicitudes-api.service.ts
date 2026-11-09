@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { APP_CONFIG } from '../config/app.config';
 import { EstadoDocumento } from '../models/documento.model';
-import type { CuentaBancariaDatos } from '../../modules/tesoreria/traspasos-cuentas-registros/models/cuenta-bancaria.model';
+import type { TrasladoDatos } from '../../modules/tesoreria/traspasos-cuentas-registros/models/traslado.model';
 import type { SaldosInicialesDatos } from '../../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import type { AutorizacionDatos } from '../../modules/tesoreria/autorizaciones/models/autorizacion.model';
 
@@ -312,8 +312,8 @@ export interface SolicitudResponse {
     items: EventoContableItemResponse[];
   } | null; // SEC / SCMEC
   detalleAsientoAjuste?: AsientoAjusteResponse | null; // SRAA
-  /** Taller: cuenta bancaria propuesta en la solicitud RTCR (proceso de ejemplo). */
-  detalleCuentaBancaria?: (CuentaBancariaDatos & { documentoId: string }) | null; // RTCR
+  /** Taller: cuenta bancaria y movimientos del traslado entre cuentas de registros (RTCR). */
+  detalleTraslado?: (TrasladoDatos & { documentoId: string }) | null; // RTCR
   /** Taller: entidad financiera y saldos iniciales en libro bancos del documento RSIN. */
   detalleSaldosIniciales?: (SaldosInicialesDatos & { documentoId: string }) | null; // RSIN
   detalleAutorizacion?: (AutorizacionDatos & { documentoId: string }) | null; // RAUT

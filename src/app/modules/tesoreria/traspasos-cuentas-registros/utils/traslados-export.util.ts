@@ -15,9 +15,9 @@ function descargar(blob: Blob, nombre: string): void {
  * La plantilla solo avisa el formato; el archivo lo arma la pantalla. Las librerías se cargan al exportar, así no pesan
  * en la pantalla hasta que se usan.
  */
-export async function exportarCuentasBancarias(formato: QueryReportExportFormat, columnas: QueryReportColumn[], filas: QueryReportRow[]): Promise<void> {
+export async function exportarTraslados(formato: QueryReportExportFormat, columnas: QueryReportColumn[], filas: QueryReportRow[]): Promise<void> {
   const fecha = new Date().toISOString().slice(0, 10);
-  const nombre = `cuentas-bancarias-${fecha}`;
+  const nombre = `traslados-cuentas-registro-${fecha}`;
   const encabezados = columnas.map((c) => c.label);
   const valores = filas.map((fila) => columnas.map((c) => fila[c.key] ?? ''));
 
@@ -32,7 +32,7 @@ export async function exportarCuentasBancarias(formato: QueryReportExportFormat,
   if (formato === 'excel') {
     const { Workbook } = await import('exceljs');
     const libro = new Workbook();
-    const hoja = libro.addWorksheet('Cuentas bancarias');
+    const hoja = libro.addWorksheet('Traslados');
     hoja.columns = columnas.map((c) => ({ header: c.label, key: c.key, width: Math.max(14, Math.round((c.width ?? 140) / 7)) }));
     hoja.getRow(1).font = { bold: true };
     filas.forEach((fila) => hoja.addRow(fila));
@@ -44,7 +44,7 @@ export async function exportarCuentasBancarias(formato: QueryReportExportFormat,
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
   const pdf = new jsPDF({ orientation: 'landscape' });
   pdf.setFontSize(14);
-  pdf.text('Consulta de cuentas bancarias', 14, 16);
+  pdf.text('Consulta de traslados entre cuentas de registros', 14, 16);
   autoTable(pdf, { head: [encabezados], body: valores, startY: 22, styles: { fontSize: 8 } });
   pdf.save(`${nombre}.pdf`);
 }

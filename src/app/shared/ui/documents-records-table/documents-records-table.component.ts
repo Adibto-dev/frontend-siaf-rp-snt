@@ -37,7 +37,7 @@ export type DocumentsRecordsSelectionChange = {
  * - Con `rowActions` para íconos por fila en Registros antes del historial (Saldos iniciales: ver documento de
  *   sustento, deshabilitado sin archivo, y ver saldos iniciales libretas); se deshabilitan por fila con `disabled`.
  * - Con `selectionDisabled` para dejar marcables solo los documentos de la acción masiva: Elaborados para el creador
- *   (Verificar) y Verificados para el aprobador (Aprobar).
+ *   (Verificar) y Verificados para el aprobador (Aprobar). En Registros todas las filas son marcables (para exportar).
  * @evitar
  * - Para un listado de solo lectura con texto plano: `siaf-table`.
  * - Usarla sola, sin barra ni paginado: va dentro de la grilla estándar (`siaf-table-controls` arriba, con el
@@ -45,7 +45,7 @@ export type DocumentsRecordsSelectionChange = {
  * - Mientras llegan las filas: `siaf-table-skeleton` con las mismas columnas y `minWidthClass`, no la tabla vacía.
  * - Copiar su marcado en otra pantalla: `siaf-tray-documents-view` todavía tiene una tabla parecida hecha a mano.
  * @teclado
- * - **Tab**: recorre, fila por fila, el checkbox (solo en Documentos), el enlace al documento y el botón de historial;
+ * - **Tab**: recorre, fila por fila, el checkbox, el enlace al documento y el botón de historial;
  *   un checkbox deshabilitado queda fuera.
  * - **Espacio**: marca o desmarca el checkbox de la fila (emite `selectionChanged`).
  * - **Enter**: en el enlace, abre el documento (`routerLink`).
@@ -81,9 +81,7 @@ export type DocumentsRecordsSelectionChange = {
       <table class="siaf-text-body-2 w-full border-collapse text-left" [ngClass]="minWidthClass">
         <thead>
           <tr class="siaf-text-caption-1-bold-caps h-10 bg-surface-high text-text">
-            @if (activeTab === 'documents') {
-              <th class="w-10 rounded-l-siaf-sm px-siaf-sm py-siaf-sm" [attr.rowspan]="conGrupos ? 2 : null"></th>
-            }
+            <th class="w-10 rounded-l-siaf-sm px-siaf-sm py-siaf-sm" [attr.rowspan]="conGrupos ? 2 : null"></th>
             @for (celda of cabeceraSuperior; track celda.clave) {
               @if (celda.columna; as column) {
                 <!-- MFD RF-01: al superponer el mouse se muestra el texto completo de la columna -->
@@ -113,17 +111,15 @@ export type DocumentsRecordsSelectionChange = {
               (click)="abrirRegistro(row, $event)"
               (keydown.enter)="abrirRegistro(row, $event)"
             >
-              @if (activeTab === 'documents') {
-                <td class="h-[58px] px-siaf-sm py-siaf-xs" data-sin-clic-fila>
-                  <input
-                    class="size-4 disabled:cursor-not-allowed"
-                    type="checkbox"
-                    [checked]="row.selected"
-                    [disabled]="selectionDisabled(row)"
-                    (change)="onSelectionChange(row, $event)"
-                  />
-                </td>
-              }
+              <td class="px-siaf-sm py-siaf-xs" [class.h-[58px]]="activeTab === 'documents'" data-sin-clic-fila>
+                <input
+                  class="size-4 disabled:cursor-not-allowed"
+                  type="checkbox"
+                  [checked]="row.selected"
+                  [disabled]="selectionDisabled(row)"
+                  (change)="onSelectionChange(row, $event)"
+                />
+              </td>
               @for (column of columns; track column.key) {
                 <td class="px-siaf-md py-siaf-sm" [ngClass]="[column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left', column.kind === 'document-link' ? 'max-w-[440px]' : '']">
                   @if (column.kind === 'document-link') {
