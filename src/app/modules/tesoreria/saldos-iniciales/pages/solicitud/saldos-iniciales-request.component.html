@@ -500,7 +500,7 @@
                           @if (esAjuste()) {
                             <td class="siaf-table-td py-siaf-xs">
                               <siaf-input
-                                label="Naturaleza"
+                                [ariaLabel]="'Naturaleza ' + libreta.idCorrelativo"
                                 type="select"
                                 [options]="opcionesNaturaleza"
                                 [value]="naturalezaDe(libreta.idCorrelativo)"
@@ -510,7 +510,7 @@
                           }
                           <td class="siaf-table-td py-siaf-xs">
                             <siaf-input
-                              [label]="'Importe ' + libreta.idCorrelativo"
+                              [ariaLabel]="'Importe ' + libreta.idCorrelativo"
                               type="decimal"
                               [clearable]="true"
                               [autoSuccess]="false"
@@ -520,7 +520,7 @@
                           </td>
                           <td class="siaf-table-td py-siaf-xs">
                             <siaf-input
-                              [label]="'Nacional ' + libreta.idCorrelativo"
+                              [ariaLabel]="'Importe en moneda nacional ' + libreta.idCorrelativo"
                               [value]="borrador().importes[libreta.idCorrelativo] ? formatoImporte(importeNacionalLibreta(libreta.idCorrelativo)) : ''"
                               [disabled]="true"
                             />

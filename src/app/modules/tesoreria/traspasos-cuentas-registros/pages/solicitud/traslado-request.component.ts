@@ -28,7 +28,6 @@ import { FlowStatus } from '../../../../../shared/ui/flow-status-tag/flow-status
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { MessageBoxComponent } from '../../../../../shared/ui/message-box/message-box.component';
 import { RadioComponent, RadioOption } from '../../../../../shared/ui/radio/radio.component';
-import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
 import { SidePanelComponent } from '../../../../../shared/ui/side-panel/side-panel.component';
 import { SnackbarVariant } from '../../../../../shared/ui/snackbar/snackbar.component';
 import { SummaryCardComponent, type SummaryCardField } from '../../../../../shared/ui/summary-card/summary-card.component';
@@ -137,7 +136,6 @@ const TEXTOS: Record<FormaSeleccion, TextosForma> = {
     IconComponent,
     MessageBoxComponent,
     RadioComponent,
-    ReadonlyFieldComponent,
     RequestApprovalModalsComponent,
     SelectionSideNavComponent,
     SidePanelComponent,

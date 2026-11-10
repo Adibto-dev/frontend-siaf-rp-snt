@@ -304,3 +304,20 @@ describe('TextFieldComponent — [readonly] (Figma «Readonly forms»)', () => {
     expect(el().querySelector('[data-valor]')!.classList).toContain('text-right');
   });
 });
+
+describe('TextFieldComponent — en una celda de tabla (sin label)', () => {
+  it('no muestra etiqueta ni placeholder y se nombra con ariaLabel', async () => {
+    await TestBed.configureTestingModule({ imports: [TextFieldComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(TextFieldComponent);
+    fixture.componentRef.setInput('type', 'decimal');
+    fixture.componentRef.setInput('ariaLabel', 'Importe 000001');
+    fixture.componentRef.setInput('value', 150);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const input = el.querySelector('input')!;
+    expect(input.getAttribute('aria-label')).toBe('Importe 000001');
+    expect(input.placeholder).toBe('');
+    expect(el.querySelector('.siaf-text-caption-1-medium')).toBeNull();
+  });
+});

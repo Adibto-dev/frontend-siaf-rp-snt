@@ -76,11 +76,14 @@
         @if (!forma() || !cuentaElegida()) {
           <message-box text="No se ha seleccionado ningún tipo. Elija la cuenta bancaria y la modalidad de traslado." />
         } @else {
-          <div class="grid gap-siaf-md rounded-siaf-md bg-[var(--sys-color-bg-surfaces-surface-low)] p-siaf-md md:grid-cols-3">
+          <dl class="m-0 grid gap-siaf-lg rounded-siaf-md bg-[var(--sys-color-bg-surfaces-surface-low)] p-siaf-lg text-[var(--sys-color-text-neutral-medium)] md:grid-cols-3 md:gap-siaf-xl">
             @for (i of indicadores(); track i.caption) {
-              <readonly-field [caption]="i.caption" [value]="i.value" />
+              <div class="flex min-w-0 flex-col gap-siaf-xs">
+                <dt class="siaf-text-body-2-medium">{{ i.caption }}</dt>
+                <dd class="siaf-text-heading-5-bold m-0 break-words">{{ i.value }}</dd>
+              </div>
             }
-          </div>
+          </dl>
 
           @if (tarjetas().length === 0) {
             <empty-section [title]="textos().principales" [disabled]="soloLectura() || cargandoLibretas()" (actionClicked)="abrirPanelPrincipales()" />
@@ -99,7 +102,7 @@
                 (expandedChange)="alternar(t.id, $event)"
                 (closed)="quitarPrincipal(t.id)"
               >
-                <div card-info class="grid items-center gap-siaf-md md:grid-cols-[1fr_140px_170px_170px]">
+                <div card-info class="grid items-center gap-siaf-md md:grid-cols-[minmax(0,1fr)_150px_150px_150px]">
                   <div class="min-w-0">
                     <p class="siaf-text-body-2-bold m-0 truncate text-text">{{ t.id }} - {{ t.libreta?.descripcion }}</p>
                     <p class="siaf-text-caption-1 m-0 truncate">{{ t.libreta?.numero }}</p>
@@ -107,8 +110,14 @@
                   <span class="siaf-text-body-2 inline-flex items-center gap-siaf-xs">
                     <siaf-icon name="account_tree" [size]="20" />{{ cantidadAsignadas(t.filas.length) }}
                   </span>
-                  <readonly-field [caption]="abrev.saldoCuenta.abreviatura" [value]="formatoImporte(t.libreta?.saldoDisponible ?? 0)" />
-                  <readonly-field [caption]="textos().importePrincipal" [value]="formatoImporte(t.total)" />
+                  <div class="flex min-w-0 flex-col items-end gap-0.5 text-right">
+                    <span class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]" [siafTooltip]="abrev.saldoCuenta.termino">{{ abrev.saldoCuenta.abreviatura }}</span>
+                    <span class="siaf-text-body-2-bold whitespace-nowrap text-[var(--sys-color-text-neutral-high)]">{{ formatoImporte(t.libreta?.saldoDisponible ?? 0) }}</span>
+                  </div>
+                  <div class="flex min-w-0 flex-col items-end gap-0.5 text-right">
+                    <span class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]" [siafTooltip]="textos().importePrincipalTermino">{{ textos().importePrincipal }}</span>
+                    <span class="siaf-text-body-2-bold whitespace-nowrap text-[var(--sys-color-text-neutral-high)]">{{ formatoImporte(t.total) }}</span>
+                  </div>
                 </div>
 
                 <div class="flex flex-col gap-siaf-md p-siaf-md">
@@ -151,7 +160,7 @@
                               } @else {
                                 <td class="siaf-table-td py-siaf-xs">
                                   <siaf-input
-                                    [label]="textos().importeSecundariaTermino + ' ' + f.id"
+                                    [ariaLabel]="textos().importeSecundariaTermino + ' ' + f.id"
                                     type="decimal"
                                     [autoSuccess]="false"
                                     [value]="f.importe || ''"

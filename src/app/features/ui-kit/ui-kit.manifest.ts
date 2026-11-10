@@ -6205,6 +6205,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "proyectaContenido": false,
     "entradas": [
       {
+        "nombre": "ariaLabel",
+        "tipo": "string",
+        "porDefecto": "''",
+        "requerida": false,
+        "descripcion": "Nombre para lectores de pantalla sin etiqueta visible (ej. un campo dentro de una celda de tabla, sin `label`)."
+      },
+      {
         "nombre": "autocomplete",
         "tipo": "string",
         "porDefecto": "''",
@@ -6371,7 +6378,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       }
     ],
-    "usar": "- Para los campos de una línea de las solicitudes y de Admin: nombre de clase de ajuste, número de documento o\n  correo institucional del usuario.\n- `type=\"select\"` o `select-multiple` para listas cortas y cerradas: tipo de plan contable, tipo de libro y mes,\n  ámbitos institucionales o estados en los paneles de búsqueda.\n- `type=\"decimal\"` para importes, como el importe de cada cuenta del asiento de ajuste; `number` solo para enteros.\n- `select-multiple` con `selectAllLabel=\"Seleccionar todo\"` en los paneles de parámetros de las consultas: casillas,\n  la fila para marcar todas y el valor en una línea.\n- Con `trailingIcon` y `trailingButtonLabel` para una acción dentro del campo: «Buscar» en la bandeja de documentos\n  y en `siaf-records-search-toolbar`, «Mostrar contraseña» en el login.",
+    "usar": "- Para los campos de una línea de las solicitudes y de Admin: nombre de clase de ajuste, número de documento o\n  correo institucional del usuario.\n- Dentro de una celda de tabla: sin `label` (la cabecera ya nombra la columna) y con `ariaLabel` para el lector\n  de pantalla, ej. `[ariaLabel]=\"'Importe ' + fila.id\"`.\n- `type=\"select\"` o `select-multiple` para listas cortas y cerradas: tipo de plan contable, tipo de libro y mes,\n  ámbitos institucionales o estados en los paneles de búsqueda.\n- `type=\"decimal\"` para importes, como el importe de cada cuenta del asiento de ajuste; `number` solo para enteros.\n- `select-multiple` con `selectAllLabel=\"Seleccionar todo\"` en los paneles de parámetros de las consultas: casillas,\n  la fila para marcar todas y el valor en una línea.\n- Con `trailingIcon` y `trailingButtonLabel` para una acción dentro del campo: «Buscar» en la bandeja de documentos\n  y en `siaf-records-search-toolbar`, «Mostrar contraseña» en el login.",
     "evitar": "- Para fechas: usar `siaf-date-time-picker`, no `trailingIcon=\"calendar_today\"` (como la vigencia del formulario de\n  cuenta contable).\n- Para textos largos (justificación, glosa, descripción): usar `text-area-control`.\n- Para elegir de un catálogo largo que hay que buscar (los atributos del evento, por ejemplo): usar `empty-section`\n  con `siaf-selection-side-nav`; para un Sí/No, `siaf-radio-group` con `[inline]`.\n- `type=\"number\"` para importes: el campo se vacía al teclear el separador; usar `decimal`.",
     "teclado": "- **Tab**: enfoca el campo o el botón del select; el botón de `trailingIcon` es otra parada.\n- **Texto, número, decimal, correo y contraseña**: el teclado nativo del `<input>`; en `decimal` se descarta lo que\n  no sea dígito o separador (la coma se guarda como punto) y al salir se completan los decimales.\n- **Enter / Espacio** (select): abren o cierran la lista; al abrir, el foco entra en la opción elegida (o en la\n  primera), que siguen `siaf-select-options` (flechas, Inicio y Fin).\n- **Escape** (select): cierra la lista y el foco vuelve al botón del campo; salir de la lista con Tab también la\n  cierra. Con la lista abierta, Escape no cierra el panel que contiene al campo.",
     "accesibilidad": "- **Pendiente · 1.3.1 Información y relaciones (A)**: en los tipos de texto el `<label>` envuelve el `<input>`, pero\n  la etiqueta flotante solo existe con foco o valor, y la ayuda y el error, dentro del mismo `<label>`, se suman al\n  nombre en vez de ir por `aria-describedby`. Con `hint` y el campo vacío, la ayuda desplaza al `placeholder` como\n  nombre.\n- **Pendiente · 3.3.1 Identificación de errores (A)**: el error se ve (borde rojo de 2 px, ícono y texto), pero el\n  `<input>` no publica `aria-invalid` y el texto no se anuncia al aparecer; con `state=\"error\"` y sin `error`, el\n  aviso es solo el color del borde.\n- **Pendiente · 3.3.2 Etiquetas o instrucciones (A)**: el `<input>` de texto publica `aria-required`, pero en `select`\n  y `select-multiple` el obligatorio es solo el asterisco: el botón no lo publica.\n- **4.1.2 Nombre, función y valor (A)**: el select es un `<button>` con `aria-haspopup=\"listbox\"`, `aria-expanded` y\n  `aria-label` con la etiqueta. El botón de `trailingIcon` se nombra con `trailingButtonLabel`: el padre debe darlo\n  o queda sin nombre.\n- **Pendiente · 4.1.2 Nombre, función y valor (A)**: el `aria-label` del select tapa el valor elegido, que no se\n  anuncia; «Limpiar» y la X de cada chip son `span` con `role=\"button\"` anidados dentro del botón, cuyos hijos son\n  presentacionales.\n- **Pendiente · 2.1.1 Teclado (A)**: «Limpiar» (`clearable`) y «Quitar» de cada chip tienen `tabindex=\"-1\"`: solo\n  funcionan con el mouse (en `select-multiple` se puede desmarcar desde la lista).\n- **2.4.3 Orden del foco (A)**: con `siafFoco`, al abrir el select el foco entra en la opción elegida y al elegir en\n  `select`, cerrar con Escape o salir con Tab vuelve al botón del campo.\n- **2.4.7 Foco visible (AA)**: el foco pinta el borde de 2 px `border-states-focus` (5.35:1 claro / 10.15:1 oscuro),\n  también en éxito (el select con valor) y al llegar con Tab al botón del select. Con error, el borde sigue rojo y el\n  foco se ve en un contorno azul de 2 px por fuera.\n- **Pendiente · 1.4.11 Contraste no textual (AA)**: el borde del campo vacío es `border-states-enabled` (2.44:1\n  claro, 2.59:1 oscuro).\n- **1.4.3 Contraste mínimo (AA)**: texto `text-neutral-medium` 14.53:1, valor del select `text-neutral-high` 16.29:1,\n  etiqueta y `placeholder` `text-neutral-low` 5.01:1 y error `text-feedback-danger` 9.84:1.",
@@ -13291,7 +13298,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "ui",
     "importacion": "@siaf/ui/summary-card/summary-card.component",
     "archivo": "src/app/shared/ui/summary-card/summary-card.component.ts",
-    "descripcion": "Card resumen de campos etiqueta/valor, con indicador lateral, borde opcional y ✕ para limpiar. Cada campo es un\n`readonly-field` (caption flotante y valor), igual que el resto de los datos de solo lectura.\n\nEs LA card canónica del \"ítem seleccionado\" que llega desde un side panel: usarla `bordered` con\nindicador, y la ✕ solo en edición. Regla del proyecto: 0 ítems → placeholder gris, 1 → esta card,\n2 o más → grilla estándar (`siaf-table-controls` + `siaf-pagination Bottom`).",
+    "descripcion": "Card resumen de campos etiqueta/valor, con indicador lateral, borde opcional y ✕ para limpiar. Cada campo es un\n`readonly-field` (caption flotante y valor), igual que el resto de los datos de solo lectura.\n\nEspaciado (Figma 552:18578): el `readonly-field` ya trae su relleno (16 px a los lados, 8 px arriba y abajo), así\nque la card solo suma 16 px a los lados y arriba, más 4 px para el caption flotante; abajo no suma nada. No agregar\nrelleno a los campos desde afuera: se descuadra el caption.\n\nEs LA card canónica del \"ítem seleccionado\" que llega desde un side panel: usarla `bordered` con\nindicador, y la ✕ solo en edición. Regla del proyecto: 0 ítems → placeholder gris, 1 → esta card,\n2 o más → grilla estándar (`siaf-table-controls` + `siaf-pagination Bottom`).",
     "usaSesion": false,
     "proyectaContenido": false,
     "entradas": [
@@ -13404,15 +13411,22 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "via": [
           "gap-siaf-md",
           "gap-x-siaf-md",
-          "p-siaf-md",
-          "pl-siaf-md",
+          "pt-siaf-md",
+          "px-siaf-md",
           "var()"
         ]
       },
       {
         "token": "--sys-gap-base-xs",
         "via": [
-          "gap-siaf-xs"
+          "gap-siaf-xs",
+          "pb-siaf-xs"
+        ]
+      },
+      {
+        "token": "--sys-gap-base-xxs",
+        "via": [
+          "pt-siaf-xxs"
         ]
       },
       {

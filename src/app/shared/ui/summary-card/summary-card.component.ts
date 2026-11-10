@@ -14,6 +14,10 @@ export interface SummaryCardField {
  * Card resumen de campos etiqueta/valor, con indicador lateral, borde opcional y ✕ para limpiar. Cada campo es un
  * `readonly-field` (caption flotante y valor), igual que el resto de los datos de solo lectura.
  *
+ * Espaciado (Figma 552:18578): el `readonly-field` ya trae su relleno (16 px a los lados, 8 px arriba y abajo), así
+ * que la card solo suma 16 px a los lados y arriba, más 4 px para el caption flotante; abajo no suma nada. No agregar
+ * relleno a los campos desde afuera: se descuadra el caption.
+ *
  * Es LA card canónica del "ítem seleccionado" que llega desde un side panel: usarla `bordered` con
  * indicador, y la ✕ solo en edición. Regla del proyecto: 0 ítems → placeholder gris, 1 → esta card,
  * 2 o más → grilla estándar (`siaf-table-controls` + `siaf-pagination Bottom`).
@@ -55,17 +59,16 @@ export interface SummaryCardField {
   imports: [IconComponent, ReadonlyFieldComponent],
   template: `
     <section
-      class="relative flex w-full flex-col gap-siaf-md rounded-siaf-md bg-surface p-siaf-md sm:flex-row sm:items-center"
+      class="relative flex w-full flex-col gap-siaf-md rounded-siaf-md bg-surface px-siaf-md pb-siaf-xs pt-siaf-md sm:flex-row sm:pb-0 sm:items-center"
       [class.shadow-siaf-elevation-2]="!bordered"
       [class.border]="bordered"
       [class.border-border]="bordered"
-      [class.pl-siaf-md]="showIndicator"
     >
       @if (showIndicator) {
         <span class="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r bg-brand-primary" aria-hidden="true"></span>
       }
 
-      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-siaf-md gap-y-siaf-lg">
+      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-siaf-md gap-y-siaf-lg pt-siaf-xxs">
         @for (field of fields; track field.label) {
           <div class="flex min-w-[160px] flex-1 basis-full items-center gap-siaf-xs sm:basis-[calc(50%-var(--sys-gap-base-md))] lg:basis-0">
             <readonly-field class="min-w-0 flex-1" [caption]="field.label" [value]="field.value" [bold]="true" />

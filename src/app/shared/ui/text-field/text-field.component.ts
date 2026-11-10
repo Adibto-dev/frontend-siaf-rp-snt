@@ -32,6 +32,8 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
  * @usar
  * - Para los campos de una línea de las solicitudes y de Admin: nombre de clase de ajuste, número de documento o
  *   correo institucional del usuario.
+ * - Dentro de una celda de tabla: sin `label` (la cabecera ya nombra la columna) y con `ariaLabel` para el lector
+ *   de pantalla, ej. `[ariaLabel]="'Importe ' + fila.id"`.
  * - `type="select"` o `select-multiple` para listas cortas y cerradas: tipo de plan contable, tipo de libro y mes,
  *   ámbitos institucionales o estados en los paneles de búsqueda.
  * - `type="decimal"` para importes, como el importe de cada cuenta del asiento de ajuste; `number` solo para enteros.
@@ -130,7 +132,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
             type="button"
             [disabled]="disabled"
             [attr.aria-expanded]="selectOpen"
-            [attr.aria-label]="labelText"
+            [attr.aria-label]="nombreAccesible"
             aria-haspopup="listbox"
             (click)="toggleSelect()"
             (keydown.escape)="cerrarSelectConEscape($event)"
@@ -143,7 +145,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
                 class="inline-flex size-6 shrink-0 items-center justify-center rounded-siaf-sm text-[var(--sys-color-text-neutral-medium)] transition hover:bg-[var(--sys-color-bg-states-light-enabled)]"
                 role="button"
                 tabindex="-1"
-                [attr.aria-label]="'Limpiar ' + labelText"
+                [attr.aria-label]="'Limpiar ' + nombreAccesible"
                 (click)="clearSelectValue($event)"
               >
                 <siaf-icon name="close" [size]="18" />
@@ -170,7 +172,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
             type="button"
             [disabled]="disabled"
             [attr.aria-expanded]="selectOpen"
-            [attr.aria-label]="labelText"
+            [attr.aria-label]="nombreAccesible"
             aria-haspopup="listbox"
             (click)="toggleSelect()"
             (keydown.escape)="cerrarSelectConEscape($event)"
@@ -202,7 +204,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
                 class="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-siaf-sm text-[var(--sys-color-text-neutral-medium)] transition hover:bg-[var(--sys-color-bg-states-light-enabled)]"
                 role="button"
                 tabindex="-1"
-                [attr.aria-label]="'Limpiar ' + labelText"
+                [attr.aria-label]="'Limpiar ' + nombreAccesible"
                 (click)="clearSelectValue($event)"
               >
                 <siaf-icon name="close" [size]="18" />
@@ -245,6 +247,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
               [type]="inputType"
               [attr.inputmode]="inputMode"
               [placeholder]="floatingLabel || required ? '' : labelText"
+              [attr.aria-label]="labelText ? null : ariaLabel || null"
               [attr.aria-required]="required"
               [disabled]="disabled"
               [value]="internalValue"
@@ -289,6 +292,8 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
   private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() label = '';
+  /** Nombre para lectores de pantalla sin etiqueta visible (ej. un campo dentro de una celda de tabla, sin `label`). */
+  @Input() ariaLabel = '';
   @Input() placeholder = '';
   @Input() hint = '';
   @Input() error = '';
@@ -359,6 +364,11 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
     return !Number.isNaN(escrito) && escrito === entrante;
   }
 
+  /** Nombre accesible: la etiqueta visible o, sin ella, `ariaLabel`. */
+  get nombreAccesible(): string {
+    return this.labelText || this.ariaLabel;
+  }
+
   get labelText(): string {
     return this.label || this.placeholder;
   }
@@ -368,7 +378,7 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
   }
 
   get floatingLabel(): boolean {
-    return this.focused || this.hasValue;
+    return !!this.labelText && (this.focused || this.hasValue);
   }
 
   get effectiveState(): TextFieldState {

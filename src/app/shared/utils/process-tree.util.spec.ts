@@ -44,7 +44,8 @@ describe('DEFAULT_PROCESS_TREE (desde docs/menu-procesos.xlsx)', () => {
     const documentos = findProcessPathById('doc-traslado-cta-registros', DEFAULT_PROCESS_TREE).at(-1);
     expect(documentos?.moduleRoute).toBe('/procesos/traspasos-cuentas-registros');
     expect(documentos?.createRoute).toBe('/procesos/traspasos-cuentas-registros/solicitud');
-    expect(findProcessPathById('cons-traslado-cta-registros', DEFAULT_PROCESS_TREE).length).toBeGreaterThan(0);
+    // Consultas está oculta en el menú (estado «oculto»): no aparece en el árbol.
+    expect(findProcessPathById('cons-traslado-cta-registros', DEFAULT_PROCESS_TREE)).toEqual([]);
   });
 
   it('nombreDeProceso devuelve el nombre del menú, o el respaldo si el id no existe', () => {
