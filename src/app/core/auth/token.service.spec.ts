@@ -12,12 +12,12 @@ describe('TokenService', () => {
   let service: TokenService;
 
   beforeEach(() => {
-    localStorage.clear();
+    sessionStorage.clear();
     TestBed.configureTestingModule({});
     service = TestBed.inject(TokenService);
   });
 
-  afterEach(() => localStorage.clear());
+  afterEach(() => sessionStorage.clear());
 
   it('guarda y recupera el access token, y marca autenticado', () => {
     service.saveAccessToken('acceso-1');
@@ -27,7 +27,7 @@ describe('TokenService', () => {
 
   it('no expone el refresh token a JavaScript (vive en cookie httpOnly)', () => {
     expect((service as unknown as Record<string, unknown>)['getRefreshToken']).toBeUndefined();
-    expect(localStorage.getItem('siaf_refresh_token')).toBeNull();
+    expect(sessionStorage.getItem('siaf_refresh_token')).toBeNull();
   });
 
   it('clearTokens elimina todo y desautentica', () => {
@@ -63,7 +63,7 @@ describe('TokenService', () => {
   });
 
   it('getSession devuelve null ante JSON corrupto en storage', () => {
-    localStorage.setItem('siaf_session', '{rota');
+    sessionStorage.setItem('siaf_session', '{rota');
     expect(service.getSession()).toBeNull();
   });
 });

@@ -10,6 +10,7 @@ import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import {
   CuentaRegistro,
+  NaturalezaAjuste,
   SaldoInicial,
   TIPO_COTIZACION,
   cuentaPorNumero,
@@ -20,7 +21,7 @@ import {
   saldoActualizado,
 } from '../../models/saldo-inicial.model';
 
-type LibretaVista = CuentaRegistro & { importe: number; importeNacional: number; saldoInicial: number; saldoActual: number };
+type LibretaVista = CuentaRegistro & { importe: number; importeNacional: number; saldoInicial: number; saldoActual: number; naturaleza?: NaturalezaAjuste };
 
 const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase().includes(busqueda.trim().toLowerCase());
 
@@ -100,7 +101,9 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                 <tr class="siaf-table-head-row">
                   <th class="siaf-table-th w-[130px]" rowspan="2" [siafTooltip]="abrev.fechaOperacion.termino">{{ abrev.fechaOperacion.abreviatura }}</th>
                   <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
-                  <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libretas</th>
+                  @for (g of grupos(); track g) {
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">{{ g }}</th>
+                  }
                   @if (s.ajuste) {
                     <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Saldo</th>
                   }
@@ -109,8 +112,10 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                   <th class="siaf-table-th siaf-table-th--grupo-inicio w-[100px]" [siafTooltip]="abrev.idCorrelativo.termino">{{ abrev.idCorrelativo.abreviatura }}</th>
                   <th class="siaf-table-th">Número</th>
                   <th class="siaf-table-th siaf-table-th--grupo-fin">Descripción</th>
-                  <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
+                  @for (g of grupos(); track g) {
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
                   <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
+                  }
                   @if (s.ajuste) {
                     <th class="siaf-table-th siaf-table-th--grupo-inicio w-[150px] text-right" [siafTooltip]="abrev.saldoInicial.termino">{{ abrev.saldoInicial.abreviatura }}</th>
                     <th class="siaf-table-th siaf-table-th--grupo-fin w-[150px] text-right" [siafTooltip]="abrev.saldoActualizadoEnGrupo.termino">{{ abrev.saldoActualizadoEnGrupo.abreviatura }}</th>
@@ -124,8 +129,15 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                     <td class="siaf-table-td">{{ libreta.idCorrelativo }}</td>
                     <td class="siaf-table-td">{{ libreta.numero }}</td>
                     <td class="siaf-table-td">{{ libreta.descripcion }}</td>
-                    <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importe) }}</td>
-                    <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importeNacional) }}</td>
+                    @for (g of grupos(); track g) {
+                      @if (g === 'Libretas' || g === libreta.naturaleza) {
+                        <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importe) }}</td>
+                        <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importeNacional) }}</td>
+                      } @else {
+                        <td class="siaf-table-td text-right">-</td>
+                        <td class="siaf-table-td text-right">-</td>
+                      }
+                    }
                     @if (s.ajuste) {
                       <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoInicial) }}</td>
                       <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoActual) }}</td>
@@ -133,7 +145,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
                   </tr>
                 } @empty {
                   <tr class="siaf-table-row">
-                    <td class="siaf-table-td text-center" [attr.colspan]="s.ajuste ? 8 : 6">No se encontraron cuentas de registro.</td>
+                    <td class="siaf-table-td text-center" [attr.colspan]="4 + grupos().length * 2 + (s.ajuste ? 2 : 0)">No se encontraron cuentas de registro.</td>
                   </tr>
                 }
               </tbody>
@@ -205,12 +217,25 @@ export class SaldoLibretasPanelComponent {
         return {
           ...l,
           importe: libreta.importe,
+          naturaleza: s.ajuste ? (libreta.naturaleza ?? s.ajuste.naturaleza) : undefined,
           importeNacional: redondear(libreta.importe * s.tipoCambio),
           saldoInicial: iniciales.get(l.idCorrelativo) ?? 0,
           saldoActual: s.ajuste ? saldoActualizado(iniciales.get(l.idCorrelativo) ?? 0, libreta.importe, libreta.naturaleza ?? s.ajuste.naturaleza) : 0,
         };
       })
       .filter((l) => !q || [l.idCorrelativo, l.numero, l.descripcion].some((v) => contiene(v, q)));
+  });
+
+  /**
+   * Grupos de importes de la tabla: «Libretas» en un saldo inicial o de apertura; en un ajuste, «Crédito» y «Débito»
+   * según la naturaleza de cada libreta (un grupo sin libretas no se muestra).
+   */
+  readonly grupos = computed((): string[] => {
+    const x = this.saldoSig();
+    if (!x?.ajuste) return ['Libretas'];
+    const naturalezas = new Set(x.libretas.map((l) => l.naturaleza ?? x.ajuste!.naturaleza));
+    const grupos = (['Crédito', 'Débito'] as const).filter((n) => naturalezas.has(n));
+    return grupos.length ? grupos : [x.ajuste.naturaleza];
   });
 
   readonly tabla = computed(() => {

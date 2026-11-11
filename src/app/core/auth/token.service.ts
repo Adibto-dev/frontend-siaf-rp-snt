@@ -13,30 +13,30 @@ export interface JwtPayload {
 
 @Injectable({ providedIn: 'root' })
 export class TokenService {
-  private readonly _isAuthenticated = signal(!!localStorage.getItem(ACCESS_KEY));
+  private readonly _isAuthenticated = signal(!!sessionStorage.getItem(ACCESS_KEY));
   readonly isAuthenticated = this._isAuthenticated.asReadonly();
 
   /**
-   * Guarda el access token (corta vida) en localStorage. El refresh token NO
+   * Guarda el access token (corta vida) en sessionStorage. El refresh token NO
    * se guarda aquí: vive en una cookie httpOnly que JavaScript no puede leer.
    */
   saveAccessToken(accessToken: string): void {
-    localStorage.setItem(ACCESS_KEY, accessToken);
+    sessionStorage.setItem(ACCESS_KEY, accessToken);
     this._isAuthenticated.set(true);
   }
 
   clearTokens(): void {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(ACCESS_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
     this._isAuthenticated.set(false);
   }
 
   saveSession<T>(session: T): void {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
 
   getSession<T>(): T | null {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     try {
       return JSON.parse(raw) as T;
@@ -46,7 +46,7 @@ export class TokenService {
   }
 
   getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_KEY);
+    return sessionStorage.getItem(ACCESS_KEY);
   }
 
   getJwtPayload(): JwtPayload | null {

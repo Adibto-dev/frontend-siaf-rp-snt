@@ -35,7 +35,6 @@ import { TextAreaControlComponent } from '../../../../../shared/ui/text-area-con
 import { TextFieldComponent } from '../../../../../shared/ui/text-field/text-field.component';
 import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs.util';
 import { crearSnapshotFormulario, hayCambiosRespectoAlSnapshot } from '../../../../../shared/utils/form-snapshot.util';
-import { MIN_CARACTERES_TEXTO_LIBRE, cumpleMinimoTextoLibre } from '../../../../../shared/utils/texto-libre.util';
 import { SaldosInicialesApiService } from '../../../saldos-iniciales/api/saldos-iniciales-api.service';
 import { AutorizacionesApiService } from '../../api/autorizaciones-api.service';
 import { PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/autorizaciones.rutas';
@@ -48,6 +47,7 @@ import {
   PERMISO_AUTORIZAR,
   PROCEDIMIENTOS,
   RESPONSABLES,
+  RESPONSABLE_PREDETERMINADO,
   TIPOS_MODIFICACION,
   TipoAccionAutorizacion,
   cuentaDeAutorizacion,
@@ -77,7 +77,7 @@ interface Formulario {
 
 /** El procedimiento viene preseleccionado: por ahora hay uno solo. */
 const FORMULARIO_VACIO: Formulario = {
-  procedimiento: PROCEDIMIENTOS[0].value, responsable: '', cuentaBancaria: '', vigente: 'si', fechaDesde: '', fechaHasta: '', registroId: '', tipoModificacion: '',
+  procedimiento: PROCEDIMIENTOS[0].value, responsable: RESPONSABLE_PREDETERMINADO, cuentaBancaria: '', vigente: 'si', fechaDesde: '', fechaHasta: '', registroId: '', tipoModificacion: '',
 };
 
 type Panel = 'responsable' | 'cuenta' | 'registro';
@@ -172,7 +172,6 @@ export class AutorizacionRequestComponent implements OnInit {
 
   readonly heading = NOMBRE_DOCUMENTO;
   readonly breadcrumbs: BreadcrumbItem[] = buildProcessBreadcrumbs(PROCESS_ID, PROCESS_ROUTE, 'Configuración de autorización');
-  readonly minCaracteresTexto = MIN_CARACTERES_TEXTO_LIBRE;
   readonly maxMotivo = MAX_MOTIVO;
   readonly ayudaResponsable = AYUDA_RESPONSABLE;
   readonly procedimientos = PROCEDIMIENTOS;
@@ -317,7 +316,8 @@ export class AutorizacionRequestComponent implements OnInit {
   private readonly fotoEdicion = signal<string | null>(null);
   private readonly fotoActual = computed(() => crearSnapshotFormulario({ form: this.form(), motivo: this.motivo().trim() }));
   private readonly hayCambios = computed(() => hayCambiosRespectoAlSnapshot(this.fotoEdicion(), this.fotoActual()));
-  private readonly datosValidos = computed(() => this.formularioCompleto() && cumpleMinimoTextoLibre(this.motivo()));
+  /** El motivo es opcional: no condiciona Grabar ni Verificar. */
+  private readonly datosValidos = computed(() => this.formularioCompleto());
 
   /** Grabar: solo con cambios. Autorizar: con datos válidos (en un ELABORADO sin editar, siempre). */
   readonly grabarDeshabilitado = computed(() => this.saving() || !this.datosValidos() || !this.hayCambios());

@@ -1,3 +1,4 @@
+import { MINUTOS_INACTIVIDAD } from '../../core/auth/inactividad.service';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
@@ -251,6 +252,20 @@ type LoginTab = 'entidades' | 'proveedores';
         (canceled)="confirmarReinicio.set(false)"
         (closed)="confirmarReinicio.set(false)"
       />
+
+      <!-- Aviso al volver por inactividad: el cierre no debe parecer un error. -->
+      <siaf-modal
+        [open]="sesionVencida()"
+        variant="custom"
+        icon="schedule"
+        title="Sesión cerrada por inactividad"
+        [description]="'Su sesión se cerró porque no hubo actividad durante ' + minutosInactividad + ' minutos. Para continuar, inicie sesión nuevamente.'"
+        [hasProjectedActions]="true"
+        (canceled)="sesionVencida.set(false)"
+        (closed)="sesionVencida.set(false)"
+      >
+        <siaf-button modal-actions variant="primary" (click)="sesionVencida.set(false)">Aceptar</siaf-button>
+      </siaf-modal>
     </main>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -317,6 +332,9 @@ export class LoginComponent {
   // ── Taller: opciones de la demo (botón flotante → side nav) ──
   readonly opcionesAbiertas = signal(false);
   readonly confirmarReinicio = signal(false);
+  /** Llegó al login porque la sesión se cerró por inactividad (ver `InactividadService`). */
+  readonly sesionVencida = signal(!!(history.state as { inactividad?: boolean } | null)?.inactividad);
+  readonly minutosInactividad = MINUTOS_INACTIVIDAD;
   readonly opcionesDemo: ListItem[] = [
     {
       id: 'componentes',

@@ -131,10 +131,8 @@
         <siaf-solicitude-form-card title="Justificación">
           @if (editaDatos()) {
             <text-area-control
-              placeholder="Motivo de la autorización"
-              [required]="true"
+              placeholder="Motivo de la autorización (opcional)"
               [maxlength]="maxMotivo"
-              [minlength]="minCaracteresTexto"
               [value]="motivo()"
               (valueChange)="motivo.set($event)"
             />

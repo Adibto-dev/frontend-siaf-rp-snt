@@ -105,17 +105,17 @@ interface Dato {
               </section>
             }
   
-            @if (r.ajuste) {
+            @if (r.ajuste; as a) {
               <section class="grid gap-siaf-sm">
                 <h4 class="m-0 text-sm font-bold uppercase text-text">Saldo inicial</h4>
                 <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
-                  @for (d of saldoInicial(); track d.etiqueta) {
-                    <readonly-field [caption]="d.etiqueta" [value]="d.valor" [bold]="true" [highlight]="true" />
-                  }
+                  <readonly-field caption="Importe de saldo inicial" [value]="formatoImporte(a.saldoInicial)" [bold]="true" [highlight]="true" />
+                  <readonly-field caption="Naturaleza de la operación" [value]="a.naturaleza" [bold]="true" [highlight]="true" />
+                  <readonly-field caption="Saldo actualizado" [value]="formatoImporte(saldoActualizado(a.saldoInicial, r.importeCuenta, a.naturaleza))" [bold]="true" [highlight]="true" />
                 </div>
               </section>
             }
-  
+
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Importes</h4>
               <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
@@ -123,7 +123,7 @@ interface Dato {
                 <readonly-field caption="En moneda nacional" [value]="formatoImporte(r.importeNacional)" [bold]="true" [highlight]="true" />
               </div>
             </section>
-  
+
             <section class="grid gap-siaf-sm">
               <h4 class="m-0 text-sm font-bold uppercase text-text">Cuentas de registro</h4>
               <siaf-form-table-search placeholder="Buscar" [value]="busqueda()" (valueChange)="busqueda.set($event); pagina.set(1)" />
@@ -134,7 +134,9 @@ interface Dato {
                     <tr class="siaf-table-head-row">
                       <th class="siaf-table-th w-[130px]" rowspan="2" [siafTooltip]="abrev.fechaOperacion.termino">{{ abrev.fechaOperacion.abreviatura }}</th>
                       <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Cuenta de registro</th>
-                      <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Libretas</th>
+                      @for (g of grupos(); track g) {
+                    <th class="siaf-table-th siaf-table-th--grupo" colspan="2">{{ g }}</th>
+                  }
                       @if (r.ajuste) {
                         <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Saldo</th>
                       }
@@ -143,8 +145,10 @@ interface Dato {
                       <th class="siaf-table-th siaf-table-th--grupo-inicio w-[100px]" [siafTooltip]="abrev.idCorrelativo.termino">{{ abrev.idCorrelativo.abreviatura }}</th>
                       <th class="siaf-table-th">Número</th>
                       <th class="siaf-table-th siaf-table-th--grupo-fin">Descripción</th>
-                      <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
+                      @for (g of grupos(); track g) {
+                    <th class="siaf-table-th siaf-table-th--grupo-inicio w-[170px] text-right" [siafTooltip]="abrev.importeCuenta.termino">{{ abrev.importeCuenta.abreviatura }}</th>
                       <th class="siaf-table-th siaf-table-th--grupo-fin w-[170px] text-right" [siafTooltip]="abrev.importeNacional.termino">{{ abrev.importeNacional.abreviatura }}</th>
+                  }
                       @if (r.ajuste) {
                         <th class="siaf-table-th siaf-table-th--grupo-inicio w-[150px] text-right" [siafTooltip]="abrev.saldoInicial.termino">{{ abrev.saldoInicial.abreviatura }}</th>
                         <th class="siaf-table-th siaf-table-th--grupo-fin w-[150px] text-right" [siafTooltip]="abrev.saldoActualizadoEnGrupo.termino">{{ abrev.saldoActualizadoEnGrupo.abreviatura }}</th>
@@ -158,8 +162,15 @@ interface Dato {
                         <td class="siaf-table-td">{{ libreta.idCorrelativo }}</td>
                         <td class="siaf-table-td">{{ libreta.numero }}</td>
                         <td class="siaf-table-td">{{ libreta.descripcion }}</td>
+                        @for (g of grupos(); track g) {
+                      @if (g === 'Libretas' || g === libreta.naturaleza) {
                         <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importe) }}</td>
                         <td class="siaf-table-td text-right">{{ formatoImporte(libreta.importeNacional) }}</td>
+                      } @else {
+                        <td class="siaf-table-td text-right">-</td>
+                        <td class="siaf-table-td text-right">-</td>
+                      }
+                    }
                         @if (r.ajuste) {
                           <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoInicial) }}</td>
                           <td class="siaf-table-td text-right">{{ formatoImporte(libreta.saldoActualizado) }}</td>
@@ -167,7 +178,7 @@ interface Dato {
                       </tr>
                     } @empty {
                       <tr class="siaf-table-row">
-                        <td class="siaf-table-td text-center" [attr.colspan]="r.ajuste ? 8 : 6">No se encontraron cuentas de registro.</td>
+                        <td class="siaf-table-td text-center" [attr.colspan]="4 + grupos().length * 2 + (r.ajuste ? 2 : 0)">No se encontraron cuentas de registro.</td>
                       </tr>
                     }
                   </tbody>
@@ -248,6 +259,7 @@ export class SaldoDetalleComponent {
   readonly ayudaImportes = 'Suma automática de los importes de las cuentas de registros.';
   readonly formatoFecha = formatoFecha;
   readonly formatoImporte = formatoImporte;
+  readonly saldoActualizado = saldoActualizado;
 
   /** Descarga el sustento (el archivo subido o, si no hay, el PDF de ejemplo) con su nombre. */
   async descargarSustento(r: SaldoInicialRegistro): Promise<void> {
@@ -307,17 +319,6 @@ export class SaldoDetalleComponent {
     { etiqueta: 'Compra', valor: this.registro()?.tipoCambio.toFixed(2) ?? '' },
   ]);
 
-  /** Solo en un ajuste: saldo de referencia, naturaleza y saldo resultante. */
-  readonly saldoInicial = computed((): Dato[] => {
-    const r = this.registro();
-    if (!r?.ajuste) return [];
-    return [
-      { etiqueta: 'Importe de saldo inicial', valor: formatoImporte(r.ajuste.saldoInicial) },
-      { etiqueta: 'Naturaleza de la operación', valor: r.ajuste.naturaleza },
-      { etiqueta: 'Saldo actualizado', valor: formatoImporte(saldoActualizado(r.ajuste.saldoInicial, r.importeCuenta, r.ajuste.naturaleza)) },
-    ];
-  });
-
   // ── Cuentas de registro ───────────────────────────────────────────
   readonly busqueda = signal('');
   readonly pagina = signal(1);
@@ -326,16 +327,38 @@ export class SaldoDetalleComponent {
     const r = this.registro();
     if (!r) return [];
     const q = this.busqueda();
-    const importes = new Map(r.libretas.map((l) => [l.idCorrelativo, l.importe]));
+    const importes = new Map(r.libretas.map((l) => [l.idCorrelativo, l]));
     const iniciales = new Map((r.ajuste?.libretasIniciales ?? []).map((l) => [l.idCorrelativo, l.importe]));
     return cuentasRegistroDe(r.cuentaBancaria)
       .filter((l) => importes.has(l.idCorrelativo))
-      .map((l) => ({ ...l, importe: importes.get(l.idCorrelativo)!, importeNacional: redondear(importes.get(l.idCorrelativo)! * r.tipoCambio),
-        saldoInicial: iniciales.get(l.idCorrelativo) ?? 0,
-        saldoActualizado: r.ajuste ? saldoActualizado(iniciales.get(l.idCorrelativo) ?? 0, importes.get(l.idCorrelativo)!, r.ajuste.naturaleza) : 0,
-      }))
+      .map((l) => {
+        const libreta = importes.get(l.idCorrelativo)!;
+        const naturaleza = r.ajuste ? (libreta.naturaleza ?? r.ajuste.naturaleza) : undefined;
+        const inicial = iniciales.get(l.idCorrelativo) ?? 0;
+        return {
+          ...l,
+          importe: libreta.importe,
+          importeNacional: redondear(libreta.importe * r.tipoCambio),
+          naturaleza,
+          saldoInicial: inicial,
+          // Cada libreta suma o resta según su propia naturaleza, no la neta del ajuste.
+          saldoActualizado: naturaleza ? saldoActualizado(inicial, libreta.importe, naturaleza) : 0,
+        };
+      })
       .filter((l) => !q || [l.idCorrelativo, l.numero, l.descripcion].some((v) => contiene(v, q)));
   });
+  /**
+   * Grupos de importes de la tabla: «Libretas» en un saldo inicial o de apertura; en un ajuste, «Crédito» y «Débito»
+   * según la naturaleza de cada libreta (un grupo sin libretas no se muestra).
+   */
+  readonly grupos = computed((): string[] => {
+    const x = this.registro();
+    if (!x?.ajuste) return ['Libretas'];
+    const naturalezas = new Set(x.libretas.map((l) => l.naturaleza ?? x.ajuste!.naturaleza));
+    const grupos = (['Crédito', 'Débito'] as const).filter((n) => naturalezas.has(n));
+    return grupos.length ? grupos : [x.ajuste.naturaleza];
+  });
+
   readonly tabla = computed(() => {
     const filas = this.libretas();
     const totalPaginas = Math.max(1, Math.ceil(filas.length / this.tamano()));

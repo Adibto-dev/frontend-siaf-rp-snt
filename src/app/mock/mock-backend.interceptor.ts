@@ -110,7 +110,7 @@ const login: Manejador = ({ req }) => {
 };
 
 const refresh: Manejador = ({ sesion }) => {
-  const actual = sesion ?? sesionDelToken(localStorage.getItem('siaf_access_token'));
+  const actual = sesion ?? sesionDelToken(sessionStorage.getItem('siaf_access_token'));
   if (!actual) return error(401, 'Sesión expirada.');
   return ok({ accessToken: firmarToken(actual.usuario, actual.perfil) });
 };

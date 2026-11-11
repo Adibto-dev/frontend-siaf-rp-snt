@@ -5,9 +5,18 @@ import { FocoDirective } from '../../../../../shared/ui/foco/foco.directive';
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { ReadonlyFieldComponent } from '../../../../../shared/ui/readonly-field/readonly-field.component';
 import { SidePanelAnimacion } from '../../../../../shared/ui/side-panel-animacion';
+import { StepItem, StepsComponent } from '../../../../../shared/ui/steps/steps.component';
 import { NOMBRE_AUTOMATICO, NOMBRE_DOCUMENTO, SaldoInicialRegistro } from '../../models/saldo-inicial.model';
 import { SolicitudeFormCardComponent } from '../../../../../shared/components/solicitude-form-card/solicitude-form-card.component';
 import { SaldoDetalleComponent } from '../saldo-detalle/saldo-detalle.component';
+
+/** dd/mm/aa hh:mm:ss para la tarjeta de la línea de tiempo. */
+function fechaCorta(iso: string | null | undefined): string {
+  if (!iso) return '-';
+  const f = new Date(iso);
+  const dos = (n: number) => String(n).padStart(2, '0');
+  return `${dos(f.getDate())}/${dos(f.getMonth() + 1)}/${String(f.getFullYear()).slice(-2)}   ${dos(f.getHours())}:${dos(f.getMinutes())}:${dos(f.getSeconds())}`;
+}
 
 /** dd/mm/aaaa hh:mm:ss para las firmas. */
 function fechaHora(iso: string | null | undefined): string {
@@ -21,9 +30,10 @@ function fechaHora(iso: string | null | undefined): string {
  * Historial de un registro de saldos iniciales, a pantalla completa. Se abre con el ícono de historial de la pestaña
  * Registros.
  *
- * Los registros de saldos iniciales solo tienen la acción «Creación» (no se modifican), así que no hay línea de tiempo:
- * se muestra el documento que creó el registro, el detalle del saldo (`siaf-saldo-detalle`) y quién lo elaboró,
- * verificó y aprobó (en los automáticos, registró y procesó).
+ * A la izquierda, la línea de tiempo con los documentos del registro, como en el historial de autorizaciones: los
+ * registros de saldos iniciales no se modifican, así que siempre hay una sola tarjeta, la del documento de creación
+ * (fecha de elaborado; en los automáticos, de registrado). A la derecha, el documento, el detalle del saldo
+ * (`siaf-saldo-detalle`) y quién lo elaboró, verificó y aprobó (en los automáticos, registró y procesó).
  *
  * @teclado
  * - **Escape** o la X: cierran el panel (emite `closed`).
@@ -32,7 +42,7 @@ function fechaHora(iso: string | null | undefined): string {
 @Component({
   selector: 'siaf-saldo-historial-panel',
   standalone: true,
-  imports: [FocoDirective, IconComponent, ReadonlyFieldComponent, SaldoDetalleComponent, SolicitudeFormCardComponent],
+  imports: [FocoDirective, IconComponent, ReadonlyFieldComponent, SaldoDetalleComponent, SolicitudeFormCardComponent, StepsComponent],
   template: `
     @if (anim.visible()) {
       <section
@@ -62,7 +72,11 @@ function fechaHora(iso: string | null | undefined): string {
           </header>
 
           <div class="min-h-0 flex-1 overflow-y-auto bg-surface">
-            <div class="w-full px-siaf-md py-siaf-md sm:px-siaf-xl">
+            <div class="grid w-full grid-cols-1 gap-siaf-xl px-siaf-md py-siaf-md sm:px-siaf-xl lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-siaf-xl">
+              <aside>
+                <siaf-steps class="block lg:sticky lg:top-siaf-md" variant="cards" [steps]="pasos()" [activeStep]="1" />
+              </aside>
+
               @if (actual(); as r) {
                 <section class="flex min-w-0 flex-col gap-siaf-md">
                   <siaf-solicitude-form-card [bordered]="true">
@@ -127,6 +141,24 @@ export class SaldoHistorialPanelComponent {
   }
 
   @Output() closed = new EventEmitter<void>();
+
+  /** Una sola tarjeta: el documento que creó el registro. */
+  readonly pasos = computed((): StepItem[] => {
+    const r = this.actual();
+    if (!r) return [];
+    const historial = this.solicitudes()[r.documentoId]?.historialEstados ?? [];
+    const creado = historial.find((h) => h.estadoNuevo === (r.automatico ? 'REGISTRADO' : 'ELABORADO'))?.createdAt;
+    return [
+      {
+        label: r.numeroDocumento,
+        fields: [
+          { label: 'N° documento', value: r.numeroDocumento, weight: 'bold' },
+          { label: 'Tipo de acción', value: 'Creación', weight: 'bold' },
+          { label: 'Fecha', value: fechaCorta(creado), weight: 'bold' },
+        ],
+      },
+    ];
+  });
 
   /** Elaborado, verificado y aprobado por (en los automáticos: registrado y procesado por el sistema). */
   readonly firmas = computed(() => {

@@ -18,6 +18,7 @@ import { SidebarComponent, SidebarNavigation } from '../sidebar/sidebar.componen
 import { CurrentUserService } from '../../core/auth/current-user.service';
 import { PermissionService } from '../../core/auth/permission.service';
 import { ShellNavigationService } from './shell-navigation.service';
+import { InactividadService } from '../../core/auth/inactividad.service';
 import { ADMIN_MENU_TREE } from '../../shared/utils/process-tree.util';
 
 /**
@@ -125,6 +126,7 @@ import { ADMIN_MENU_TREE } from '../../shared/utils/process-tree.util';
 export class AppShellComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
+  private readonly inactividad = inject(InactividadService);
   private readonly shellNavigation = inject(ShellNavigationService);
   private readonly permissionService = inject(PermissionService);
   private readonly catalogosApi = inject(CatalogosApiService);
@@ -157,6 +159,9 @@ export class AppShellComponent implements OnInit {
   readonly createDocumentOptions = signal<CreateDocumentProcessOption[]>(this.fallbackOptions);
 
   ngOnInit(): void {
+    // Con 15 minutos sin uso se cierra la sesión y vuelve al login.
+    this.inactividad.iniciar();
+    this.destroyRef.onDestroy(() => this.inactividad.detener());
     this.catalogosApi.listarTiposDocumento().subscribe({
       next: tipos => {
         const opciones = this.mapTiposToProcessOptions(tipos);

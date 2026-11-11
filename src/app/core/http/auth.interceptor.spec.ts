@@ -22,7 +22,7 @@ describe('authInterceptor', () => {
   const routerSpy = { navigate: jasmine.createSpy('navigate') };
 
   beforeEach(() => {
-    localStorage.clear();
+    sessionStorage.clear();
     routerSpy.navigate.calls.reset();
     TestBed.configureTestingModule({
       providers: [
@@ -39,7 +39,7 @@ describe('authInterceptor', () => {
 
   afterEach(() => {
     controller.verify();
-    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('agrega el Bearer a las peticiones protegidas', () => {

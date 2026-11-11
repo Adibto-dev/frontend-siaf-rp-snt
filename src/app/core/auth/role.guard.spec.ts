@@ -17,14 +17,14 @@ describe('roleGuard', () => {
   let router: Router;
 
   beforeEach(() => {
-    localStorage.clear();
+    sessionStorage.clear();
     TestBed.configureTestingModule({});
     permissions = TestBed.inject(PermissionService);
     tokenService = TestBed.inject(TokenService);
     router = TestBed.inject(Router);
   });
 
-  afterEach(() => localStorage.clear());
+  afterEach(() => sessionStorage.clear());
 
   /** Ruta mínima: al guard solo le interesa `data`. */
   function ruta(data: RoleRouteData = {}): ActivatedRouteSnapshot {

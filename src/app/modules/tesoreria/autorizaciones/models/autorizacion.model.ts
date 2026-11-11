@@ -47,6 +47,8 @@ export interface Responsable {
 
 /** Responsables del Gestor de identidades (sintéticos, Figma 24415:156428). */
 export const RESPONSABLES: Responsable[] = [
+  // La creadora de la demo (Victoria): viene elegida por defecto para seguir el recorrido de la clase.
+  { usuario: 'RU45872', tipoDocumento: 'DNI', dni: '45872163', nombres: 'VICTORIA MENDOZA PAREDES', correo: 'victoria.mendoza@lab-demo.com.pe' },
   { usuario: 'RU21568', tipoDocumento: 'DNI', dni: '71290045', nombres: 'RICARDO JOHN DOE BUSTAMANTE', correo: 'ricardo.doe@mef.gob.pe' },
   { usuario: 'RU15846', tipoDocumento: 'DNI', dni: '45827163', nombres: 'MARIA ELENA QUISPE TORRES', correo: 'mquispe@mef.gob.pe' },
   { usuario: 'RU22471', tipoDocumento: 'RUC', dni: '10483926751', nombres: 'CARLOS ALBERTO MENDOZA RÍOS', correo: 'cmendoza@mef.gob.pe' },
@@ -55,6 +57,9 @@ export const RESPONSABLES: Responsable[] = [
   { usuario: 'RU27654', tipoDocumento: 'RUC', dni: '10629384571', nombres: 'ROSA ISABEL HUAMÁN SALAZAR', correo: 'rhuaman@mef.gob.pe' },
   { usuario: 'RU41023', tipoDocumento: 'DNI', dni: '63718294', nombres: 'PEDRO MIGUEL ROJAS DÍAZ', correo: 'projas@mef.gob.pe' },
 ];
+
+/** Responsable elegido al crear una autorización: la creadora de la demo. */
+export const RESPONSABLE_PREDETERMINADO = 'RU45872';
 
 /** `DNI - 71290045`. */
 export const documentoResponsable = (r: Responsable | undefined): string => (r ? `${r.tipoDocumento} - ${r.dni}` : '—');
