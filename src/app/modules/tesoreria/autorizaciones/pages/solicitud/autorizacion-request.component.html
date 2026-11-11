@@ -11,6 +11,7 @@
     [showButtonGroup]="puedeAutorizar()"
     verifyLabel="Autorizar"
     [saveDisabled]="grabarDeshabilitado()"
+    [saveDisabledReason]="saving() ? '' : null"
     [verifyDisabled]="autorizarDeshabilitado()"
     (returned)="regresar()"
     (canceled)="regresar()"
@@ -236,3 +237,16 @@
     (snackbarClosed)="avisoAbierto.set(false)"
   />
 </div>
+
+<!-- Cancelar con datos o cambios sin grabar (también la flecha atrás del navegador): salidaProtegidaGuard. -->
+<siaf-modal
+  variant="cancel"
+  [open]="salida.modalAbierto()"
+  confirmVariant="primary"
+  confirmLabel="Aceptar"
+  cancelLabel="Cancelar"
+  [showIllustration]="true"
+  (canceled)="salida.responder(false)"
+  (closed)="salida.responder(false)"
+  (confirmed)="salida.responder(true)"
+/>

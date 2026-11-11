@@ -66,6 +66,9 @@ import { SolicitudeHeaderComponent, SolicitudeHeaderRole, SolicitudeHeaderState 
           [showButtonGroup]="showButtonGroup"
           [saveDisabled]="saveDisabled"
           [verifyDisabled]="verifyDisabled"
+          [actionsBlockedReason]="actionsBlockedReason"
+          [saveDisabledReason]="saveDisabledReason"
+          [verifyDisabledReason]="verifyDisabledReason"
           [verifyLabel]="verifyLabel"
           [loading]="loading"
           (returned)="returned.emit()"
@@ -103,6 +106,11 @@ export class SolicitudePageLayoutComponent {
   @Input() showButtonGroup = true;
   @Input() saveDisabled = false;
   @Input() verifyDisabled = false;
+  /** Ver `actionsBlockedReason` de `siaf-solicitude-header`. */
+  @Input() actionsBlockedReason = '';
+  /** Ver `saveDisabledReason` y `verifyDisabledReason` de `siaf-solicitude-header`. */
+  @Input() saveDisabledReason: string | null = null;
+  @Input() verifyDisabledReason: string | null = null;
   /** Texto del botón principal del flujo («Autorizar» en la autorización excepcional). */
   @Input() verifyLabel = 'Verificar';
   @Input() trayMenuOpen = false;

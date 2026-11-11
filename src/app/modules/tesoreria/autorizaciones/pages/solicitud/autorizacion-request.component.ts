@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
+import { ModalComponent } from '../../../../../shared/ui/modal/modal.component';
+import { ConSalidaProtegida, SalidaProtegida } from '../../../../../core/state/salida-protegida';
 
 import { CatalogosApiService, TipoDocumentoResponse } from '../../../../../core/api/catalogos-api.service';
 import { SolicitudResponse, SolicitudesApiService } from '../../../../../core/api/solicitudes-api.service';
@@ -93,14 +95,15 @@ const COLUMNAS: Record<Panel, SelectionColumn<Fila>[]> = {
     { key: 'tipoDocumento', label: 'Tipo', widthClass: 'w-[90px]', group: 'Documento' },
     { key: 'dni', label: 'Número', widthClass: 'w-[130px]', group: 'Documento' },
     { key: 'nombres', label: 'Nombres y apellidos' },
-    { key: 'correo', label: 'Correo institucional', widthClass: 'w-[200px]' },
+    { key: 'correo', label: 'Correo institucional', widthClass: 'w-[300px]' },
   ],
   cuenta: [
     // Figma 24415:138420: número, denominación, moneda y entidad financiera.
     { key: 'numero', label: 'Número de cuenta', widthClass: 'w-[200px]' },
-    { key: 'denominacion', label: 'Denominación' },
+    // Denominación y entidad financiera, los datos largos, con el mismo ancho.
+    { key: 'denominacion', label: 'Denominación', widthClass: 'w-[35%]' },
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[90px]' },
-    { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[260px]' },
+    { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[35%]' },
   ],
   // Figma 27100:46397: procedimiento, responsable (usuario y nombres) y cuenta bancaria.
   registro: [
@@ -134,6 +137,7 @@ const TITULOS: Record<Panel, string> = {
   selector: 'siaf-autorizacion-request',
   standalone: true,
   imports: [
+    ModalComponent,
     ActionTrackerComponent,
     AlertComponent,
     ButtonComponent,
@@ -157,7 +161,7 @@ const TITULOS: Record<Panel, string> = {
   templateUrl: './autorizacion-request.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AutorizacionRequestComponent implements OnInit {
+export class AutorizacionRequestComponent implements OnInit, ConSalidaProtegida {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly currentUser = inject(CurrentUserService);
@@ -316,6 +320,13 @@ export class AutorizacionRequestComponent implements OnInit {
   private readonly fotoEdicion = signal<string | null>(null);
   private readonly fotoActual = computed(() => crearSnapshotFormulario({ form: this.form(), motivo: this.motivo().trim() }));
   private readonly hayCambios = computed(() => hayCambiosRespectoAlSnapshot(this.fotoEdicion(), this.fotoActual()));
+  /** Foto del documento nuevo sin datos: si el formulario cambia, hay datos sin grabar. */
+  private fotoNueva = '';
+  /** Bloquea la navegación mientras se crea o edita y, al salir con datos sin grabar, pregunta «¿Cancelar documento?». */
+  readonly salida = new SalidaProtegida(
+    () => !this.soloLectura(),
+    () => !this.soloLectura() && ((this.estado() === 'NUEVO' ? this.fotoActual() !== this.fotoNueva : this.hayCambios())),
+  );
   /** El motivo es opcional: no condiciona Grabar ni Verificar. */
   private readonly datosValidos = computed(() => this.formularioCompleto());
 
@@ -397,6 +408,8 @@ export class AutorizacionRequestComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) this.cargar(id);
 
+    if (!id) this.fotoNueva = this.fotoActual();
+
     const estadoNavegacion = history.state as { fromSave?: boolean; fromAuthorize?: boolean } | null;
     if (estadoNavegacion?.fromAuthorize) this.mostrarAviso('creation-approved');
     else if (estadoNavegacion?.fromSave) this.mostrarAviso('creation-elaborated');
@@ -472,10 +485,14 @@ export class AutorizacionRequestComponent implements OnInit {
   }
 
   // ── Navegación ────────────────────────────────────────────────────
+  /** Cancelar: con datos o cambios sin grabar, primero pregunta «¿Cancelar documento?». */
   regresar(): void {
     if (this.editando()) {
-      this.editando.set(false);
-      this.restaurarFormulario(this.solicitud());
+      void Promise.resolve(this.salida.confirmar()).then((descartar) => {
+        if (!descartar) return;
+        this.editando.set(false);
+        this.restaurarFormulario(this.solicitud());
+      });
       return;
     }
     void this.router.navigate([PROCESS_ROUTE]);
@@ -561,11 +578,12 @@ export class AutorizacionRequestComponent implements OnInit {
     ).subscribe({
       next: (id) => {
         this.saving.set(false);
+        this.salida.permitirSalida();
         void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, id], { state: estadoNuevo === 'APROBADO' ? { fromAuthorize: true } : { fromSave: true } });
       },
       error: () => {
         this.saving.set(false);
-        if (this.solicitudId) void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, this.solicitudId]);
+        if (this.solicitudId) { this.salida.permitirSalida(); void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, this.solicitudId]); }
       },
     });
   }

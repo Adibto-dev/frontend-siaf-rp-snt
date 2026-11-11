@@ -108,6 +108,7 @@ import { UploaderComponent } from '../../../shared/ui/uploader/uploader.componen
         <div class="grid min-h-[80px] gap-4 sm:grid-cols-2">
           <siaf-date-time-picker label="Fecha de inicio" variant="date" [defaultToToday]="true" />
           <siaf-date-time-picker label="Fecha y hora" variant="datetime" error="La fecha es obligatoria" />
+          <siaf-date-time-picker label="Fecha de operación (hasta hoy)" [defaultToToday]="false" [maxDate]="hoy" />
         </div>
       }
       @case ('siaf-uploader') {
@@ -175,6 +176,8 @@ import { UploaderComponent } from '../../../shared/ui/uploader/uploader.componen
   `,
 })
 export class EjemplosFormulariosComponent {
+  /** Hoy (YYYY-MM-DD), para el ejemplo con `maxDate`. */
+  readonly hoy = new Date().toLocaleDateString('en-CA');
   static readonly selectores = [
     'siaf-input', 'text-area-control', 'siaf-checkbox', 'siaf-switch', 'siaf-radio-group', 'siaf-select-options',
     'siaf-date-time-picker', 'siaf-uploader', 'siaf-uploaded-file-card', 'readonly-field', 'siaf-readonly',

@@ -84,14 +84,15 @@ describe('Niveles intermedios de siaf-breadcrumb con siafFoco', () => {
 
   afterEach(() => fixture.nativeElement.remove());
 
-  it('es una lista de enlaces controlada por «…»; el foco entra en el primer nivel con enlace y Escape vuelve a «…»', async () => {
+  it('es una lista informativa (sin enlaces) controlada por «…» y Escape vuelve a «…»', async () => {
     const boton = await abrir();
     const lista = document.getElementById(boton.getAttribute('aria-controls') ?? '');
     expect(lista?.tagName).toBe('UL');
     expect(el().querySelector('[role="menu"], [role="menuitem"]')).toBeNull();
-    expect(document.activeElement?.textContent?.trim()).toBe('Contabilidad');
+    expect(lista?.textContent).toContain('Contabilidad');
+    expect(lista?.querySelector('a')).toBeNull();
 
-    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    (document.activeElement ?? lista)!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     await pintar();
     expect(boton.getAttribute('aria-expanded')).toBe('false');
     expect(el().querySelector('siaf-breadcrumb ul')).toBeNull();

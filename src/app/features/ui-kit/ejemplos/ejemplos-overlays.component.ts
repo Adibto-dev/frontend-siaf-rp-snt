@@ -11,6 +11,7 @@ import { DocumentsRecordsColumn } from '../../../shared/types/documents-records.
 import { AnnulmentModalComponent, AnnulmentRequest } from '../../../shared/ui/annulment-modal/annulment-modal.component';
 import { ButtonComponent } from '../../../shared/ui/button/button.component';
 import { ColumnVisibilityPanelComponent } from '../../../shared/ui/column-visibility-panel/column-visibility-panel.component';
+import { AlAparecerDirective } from '../../../shared/ui/al-aparecer/al-aparecer.directive';
 import { FocoDirective } from '../../../shared/ui/foco/foco.directive';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { PdfViewerComponent } from '../../../shared/ui/pdf-viewer/pdf-viewer.component';
@@ -31,7 +32,7 @@ interface CuentaEjemplo {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AnnulmentModalComponent, ButtonComponent, ColumnVisibilityPanelComponent, FocoDirective, ModalComponent, PdfViewerComponent, QueryParametersPanelComponent,
+    AlAparecerDirective, AnnulmentModalComponent, ButtonComponent, ColumnVisibilityPanelComponent, FocoDirective, ModalComponent, PdfViewerComponent, QueryParametersPanelComponent,
     RequestApprovalModalsComponent, SelectionSideNavComponent, SideNavComponent, SidePanelComponent, TextFieldComponent, TimelineDetailPanelComponent,
     UploadSideNavComponent,
   ],
@@ -72,6 +73,21 @@ interface CuentaEjemplo {
         <p class="mt-2 text-xs text-text-muted" aria-live="polite">
           Escribe el detalle y carga un .pdf para habilitar «Aceptar».@if (anulacionEnviada()) { {{ anulacionEnviada() }} }
         </p>
+      }
+      @case ('[siafAlAparecer]') {
+        @if (!formularioAparece()) {
+          <div class="grid gap-siaf-sm rounded-siaf-md border border-[var(--sys-color-border-states-enabled)] p-siaf-md" [siafAlAparecer]="volviendoAlRecuadro()">
+            <p class="m-0 text-sm font-bold uppercase text-text">Saldos iniciales libro bancos</p>
+            <siaf-button variant="accent" icon="add" (click)="formularioAparece.set(true)">Agregar</siaf-button>
+          </div>
+        } @else {
+          <div class="grid gap-siaf-md rounded-siaf-md border border-[var(--sys-color-border-states-enabled)] p-siaf-md" siafAlAparecer [siafAlAparecerFoco]="true">
+            <p class="m-0 text-sm font-bold uppercase text-text">Agregar saldo inicial libro bancos</p>
+            <siaf-input label="Importe" type="decimal" />
+            <siaf-button variant="outline" (click)="volviendoAlRecuadro.set(true); formularioAparece.set(false)">Cancelar</siaf-button>
+          </div>
+        }
+        <p class="mt-2 text-xs text-text-muted">El formulario reemplaza al recuadro y la página se desplaza hasta dejarlo bajo la barra superior, con el foco en el campo. Al cancelar vuelve al recuadro.</p>
       }
       @case ('[siafFoco]') {
         <siaf-button variant="secondary" icon="keyboard" (click)="dialogoFoco.set(true)">Abrir diálogo de prueba</siaf-button>
@@ -202,7 +218,7 @@ export class EjemplosOverlaysComponent {
   static readonly selectores = [
     'siaf-modal', 'siaf-request-approval-modals', 'siaf-annulment-modal', 'siaf-side-nav', 'siaf-side-panel', 'siaf-pdf-viewer',
     'siaf-selection-side-nav', 'siaf-upload-side-nav', 'siaf-timeline-detail-panel', 'siaf-column-visibility-panel',
-    'siaf-query-parameters-panel', '[siafFoco]',
+    'siaf-query-parameters-panel', '[siafFoco]', '[siafAlAparecer]',
   ];
 
   readonly camposParametros = CAMPOS_PARAMETROS_DE_MUESTRA;
@@ -257,6 +273,8 @@ export class EjemplosOverlaysComponent {
     this.pdf.set(doc.output('blob'));
   }
   readonly dialogoFoco = signal(false);
+  readonly formularioAparece = signal(false);
+  readonly volviendoAlRecuadro = signal(false);
   readonly seleccion = signal(false);
   readonly cuentasElegidas = signal<string[]>([]);
   readonly cargaAbierta = signal(false);

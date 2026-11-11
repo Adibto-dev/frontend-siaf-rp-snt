@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
+import { ModalComponent } from '../../../../../shared/ui/modal/modal.component';
+import { ConSalidaProtegida, SalidaProtegida } from '../../../../../core/state/salida-protegida';
 
 import { CatalogosApiService, TipoDocumentoResponse } from '../../../../../core/api/catalogos-api.service';
 import { SolicitudResponse, SolicitudesApiService } from '../../../../../core/api/solicitudes-api.service';
@@ -127,6 +129,7 @@ const TEXTOS: Record<FormaSeleccion, TextosForma> = {
   selector: 'siaf-traslado-request',
   standalone: true,
   imports: [
+    ModalComponent,
     ActionTrackerComponent,
     ButtonComponent,
     CollapsibleCardComponent,
@@ -150,7 +153,7 @@ const TEXTOS: Record<FormaSeleccion, TextosForma> = {
   templateUrl: './traslado-request.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TrasladoRequestComponent implements OnInit {
+export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly currentUser = inject(CurrentUserService);
@@ -261,6 +264,18 @@ export class TrasladoRequestComponent implements OnInit {
   readonly cuentasFiltradas = computed(() => filtrar(this.filasCuenta, this.busquedaCuenta()));
 
   // ── Cuentas de registro ───────────────────────────────────────────
+  /** Selección al abrir el panel, para saber si al aceptar se agregó o se cambió algo. */
+  private libretasTemporalesIniciales: string[] = [];
+  /** Texto del snackbar cuando no es uno de los avisos de flujo. */
+  readonly avisoMensaje = signal('');
+
+  /** Snackbar al aceptar el panel: solo se agregaron cuentas, o hubo cambios (alguna se quitó). */
+  private avisarLista(conCambios: boolean): void {
+    this.avisoMensaje.set(conCambios ? 'Se agregaron los cambios a la lista.' : 'Se agregó a la lista correctamente.');
+    this.aviso.set('custom');
+    this.avisoAbierto.set(true);
+  }
+
   /** Cuentas de registro de la cuenta elegida, con su saldo disponible de hoy. */
   readonly libretas = signal<LibretaSaldo[]>([]);
   readonly cargandoLibretas = signal(false);
@@ -343,6 +358,13 @@ export class TrasladoRequestComponent implements OnInit {
   private readonly fotoEdicion = signal<string | null>(null);
   private readonly fotoActual = computed(() => crearSnapshotFormulario({ traslado: this.datosTraslado(), motivo: this.motivo().trim() }));
   private readonly hayCambios = computed(() => hayCambiosRespectoAlSnapshot(this.fotoEdicion(), this.fotoActual()));
+  /** Foto del documento nuevo sin datos: si el formulario cambia, hay datos sin grabar. */
+  private fotoNueva = '';
+  /** Bloquea la navegación mientras se crea o edita y, al salir con datos sin grabar, pregunta «¿Cancelar documento?». */
+  readonly salida = new SalidaProtegida(
+    () => !this.soloLectura(),
+    () => !this.soloLectura() && ((this.estado() === 'NUEVO' ? this.fotoActual() !== this.fotoNueva : this.hayCambios())),
+  );
 
   /** Para grabar basta la cuenta, al menos un par con importe y el motivo: las reglas se revisan al verificar. */
   private readonly formularioCompleto = computed(() => !!this.cuentaElegida() && this.movimientos().length > 0 && cumpleMinimoTextoLibre(this.motivo()));
@@ -402,6 +424,8 @@ export class TrasladoRequestComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) this.cargar(id);
 
+    if (!id) this.fotoNueva = this.fotoActual();
+
     const estadoNavegacion = history.state as { fromSave?: boolean } | null;
     if (estadoNavegacion?.fromSave) this.mostrarAviso('creation-elaborated');
   }
@@ -437,12 +461,14 @@ export class TrasladoRequestComponent implements OnInit {
   abrirPanelPrincipales(): void {
     this.busquedaLibreta.set('');
     this.libretasTemporales.set([...this.principales()]);
+    this.libretasTemporalesIniciales = [...this.principales()];
     this.panelLibretas.set({ para: 'principal' });
   }
 
   abrirPanelSecundarias(principal: string): void {
     this.busquedaLibreta.set('');
     this.libretasTemporales.set(this.asignaciones().filter((a) => this.principalDe(a) === principal).map((a) => this.secundariaDe(a)));
+    this.libretasTemporalesIniciales = [...this.libretasTemporales()];
     this.panelLibretas.set({ para: 'secundaria', principal });
   }
 
@@ -451,6 +477,10 @@ export class TrasladoRequestComponent implements OnInit {
     const panel = this.panelLibretas();
     this.panelLibretas.set(null);
     if (!panel) return;
+    const antes = [...this.libretasTemporalesIniciales];
+    const agregadas = ids.filter((id) => !antes.includes(id)).length;
+    const quitadas = antes.filter((id) => !ids.includes(id)).length;
+    if (agregadas || quitadas) this.avisarLista(quitadas > 0);
     if (panel.para === 'principal') {
       const nuevas = ids.filter((id) => !this.principales().includes(id));
       this.principales.update((p) => [...p.filter((id) => ids.includes(id)), ...nuevas]);
@@ -529,11 +559,15 @@ export class TrasladoRequestComponent implements OnInit {
     this.abiertas.set(new Set());
   }
 
+  /** Cancelar: con datos o cambios sin grabar, primero pregunta «¿Cancelar documento?». */
   regresar(): void {
     if (this.editando()) {
-      // Cancelar la edición vuelve a los datos grabados.
-      this.editando.set(false);
-      this.restaurarFormulario(this.solicitud());
+      void Promise.resolve(this.salida.confirmar()).then((descartar) => {
+        if (!descartar) return;
+        // Cancelar la edición vuelve a los datos grabados.
+        this.editando.set(false);
+        this.restaurarFormulario(this.solicitud());
+      });
       return;
     }
     void this.router.navigate([PROCESS_ROUTE]);
@@ -584,10 +618,10 @@ export class TrasladoRequestComponent implements OnInit {
     }).pipe(
       switchMap((creada) => { this.solicitudId = creada.id; return guardarYElaborar(creada.id).pipe(map(() => creada.id)); }),
     ).subscribe({
-      next: (id) => { this.saving.set(false); void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, id], { state: { fromSave: true } }); },
+      next: (id) => { this.saving.set(false); this.salida.permitirSalida(); void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, id], { state: { fromSave: true } }); },
       error: () => {
         this.saving.set(false);
-        if (this.solicitudId) void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, this.solicitudId]);
+        if (this.solicitudId) { this.salida.permitirSalida(); void this.router.navigate([PROCESS_ROUTE, REQUEST_SEGMENT, this.solicitudId]); }
       },
     });
   }

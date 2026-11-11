@@ -73,7 +73,7 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-ana',
     dni: '45872163',
-    email: 'victoria.mendoza@lab-demo.com.pe',
+    email: 'consultor_ucp10@mef.gob.pe',
     nombres: 'Victoria',
     apellidoPaterno: 'Mendoza',
     apellidoMaterno: 'Paredes',
@@ -84,7 +84,7 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-luis',
     dni: '70318246',
-    email: 'mateo.flores@lab-demo.com.pe',
+    email: 'consultor_ucp11@mef.gob.pe',
     nombres: 'Mateo',
     apellidoPaterno: 'Flores',
     apellidoMaterno: 'Gutiérrez',
@@ -95,7 +95,7 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-carla',
     dni: '41269587',
-    email: 'ariana.ramirez@lab-demo.com.pe',
+    email: 'consultor_ucp12@mef.gob.pe',
     nombres: 'Ariana',
     apellidoPaterno: 'Ramírez',
     apellidoMaterno: 'Vega',
@@ -110,7 +110,7 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-jorge',
     dni: '48219635',
-    email: 'valentina.espinoza@lab-demo.com.pe',
+    email: 'consultor_ucp13@mef.gob.pe',
     nombres: 'Valentina',
     apellidoPaterno: 'Espinoza',
     apellidoMaterno: 'Rojas',
@@ -126,7 +126,7 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
   {
     id: 'usr-rosa',
     dni: '46153928',
-    email: 'santiago.castillo@lab-demo.com.pe',
+    email: 'consultor_ucp14@mef.gob.pe',
     nombres: 'Santiago',
     apellidoPaterno: 'Castillo',
     apellidoMaterno: 'Vargas',

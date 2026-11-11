@@ -95,6 +95,7 @@ No corregir nada sin aprobación del usuario.
 - [ ] Grabar sigue el orden crear → detalle → sustento → `ELABORADO`; navega a `/solicitud/:id` con aviso.
 - [ ] Grabar deshabilitado sin datos completos, sin sustento o sin cambios.
 - [ ] Editar solo en `ELABORADO`/`OBSERVADO` y con foto del formulario; Cancelar restaura lo grabado.
+- [ ] `SalidaProtegida` + `salidaProtegidaGuard` en las rutas: navegación bloqueada al crear/editar y modal «¿Cancelar documento?» con datos o cambios sin grabar (también con la flecha atrás); `permitirSalida()` tras grabar.
 - [ ] Verificar en `ELABORADO`/`OBSERVADO`; desde edición con cambios graba antes.
 - [ ] Eliminar solo en `ELABORADO` y oculto si fue observada.
 - [ ] Modales de confirmación y snackbars en Grabar, Verificar y Eliminar.

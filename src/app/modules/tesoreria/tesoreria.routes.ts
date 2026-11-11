@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 
+import { salidaProtegidaGuard } from '../../core/state/salida-protegida';
+
 /** Procesos de tesorería del taller: traslados (ejemplo), saldos iniciales y autorizaciones. Cada uno con su bandeja y su solicitud. */
 export const TESORERIA_ROUTES: Routes = [
   {
@@ -9,6 +11,7 @@ export const TESORERIA_ROUTES: Routes = [
   },
   {
     path: 'procesos/autorizaciones/solicitud',
+    canDeactivate: [salidaProtegidaGuard],
     loadComponent: () =>
       import('./autorizaciones/pages/solicitud/autorizacion-request.component').then((m) => m.AutorizacionRequestComponent),
   },
@@ -19,6 +22,7 @@ export const TESORERIA_ROUTES: Routes = [
   },
   {
     path: 'procesos/autorizaciones/solicitud/:id',
+    canDeactivate: [salidaProtegidaGuard],
     loadComponent: () =>
       import('./autorizaciones/pages/solicitud/autorizacion-request.component').then((m) => m.AutorizacionRequestComponent),
   },
@@ -36,6 +40,7 @@ export const TESORERIA_ROUTES: Routes = [
   },
   {
     path: 'procesos/traspasos-cuentas-registros/solicitud',
+    canDeactivate: [salidaProtegidaGuard],
     loadComponent: () =>
       import('./traspasos-cuentas-registros/pages/solicitud/traslado-request.component').then(
         (m) => m.TrasladoRequestComponent,
@@ -43,6 +48,7 @@ export const TESORERIA_ROUTES: Routes = [
   },
   {
     path: 'procesos/traspasos-cuentas-registros/solicitud/:id',
+    canDeactivate: [salidaProtegidaGuard],
     loadComponent: () =>
       import('./traspasos-cuentas-registros/pages/solicitud/traslado-request.component').then(
         (m) => m.TrasladoRequestComponent,
@@ -64,6 +70,7 @@ export const TESORERIA_ROUTES: Routes = [
   },
   {
     path: 'procesos/saldos-iniciales/solicitud',
+    canDeactivate: [salidaProtegidaGuard],
     loadComponent: () =>
       import('./saldos-iniciales/pages/solicitud/saldos-iniciales-request.component').then(
         (m) => m.SaldosInicialesRequestComponent,
@@ -71,6 +78,7 @@ export const TESORERIA_ROUTES: Routes = [
   },
   {
     path: 'procesos/saldos-iniciales/solicitud/:id',
+    canDeactivate: [salidaProtegidaGuard],
     loadComponent: () =>
       import('./saldos-iniciales/pages/solicitud/saldos-iniciales-request.component').then(
         (m) => m.SaldosInicialesRequestComponent,

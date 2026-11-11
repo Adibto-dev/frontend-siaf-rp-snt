@@ -76,4 +76,23 @@ describe('DateTimePickerComponent — elegir mes y año', () => {
     pulsar(dia);
     expect(valor).toBe('2026-07-20');
   });
+
+  it('solo muestra los días del mes, en 6 semanas fijas con casillas vacías', () => {
+    const casillas = calendario().querySelectorAll('.grid-cols-7:last-of-type > *');
+    const dias = Array.from(calendario().querySelectorAll<HTMLButtonElement>('.grid-cols-7 button')).map((b) => b.textContent?.trim());
+    expect(casillas.length).toBe(42);
+    expect(dias[0]).toBe('01');
+    expect(dias.length).toBe(31);
+  });
+
+  it('con maxDate deshabilita los días, meses y años posteriores', () => {
+    fixture.componentRef.setInput('maxDate', '2026-03-20');
+    fixture.detectChanges();
+    const dia = (n: string) => Array.from(calendario().querySelectorAll<HTMLButtonElement>('.grid-cols-7 button')).find((b) => b.textContent?.trim() === n)!;
+    expect(dia('20').disabled).toBeFalse();
+    expect(dia('21').disabled).toBeTrue();
+    pulsar(cabecera('mes'));
+    expect(opciones()[2].disabled).toBeFalse();
+    expect(opciones()[3].disabled).toBeTrue();
+  });
 });

@@ -83,6 +83,10 @@ import { MenuComponent, MenuDensity, MenuItem, MenuLeading } from '../../../shar
           <siaf-button [loading]="true">Grabando</siaf-button>
         </div>
         <p class="mt-3 text-xs text-text-muted">Los nombres anteriores siguen valiendo: accent / primary = filled, secondary = outline, ghost = text.</p>
+        <div class="mt-siaf-md flex flex-wrap items-center gap-siaf-sm">
+          <siaf-button variant="filled" [disabled]="true" disabledReason="No hay cambios para agregar.">Aceptar</siaf-button>
+          <span class="text-xs text-text-muted">Deshabilitado con <code>disabledReason</code>: pase el puntero o llegue con Tab para ver el motivo.</span>
+        </div>
       }
       @case ('siaf-buttons-group') {
         <div class="space-y-2 text-sm text-text">

@@ -7,6 +7,7 @@ import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { PermissionService } from '../../core/auth/permission.service';
 import { CurrentUserService } from '../../core/auth/current-user.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { FormularioEnCursoService } from '../../core/state/formulario-en-curso.service';
 import { NotificationsStateService } from '../../core/realtime/notifications-state.service';
 import { NotificationsPanelComponent } from '../notifications-panel/notifications-panel.component';
 import { TooltipDirective } from '../../shared/ui/tooltip/tooltip.directive';
@@ -77,8 +78,9 @@ type ViewTransitionDocument = Document & {
       <div class="flex min-w-0 shrink-0 items-center gap-siaf-lg">
         @if (showMenu) {
           <button
-            class="inline-flex size-8 items-center justify-center rounded-siaf-md transition hover:bg-[var(--sys-color-bg-states-on-brand-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-text-brand-white)]"
+            class="inline-flex size-8 items-center justify-center rounded-siaf-md transition hover:bg-[var(--sys-color-bg-states-on-brand-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-text-brand-white)] disabled:cursor-not-allowed disabled:opacity-40"
             type="button"
+            [disabled]="bloqueado()"
             aria-label="Abrir menu"
             (click)="menuClicked.emit()"
           >
@@ -97,8 +99,9 @@ type ViewTransitionDocument = Document & {
         @if (showNotifications) {
           <div class="relative">
             <button
-              class="relative inline-flex size-8 shrink-0 items-center justify-center rounded-siaf-md transition hover:bg-[var(--sys-color-bg-states-on-brand-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-text-brand-white)]"
+              class="relative inline-flex size-8 shrink-0 items-center justify-center rounded-siaf-md transition hover:bg-[var(--sys-color-bg-states-on-brand-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-text-brand-white)] disabled:cursor-not-allowed disabled:opacity-40"
               type="button"
+              [disabled]="bloqueado()"
               [attr.aria-label]="notifications.hasUnread() ? 'Notificaciones, ' + notifications.unreadCount() + ' sin leer' : 'Notificaciones'"
               [attr.aria-expanded]="notificationsOpen()"
               aria-haspopup="dialog"
@@ -153,8 +156,9 @@ type ViewTransitionDocument = Document & {
               >
                 <!-- Perfil — abre/cierra selector de rol -->
                 <button
-                  class="siaf-text-body-2 flex min-h-12 w-full items-center gap-siaf-md px-siaf-md py-siaf-sm text-left transition hover:bg-surface-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
+                  class="siaf-text-body-2 flex min-h-12 w-full items-center gap-siaf-md px-siaf-md py-siaf-sm text-left transition hover:bg-surface-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] disabled:cursor-not-allowed disabled:opacity-40"
                   type="button"
+                  [disabled]="bloqueado()"
                   role="menuitem"
                   (click)="perfilMenuOpen.set(!perfilMenuOpen())"
                 >
@@ -247,6 +251,8 @@ export class NavbarComponent {
 
   readonly authService = inject(AuthService);
   readonly notifications = inject(NotificationsStateService);
+  /** Con una solicitud en creación o edición: menú de procesos, notificaciones y cambio de perfil deshabilitados. */
+  readonly bloqueado = inject(FormularioEnCursoService).activo;
 
   constructor(
     private readonly router: Router,

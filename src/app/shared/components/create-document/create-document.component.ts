@@ -2,11 +2,10 @@ import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, inject, Input, Output } from '@angular/core';
 
 import { ButtonComponent } from '../../ui/button/button.component';
-import { IconComponent } from '../../ui/icon/icon.component';
 import { DEFAULT_PROCESS_TREE, ProcessMenuNode } from '../../utils/process-tree.util';
-import { SelectOption, SelectOptionsComponent } from '../../ui/select-options/select-options.component';
+import { SelectOption } from '../../ui/select-options/select-options.component';
+import { TextFieldComponent } from '../../ui/text-field/text-field.component';
 import { TooltipDirective } from '../../ui/tooltip/tooltip.directive';
-import { FocoDirective } from '../../ui/foco/foco.directive';
 
 export type CreateDocumentVariant = 'sidepanel' | 'dropdown';
 
@@ -61,6 +60,7 @@ const CREATE_DOCUMENT_PROCESSES: CreateDocumentProcessOption[] = collectProcessO
  *   de documento del API.
  * - En la bandeja, como popover del botón «Crear documento» de `siaf-documents-records-page` (`dropdown` con `fields`
  *   controlados para Documento y Tipo de acción).
+ * - Documento y Tipo de acción son `siaf-input type="select"`: mismos estilos, foco y lista flotante que el resto.
  * @evitar
  * - Pintar otro `sidepanel` en una página: pedir el del shell con `ShellNavigationService.openCreateDocument()`.
  * - Para los campos de la solicitud misma: usar `siaf-input` dentro de `siaf-solicitude-page-layout`.
@@ -81,7 +81,7 @@ const CREATE_DOCUMENT_PROCESSES: CreateDocumentProcessOption[] = collectProcessO
  *   las flechas la recorren y Enter elige; la lista ya no se cierra al pasar del buscador a ella.
  * - **2.4.7 Foco visible (AA)**: Documento, Tipo de acción y el buscador muestran el borde azul de 2 px
  *   (`border-states-focus`, 5.35:1 claro / 10.15:1 oscuro) al recibir el foco, también si ya tienen valor.
- * - **2.4.3 Orden del foco (A)**: con `siafFoco`, las opciones de Documento y Tipo de acción reciben el foco al abrir y
+ * - **2.4.3 Orden del foco (A)**: con `siafFoco`, las opciones  de Documento y Tipo de acción reciben el foco al abrir y
  *   al elegir, cerrar con Escape o salir con Tab vuelve al campo; al elegir un proceso el foco vuelve al buscador.
  * - **4.1.2 Nombre, función y valor (A)**: el buscador es un `combobox` con `aria-expanded` y `aria-controls` hacia
  *   la lista `role="listbox"` «Procesos», y el proceso elegido lleva `aria-selected`. Documento y Tipo de acción
@@ -98,7 +98,7 @@ const CREATE_DOCUMENT_PROCESSES: CreateDocumentProcessOption[] = collectProcessO
 @Component({
   selector: 'siaf-create-document',
   standalone: true,
-  imports: [FocoDirective, ButtonComponent, IconComponent, NgClass, SelectOptionsComponent, TooltipDirective],
+  imports: [ButtonComponent, NgClass, TextFieldComponent, TooltipDirective],
   template: `
     <section
       class="flex flex-col items-start bg-[var(--sys-color-bg-surfaces-field,var(--sys-color-bg-surfaces-surface))]"
@@ -121,8 +121,8 @@ const CREATE_DOCUMENT_PROCESSES: CreateDocumentProcessOption[] = collectProcessO
         >
           <div class="flex w-full flex-col gap-siaf-lg">
             @for (field of resolvedFields; track field.placeholder) {
-              <label class="relative block h-10 w-full">
-                @if (isFieldFloating(field)) {
+              <div class="relative block min-h-10 w-full">
+                @if (field.type !== 'select' && isFieldFloating(field)) {
                   <span
                     class="siaf-text-caption-1-medium absolute -top-2.5 left-3 z-[1] rounded-siaf-sm bg-surface px-siaf-xxs"
                     [class.text-[var(--sys-color-text-neutral-activated)]]="focusedField === field.placeholder"
@@ -133,33 +133,16 @@ const CREATE_DOCUMENT_PROCESSES: CreateDocumentProcessOption[] = collectProcessO
                 }
 
                 @if (field.type === 'select') {
-                  <div class="relative">
-                    <button
-                      class="siaf-text-body-2 flex min-h-10 w-full items-center rounded-siaf-md bg-surface py-siaf-xs pl-siaf-md pr-siaf-sm text-left text-[var(--sys-color-text-neutral-medium)] outline-none transition focus:border-2 focus:border-[var(--sys-color-border-states-focus)] disabled:cursor-not-allowed disabled:border disabled:border-[var(--sys-color-border-states-disabled)] disabled:bg-[var(--sys-color-bg-surfaces-disabled)] disabled:text-[var(--sys-color-text-neutral-disabled)]"
-                      [ngClass]="fieldControlClass(field)"
-                      type="button"
-                      [disabled]="field.disabled"
-                      [attr.aria-expanded]="openedSelectField === field.placeholder"
-                      aria-haspopup="listbox"
-                      (click)="toggleSelect(field)"
-                    >
-                      <span class="min-w-0 flex-1 truncate" siafTooltip [class.text-[var(--sys-color-text-neutral-low)]]="!field.value">
-                        {{ field.value || field.placeholder }}@if (!field.value && field.required) { <span class="text-[var(--sys-color-text-feedback-danger)]">*</span> }
-                      </span>
-                      <siaf-icon class="shrink-0 text-text transition" [class.rotate-180]="openedSelectField === field.placeholder" name="expand_more" [size]="24" />
-                    </button>
-
-                    @if (openedSelectField === field.placeholder) {
-                      <button class="fixed inset-0 z-40 cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closeSelect()"></button>
-                      <div class="absolute left-0 right-0 top-[calc(100%+4px)] z-50" siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()">
-                        <siaf-select-options
-                          [options]="fieldOptions(field)"
-                          [selectedValue]="field.value || ''"
-                          (selected)="onOptionSelected(field, $event)"
-                        />
-                      </div>
-                    }
-                  </div>
+                  <!-- El mismo select del kit (siaf-input): estilos, foco y lista flotante en un solo lugar. -->
+                  <siaf-input
+                    type="select"
+                    [label]="field.placeholder"
+                    [required]="!!field.required"
+                    [disabled]="!!field.disabled"
+                    [options]="fieldOptions(field)"
+                    [value]="field.value || ''"
+                    (valueChange)="onOptionSelected(field, '' + $event)"
+                  />
                 } @else {
                   <div class="relative">
                     <input
@@ -170,6 +153,7 @@ const CREATE_DOCUMENT_PROCESSES: CreateDocumentProcessOption[] = collectProcessO
                       [placeholder]="isFieldFloating(field) ? '' : optionPlaceholder(field)"
                       [value]="field.value || ''"
                       [disabled]="field.disabled"
+                      [attr.aria-label]="field.placeholder"
                       role="combobox"
                       aria-autocomplete="list"
                       [attr.aria-expanded]="showProcessResults(field)"
@@ -212,7 +196,7 @@ const CREATE_DOCUMENT_PROCESSES: CreateDocumentProcessOption[] = collectProcessO
                     }
                   </div>
                 }
-              </label>
+              </div>
             }
 
             <div class="flex h-10 w-full items-start justify-end gap-siaf-sm">
@@ -235,13 +219,11 @@ export class CreateDocumentComponent {
   @Input() fields: CreateDocumentField[] = [];
   @Input() processOptions: CreateDocumentProcessOption[] = CREATE_DOCUMENT_PROCESSES;
   focusedField = '';
-  openedSelectField = '';
   processResultsOpen = false;
   private readonly internalValues = new Map<string, string>();
 
   @Output() canceled = new EventEmitter<void>();
   @Output() accepted = new EventEmitter<CreateDocumentAccepted>();
-  @Output() fieldSelected = new EventEmitter<string>();
   @Output() fieldValueChange = new EventEmitter<CreateDocumentSelection>();
 
   get resolvedFields(): CreateDocumentField[] {
@@ -319,25 +301,7 @@ export class CreateDocumentComponent {
       : 'h-[calc(100vh-56px)] w-screen border-r border-[var(--sys-color-divider-default)] shadow-siaf-elevation-1 lg:max-w-[370px]';
   }
 
-  toggleSelect(field: CreateDocumentField): void {
-    if (field.disabled) {
-      return;
-    }
-
-    this.fieldSelected.emit(field.placeholder);
-    this.openedSelectField = this.openedSelectField === field.placeholder ? '' : field.placeholder;
-    this.focusedField = this.openedSelectField;
-    this.processResultsOpen = false;
-  }
-
-  closeSelect(): void {
-    this.openedSelectField = '';
-    this.focusedField = '';
-    this.cdr.markForCheck();
-  }
-
   onOptionSelected(field: CreateDocumentField, value: string): void {
-    this.openedSelectField = '';
     this.focusedField = '';
 
     if (this.fields.length === 0) {
@@ -356,7 +320,6 @@ export class CreateDocumentComponent {
 
   onSearchFocus(field: CreateDocumentField): void {
     this.focusedField = field.placeholder;
-    this.openedSelectField = '';
     this.processResultsOpen = this.isProcessSearchField(field);
   }
 
@@ -496,11 +459,7 @@ export class CreateDocumentComponent {
   }
 
   isFieldFloating(field: CreateDocumentField): boolean {
-    return this.focusedField === field.placeholder || this.openedSelectField === field.placeholder || Boolean(field.value);
-  }
-
-  isFieldSuccess(field: CreateDocumentField): boolean {
-    return Boolean(field.value) && this.focusedField !== field.placeholder;
+    return this.focusedField === field.placeholder || Boolean(field.value);
   }
 
   fieldControlClass(field: CreateDocumentField): string {
@@ -508,14 +467,11 @@ export class CreateDocumentComponent {
       return 'border border-[var(--sys-color-border-states-disabled)]';
     }
 
-    if (this.focusedField === field.placeholder || this.openedSelectField === field.placeholder) {
+    if (this.focusedField === field.placeholder) {
       return 'border-2 border-[var(--sys-color-border-states-focus)]';
     }
 
-    if (this.isFieldSuccess(field)) {
-      return 'border-2 border-[var(--sys-color-border-feedback-success)]';
-    }
-
+    // Con valor queda el borde normal, como `siaf-input` (sin éxito automático); el azul, solo abierto o con teclado.
     return 'border border-[var(--sys-color-border-states-enabled)] hover:border-2 hover:border-[var(--sys-color-border-states-hover)]';
   }
 

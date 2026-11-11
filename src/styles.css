@@ -420,28 +420,37 @@ input[type="checkbox"]:disabled:checked {
   animation: siaf-snackbar-out 300ms ease-in both;
 }
 
-/* ── Animación de modales (Figma WEB-SIAF-RP) ──
-   Abre: el diálogo entra desde arriba hacia el centro (Move in ↓,
-   ease-out 300ms); el overlay hace fade. Cierra: el reverso hacia
-   arriba (ease-in-out 300ms). */
+/* ── Animación de modales ──
+   Abre: el diálogo aparece en su lugar, crece un poco (96 % → 100 %) y sube 8 px mientras se hace visible
+   (250 ms, desacelera). Cierra: se desvanece y se encoge levemente (200 ms, acelera), sin viajar por la
+   pantalla. El overlay hace fade. Con «reducir movimiento» solo hay fade. */
 @keyframes siaf-modal-in {
-  from { transform: translateY(calc(-50vh - 100%)); }
-  to { transform: translateY(0); }
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes siaf-modal-out {
-  from { transform: translateY(0); }
-  to { transform: translateY(calc(-50vh - 100%)); }
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: scale(0.98); }
 }
 
 .siaf-modal-overlay {
-  animation: siaf-overlay-fade-in 300ms ease-out both;
+  animation: siaf-overlay-fade-in 250ms ease-out both;
 }
 .siaf-modal-overlay > section[role='dialog'] {
-  animation: siaf-modal-in 300ms ease-out both;
+  animation: siaf-modal-in 250ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 .siaf-modal-overlay.cerrando {
-  animation: siaf-overlay-fade-out 300ms ease-in-out both;
+  animation: siaf-overlay-fade-out 200ms ease-in both;
 }
 .siaf-modal-overlay.cerrando > section[role='dialog'] {
-  animation: siaf-modal-out 300ms ease-in-out both;
+  animation: siaf-modal-out 200ms cubic-bezier(0.3, 0, 1, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .siaf-modal-overlay > section[role='dialog'],
+  .siaf-modal-overlay.cerrando > section[role='dialog'] {
+    animation-name: siaf-overlay-fade-in;
+  }
+  .siaf-modal-overlay.cerrando > section[role='dialog'] {
+    animation-name: siaf-overlay-fade-out;
+  }
 }

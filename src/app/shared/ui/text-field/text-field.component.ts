@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, forwardRef, inject, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, ElementRef, forwardRef, inject, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 import { IconComponent } from '../icon/icon.component';
@@ -32,6 +32,8 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
  * @usar
  * - Para los campos de una línea de las solicitudes y de Admin: nombre de clase de ajuste, número de documento o
  *   correo institucional del usuario.
+ * - En una tabla, panel o modal con scroll: la lista del select flota sobre la página (no la recorta el contenedor),
+ *   abre hacia arriba si abajo no hay espacio y sigue al campo con el scroll.
  * - Dentro de una celda de tabla: sin `label` (la cabecera ya nombra la columna) y con `ariaLabel` para el lector
  *   de pantalla, ej. `[ariaLabel]="'Importe ' + fila.id"`.
  * - `type="select"` o `select-multiple` para listas cortas y cerradas: tipo de plan contable, tipo de libro y mes,
@@ -155,8 +157,8 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
           </button>
 
           @if (selectOpen) {
-            <button class="fixed inset-0 z-30 cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closeSelect()"></button>
-            <div class="relative z-40 mt-siaf-xs sm:absolute sm:left-0 sm:right-0 sm:top-[calc(100%+4px)] sm:mt-0" siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()">
+            <button class="fixed inset-0 z-[59] cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closeSelect()"></button>
+            <div class="fixed z-[60] [&_.max-h-72]:max-h-[var(--siaf-menu-alto)]" [style.top.px]="menuPos?.top" [style.bottom.px]="menuPos?.bottom" [style.left.px]="menuPos?.left" [style.width.px]="menuPos?.width" [style.--siaf-menu-alto.px]="menuPos?.alto" siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()">
               <siaf-select-options
                 [options]="selectOptions"
                 [selectedValue]="selectValue"
@@ -214,8 +216,8 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
           </button>
 
           @if (selectOpen) {
-            <button class="fixed inset-0 z-30 cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closeSelect()"></button>
-            <div class="relative z-40 mt-siaf-xs sm:absolute sm:left-0 sm:right-0 sm:top-[calc(100%+4px)] sm:mt-0" siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()">
+            <button class="fixed inset-0 z-[59] cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closeSelect()"></button>
+            <div class="fixed z-[60] [&_.max-h-72]:max-h-[var(--siaf-menu-alto)]" [style.top.px]="menuPos?.top" [style.bottom.px]="menuPos?.bottom" [style.left.px]="menuPos?.left" [style.width.px]="menuPos?.width" [style.--siaf-menu-alto.px]="menuPos?.alto" siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()">
               <siaf-select-options
                 [options]="selectOptions"
                 [selectedValues]="selectValues"
@@ -288,8 +290,12 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TextFieldComponent implements OnChanges, ControlValueAccessor {
+export class TextFieldComponent implements OnChanges, OnDestroy, ControlValueAccessor {
   private readonly cdr = inject(ChangeDetectorRef);
+
+  ngOnDestroy(): void {
+    this.dejarDeSeguir();
+  }
 
   @Input() label = '';
   /** Nombre para lectores de pantalla sin etiqueta visible (ej. un campo dentro de una celda de tabla, sin `label`). */
@@ -316,8 +322,9 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
   @Input() autocomplete = '';
   @Input() clearable = false;
   @Input() required = false;
-  /** Mantiene el borde neutro después de escribir cuando el contexto no representa una validación. */
-  @Input() autoSuccess = true;
+  /** Con valor, pinta el borde de éxito (verde) sin que nadie lo valide. Apagado por defecto: el éxito se marca con
+   *  `state="success"` cuando la pantalla de verdad validó el dato. */
+  @Input() autoSuccess = false;
   /** Decimales admitidos cuando `type="decimal"` (importes contables: 2). */
   @Input() decimals = 2;
   /**
@@ -394,21 +401,33 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
   }
 
   get controlClass(): string {
+    const clases = this.clasesDelControl();
+    // En el select el control es el mismo botón: focus-within también lo pintaría tras un clic.
+    return this.type === 'select' || this.type === 'select-multiple'
+      ? clases.split(' ').filter((c) => !c.startsWith('focus-within:')).join(' ')
+      : clases;
+  }
+
+  private clasesDelControl(): string {
     if (this.disabled) {
       return 'cursor-not-allowed border border-[var(--sys-color-border-states-disabled)] bg-[var(--sys-color-bg-surfaces-disabled)] text-[var(--sys-color-text-neutral-disabled)]';
     }
 
     // Con error, el borde sigue rojo al enfocar y el foco se ve en un contorno azul por fuera (WCAG 2.4.7).
     if (this.effectiveState === 'error') {
-      return 'border-2 border-[var(--sys-color-border-feedback-danger)] bg-surface hover:border-[var(--sys-color-border-feedback-danger)] focus:border-[var(--sys-color-border-feedback-danger)] focus-within:border-[var(--sys-color-border-feedback-danger)] focus:ring-0 focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-[var(--sys-color-border-states-focus)] focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--sys-color-border-states-focus)]';
+      return 'border-2 border-[var(--sys-color-border-feedback-danger)] bg-surface hover:border-[var(--sys-color-border-feedback-danger)] focus-visible:border-[var(--sys-color-border-feedback-danger)] focus-within:border-[var(--sys-color-border-feedback-danger)] focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--sys-color-border-states-focus)]';
     }
 
     // El éxito solo marca que hay valor: con el foco manda el borde azul, como en un campo sin estado.
     if (this.effectiveState === 'success') {
-      return 'border-2 border-[var(--sys-color-border-feedback-success)] bg-surface hover:border-[var(--sys-color-border-feedback-success)] focus:border-[var(--sys-color-border-states-focus)] focus-within:border-[var(--sys-color-border-states-focus)] focus:ring-0';
+      return 'border-2 border-[var(--sys-color-border-feedback-success)] bg-surface hover:border-[var(--sys-color-border-feedback-success)] focus-visible:border-[var(--sys-color-border-states-focus)] focus-within:border-[var(--sys-color-border-states-focus)] focus-visible:ring-0';
     }
 
-    return 'border border-[var(--sys-color-border-states-enabled)] bg-surface hover:border-2 hover:border-[var(--sys-color-border-states-hover)] focus:border-2 focus:border-[var(--sys-color-border-states-focus)] focus-within:border-2 focus-within:border-[var(--sys-color-border-states-focus)] focus:ring-0';
+    // Abierto, el borde azul marca el campo activo; cerrado, el azul sale solo con teclado (focus-visible): con el
+    // mouse el foco vuelve al campo al elegir una opción y no debe quedar pintado.
+    if (this.selectOpen) return 'border-2 border-[var(--sys-color-border-states-focus)] bg-surface';
+
+    return 'border border-[var(--sys-color-border-states-enabled)] bg-surface hover:border-2 hover:border-[var(--sys-color-border-states-hover)] focus-visible:border-2 focus-visible:border-[var(--sys-color-border-states-focus)] focus-within:border-2 focus-within:border-[var(--sys-color-border-states-focus)] focus-visible:ring-0';
   }
 
   get labelClass(): string {
@@ -620,6 +639,51 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
 
     this.selectOpen = !this.selectOpen;
     this.focused = this.selectOpen;
+    if (this.selectOpen) this.seguirAlCampo();
+    else this.dejarDeSeguir();
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Lista flotante: va con `position: fixed` calculada desde el campo, así no la recorta un contenedor con scroll
+   * (ej. `.siaf-table-shell`). Abre hacia arriba si abajo no hay espacio y sigue al campo con el scroll; si el campo
+   * sale de la vista, se cierra.
+   */
+  menuPos: { top?: number; bottom?: number; left: number; width: number; alto: number } | null = null;
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly alMoverse = () => this.ubicarMenu();
+
+  private seguirAlCampo(): void {
+    this.ubicarMenu();
+    window.addEventListener('scroll', this.alMoverse, true);
+    window.addEventListener('resize', this.alMoverse);
+  }
+
+  private dejarDeSeguir(): void {
+    window.removeEventListener('scroll', this.alMoverse, true);
+    window.removeEventListener('resize', this.alMoverse);
+    this.menuPos = null;
+  }
+
+  private ubicarMenu(): void {
+    const campo = this.host.nativeElement.querySelector<HTMLElement>('[aria-haspopup="listbox"]');
+    if (!campo) return;
+    const caja = campo.getBoundingClientRect();
+    const alto = window.innerHeight;
+    if (caja.bottom < 0 || caja.top > alto) {
+      this.closeSelect();
+      return;
+    }
+    const MENU = 288; // max-h-72 de siaf-select-options
+    const abajo = alto - caja.bottom - 8;
+    const arriba = caja.top - 8;
+    const haciaArriba = abajo < Math.min(MENU, 160) && arriba > abajo;
+    this.menuPos = {
+      left: caja.left,
+      width: caja.width,
+      alto: Math.max(120, Math.min(MENU, haciaArriba ? arriba : abajo)),
+      ...(haciaArriba ? { bottom: alto - caja.top + 4 } : { top: caja.bottom + 4 }),
+    };
     this.cdr.markForCheck();
   }
 
@@ -632,6 +696,7 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
 
   closeSelect(): void {
     this.selectOpen = false;
+    this.dejarDeSeguir();
     this.focused = false;
     this.onTouched();
     this.cdr.markForCheck();

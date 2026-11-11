@@ -321,3 +321,47 @@ describe('TextFieldComponent — en una celda de tabla (sin label)', () => {
     expect(el.querySelector('.siaf-text-caption-1-medium')).toBeNull();
   });
 });
+
+describe('TextFieldComponent — lista del select flotante', () => {
+  it('se ubica con position fixed bajo el campo y abre hacia arriba si abajo no hay espacio', async () => {
+    await TestBed.configureTestingModule({ imports: [TextFieldComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(TextFieldComponent);
+    fixture.componentRef.setInput('type', 'select');
+    fixture.componentRef.setInput('label', 'Naturaleza');
+    fixture.componentRef.setInput('options', [{ label: 'Crédito', value: 'Crédito' }]);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+
+    const campo = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[aria-haspopup="listbox"]')!;
+    const caja = (top: number) => spyOn(campo, 'getBoundingClientRect').and.returnValue(
+      { top, bottom: top + 40, left: 10, width: 200, right: 210, height: 40, x: 10, y: top, toJSON: () => ({}) } as DOMRect);
+
+    const espia = caja(100);
+    fixture.componentInstance.toggleSelect();
+    expect(fixture.componentInstance.menuPos?.top).toBe(144);
+    fixture.componentInstance.closeSelect();
+    expect(fixture.componentInstance.menuPos).toBeNull();
+
+    espia.and.returnValue({ top: window.innerHeight - 50, bottom: window.innerHeight - 10, left: 10, width: 200 } as DOMRect);
+    fixture.componentInstance.toggleSelect();
+    expect(fixture.componentInstance.menuPos?.bottom).toBe(54);
+    fixture.componentInstance.closeSelect();
+    fixture.nativeElement.remove();
+  });
+});
+
+describe('TextFieldComponent — foco del select', () => {
+  it('cerrado, el borde azul solo sale con teclado (focus-visible); abierto, queda marcado', async () => {
+    await TestBed.configureTestingModule({ imports: [TextFieldComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(TextFieldComponent);
+    fixture.componentRef.setInput('type', 'select');
+    fixture.componentRef.setInput('autoSuccess', false);
+    fixture.detectChanges();
+    const c = fixture.componentInstance;
+    expect(c.controlClass).not.toMatch(/(^| )focus(-within)?:/);
+    expect(c.controlClass).toContain('focus-visible:border-2');
+    c.selectOpen = true;
+    expect(c.controlClass).toContain('border-2 border-[var(--sys-color-border-states-focus)]');
+    c.selectOpen = false;
+  });
+});

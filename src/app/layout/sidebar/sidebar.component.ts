@@ -1,5 +1,6 @@
+import { FormularioEnCursoService } from '../../core/state/formulario-en-curso.service';
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject } from '@angular/core';
 
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 
@@ -78,15 +79,15 @@ const RAIL_ITEMS: RailItem[] = [
           <button
             class="siaf-text-caption-2-medium group flex w-full flex-col items-center gap-siaf-xxs px-0 py-siaf-xs text-center font-['Inter'] text-[var(--sys-color-text-neutral-medium)] transition duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] active:scale-[0.98] disabled:cursor-not-allowed"
             type="button"
-            [disabled]="!ctaAdd"
-            [ngClass]="ctaAdd ? 'text-[var(--sys-color-text-neutral-medium)]' : 'text-[var(--sys-color-text-neutral-disabled)]'"
+            [disabled]="!crearActivo"
+            [ngClass]="crearActivo ? 'text-[var(--sys-color-text-neutral-medium)]' : 'text-[var(--sys-color-text-neutral-disabled)]'"
             (click)="created.emit()"
           >
             <span
               class="relative inline-flex size-10 items-center justify-center rounded-siaf-md transition duration-150"
-              [ngClass]="ctaAdd ? 'bg-[var(--sys-color-bg-brand-accent)] text-[var(--sys-color-text-brand-white)] group-hover:brightness-90 group-active:brightness-75' : 'bg-[var(--sys-color-bg-surfaces-disabled)] text-[var(--sys-color-text-neutral-disabled)]'"
+              [ngClass]="crearActivo ? 'bg-[var(--sys-color-bg-brand-accent)] text-[var(--sys-color-text-brand-white)] group-hover:brightness-90 group-active:brightness-75' : 'bg-[var(--sys-color-bg-surfaces-disabled)] text-[var(--sys-color-text-neutral-disabled)]'"
             >
-              @if (!ctaAdd) {
+              @if (!crearActivo) {
                 <span class="absolute inset-0 rounded-siaf-md bg-[var(--sys-color-bg-states-dark-disabled)]"></span>
               }
               <siaf-icon class="relative" name="add" [size]="24" />
@@ -97,8 +98,9 @@ const RAIL_ITEMS: RailItem[] = [
           <nav class="flex min-h-0 w-full flex-1 flex-col items-center gap-siaf-xxs">
             @for (item of railItems; track item.id) {
               <button
-                class="siaf-text-caption-2-medium group flex w-full flex-col items-center gap-siaf-xxs px-0 py-siaf-xs text-center font-['Inter'] text-[var(--sys-color-text-neutral-medium)] transition duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] active:scale-[0.98]"
+                class="siaf-text-caption-2-medium group flex w-full flex-col items-center gap-siaf-xxs px-0 py-siaf-xs text-center font-['Inter'] text-[var(--sys-color-text-neutral-medium)] transition duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
+                [disabled]="bloqueado()"
                 (click)="navigationChanged.emit(item.id)"
               >
                 <span class="relative inline-flex size-8 items-center justify-center rounded-siaf-md" [ngClass]="iconShellClass(item.id)">
@@ -114,8 +116,9 @@ const RAIL_ITEMS: RailItem[] = [
 
           @if (buttonHelp) {
             <button
-              class="siaf-text-caption-2-medium group flex w-full flex-col items-center gap-siaf-xxs px-0 py-siaf-xs text-center font-['Inter'] text-[var(--sys-color-text-neutral-medium)] transition duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] active:scale-[0.98]"
+              class="siaf-text-caption-2-medium group flex w-full flex-col items-center gap-siaf-xxs px-0 py-siaf-xs text-center font-['Inter'] text-[var(--sys-color-text-neutral-medium)] transition duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
               type="button"
+              [disabled]="bloqueado()"
               (click)="help.emit()"
             >
               <span class="inline-flex size-8 items-center justify-center rounded-siaf-md transition duration-150 group-hover:bg-[var(--sys-color-bg-states-light-hover)] group-active:bg-[var(--sys-color-bg-states-light-pressed)]">
@@ -126,8 +129,9 @@ const RAIL_ITEMS: RailItem[] = [
           }
 
           <button
-            class="siaf-text-caption-2-medium group flex w-full flex-col items-center gap-siaf-xxs px-0 py-siaf-xs text-center font-['Inter'] text-[var(--sys-color-text-neutral-medium)] transition duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] active:scale-[0.98]"
+            class="siaf-text-caption-2-medium group flex w-full flex-col items-center gap-siaf-xxs px-0 py-siaf-xs text-center font-['Inter'] text-[var(--sys-color-text-neutral-medium)] transition duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
             type="button"
+            [disabled]="bloqueado()"
             (click)="navigationChanged.emit('Ajustes')"
           >
             <span class="relative inline-flex size-8 items-center justify-center rounded-siaf-md" [ngClass]="iconShellClass('Ajustes')">
@@ -172,6 +176,11 @@ export class SidebarComponent {
   @Input() items: SidebarItem[] = [];
   @Input() navigation: SidebarNavigation = 'Default';
   @Input() ctaAdd = true;
+  /** Con una solicitud en creación o edición, la navegación queda deshabilitada: el foco es el formulario. */
+  readonly bloqueado = inject(FormularioEnCursoService).activo;
+  get crearActivo(): boolean {
+    return this.ctaAdd && !this.bloqueado();
+  }
   @Input() buttonHelp = false;
 
   @Output() created = new EventEmitter<void>();

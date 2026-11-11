@@ -116,8 +116,8 @@ const MODAL_PRESETS: Record<Exclude<ModalVariant, "custom">, ModalPreset> = {
     confirmLabel: "Aceptar",
   },
   cancel: {
-    title: "¿Cancelar solicitud?",
-    description: "Se perderán los registros de solicitud.",
+    title: "¿Cancelar documento?",
+    description: "Se perderán los registros del documento.",
     icon: "cancel",
     illustration: "assets/figma/modals/cancel.svg",
     confirmLabel: "Aceptar",

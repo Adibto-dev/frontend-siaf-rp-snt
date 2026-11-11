@@ -34,7 +34,7 @@ entró, y «Reiniciar datos de la demo» vuelve a los datos iniciales.
 | Valentina Espinoza Rojas | `48219635` | Visualizador de documentos | Solo consulta: ve documentos y registros de todos los procesos, sin ninguna acción ni notificaciones |
 | Santiago Castillo Vargas | `46153928` | Creador autorizador | Crea y autoriza (sin aprobador) los documentos de autorización excepcional (RAUT); los demás perfiles solo los consultan |
 
-«Olvidé mi contraseña» también funciona: con el correo de un usuario (por ejemplo `victoria.mendoza@lab-demo.com.pe`) el código de
+«Olvidé mi contraseña» también funciona: con el correo de un usuario (por ejemplo `consultor_ucp10@mef.gob.pe`) el código de
 verificación es `654321`.
 
 ## Recorrido sugerido para la clase

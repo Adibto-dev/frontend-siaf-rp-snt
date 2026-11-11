@@ -154,3 +154,21 @@ describe('ButtonComponent', () => {
     }
   });
 });
+
+describe('ButtonComponent — disabledReason', () => {
+  it('deshabilitado con motivo: el envoltorio recibe el Tab y lleva el tooltip', async () => {
+    await TestBed.configureTestingModule({ imports: [ButtonComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(ButtonComponent);
+    fixture.componentRef.setInput('disabled', true);
+    fixture.componentRef.setInput('disabledReason', 'No hay cambios para agregar.');
+    fixture.detectChanges();
+
+    const envoltorio = (fixture.nativeElement as HTMLElement).querySelector('span[tabindex="0"]');
+    expect(envoltorio).not.toBeNull();
+    expect(envoltorio!.querySelector('button')!.disabled).toBeTrue();
+
+    fixture.componentRef.setInput('disabled', false);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('span[tabindex="0"]')).toBeNull();
+  });
+});

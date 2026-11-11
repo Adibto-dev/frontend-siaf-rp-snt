@@ -132,3 +132,47 @@ describe('SolicitudeHeaderComponent', () => {
     });
   });
 });
+
+describe('SolicitudeHeaderComponent — acciones bloqueadas', () => {
+  it('con actionsBlockedReason, Cancelar, Grabar y Verificar quedan deshabilitados con el motivo', async () => {
+    await TestBed.configureTestingModule({ imports: [SolicitudeHeaderComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(SolicitudeHeaderComponent);
+    fixture.componentRef.setInput('role', 'creator');
+    fixture.componentRef.setInput('state', 'new');
+    fixture.componentRef.setInput('actionsBlockedReason', 'No se puede realizar la acción.');
+    fixture.detectChanges();
+
+    const botones = fixture.debugElement.queryAll(By.directive(ButtonComponent)).map((d) => d.componentInstance as ButtonComponent);
+    const acciones = botones.filter((b) => b.disabledReason);
+    expect(acciones.length).toBeGreaterThanOrEqual(3);
+    expect(acciones.every((b) => b.disabled && b.disabledReason === 'No se puede realizar la acción.')).toBeTrue();
+  });
+});
+
+describe('SolicitudeHeaderComponent — motivos de Grabar y Verificar', () => {
+  async function crear(inputs: Record<string, unknown>) {
+    await TestBed.configureTestingModule({ imports: [SolicitudeHeaderComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(SolicitudeHeaderComponent);
+    for (const [k, v] of Object.entries(inputs)) fixture.componentRef.setInput(k, v);
+    fixture.detectChanges();
+    return fixture.componentInstance;
+  }
+
+  it('en Nuevo: «No hay cambios para grabar.» y «Debe grabar primero.»', async () => {
+    const h = await crear({ role: 'creator', state: 'new', saveDisabled: true, verifyDisabled: true });
+    expect(h.motivoGrabar).toBe('No hay cambios para grabar.');
+    expect(h.motivoVerificar).toBe('Debe grabar primero.');
+  });
+
+  it('en edición, Verificar pide completar la información; mientras graba, Grabar no muestra motivo', async () => {
+    const h = await crear({ role: 'creator', state: 'edit', saveDisabled: true, saveDisabledReason: '', verifyDisabled: true });
+    expect(h.motivoGrabar).toBe('');
+    expect(h.motivoVerificar).toBe('Complete la información del documento.');
+  });
+
+  it('habilitados no tienen motivo', async () => {
+    const h = await crear({ role: 'creator', state: 'new' });
+    expect(h.motivoGrabar).toBe('');
+    expect(h.motivoVerificar).toBe('');
+  });
+});

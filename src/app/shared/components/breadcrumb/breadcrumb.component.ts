@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, HostListener, Input } from '@angular/core';
-import { RouterLink } from '@angular/router';
 
 import { FocoDirective } from '../../ui/foco/foco.directive';
 import { IconComponent } from '../../ui/icon/icon.component';
@@ -13,8 +12,9 @@ export interface BreadcrumbItem {
 let siguienteId = 0;
 
 /**
- * Ruta de navegación (migas de pan) de la página: enlace de inicio con ícono de casa y los niveles hasta la pantalla
- * actual, en un `<nav>` con lista ordenada. Con rutas largas colapsa los niveles intermedios detrás del botón «…»: en
+ * Ruta de navegación (migas de pan) de la página: ícono de inicio y los niveles hasta la pantalla actual, en un `<nav>`
+ * con lista ordenada. Es solo informativa: ningún nivel es un enlace (se navega con el menú de procesos y los botones
+ * de la pantalla), así un formulario en curso no se abandona desde aquí. `href` de los ítems se ignora. Con rutas largas colapsa los niveles intermedios detrás del botón «…»: en
  * escritorio, con más de tres niveles, quedan visibles los dos últimos; en móvil, solo el último. Si el primer ítem se
  * llama «Inicio», la casa usa su ruta en vez de `homeHref`.
  *
@@ -61,18 +61,14 @@ let siguienteId = 0;
 @Component({
   selector: 'siaf-breadcrumb',
   standalone: true,
-  imports: [FocoDirective, IconComponent, RouterLink, TooltipDirective],
+  imports: [FocoDirective, IconComponent, TooltipDirective],
   template: `
     <nav class="flex h-10 w-full min-w-0 items-center bg-surface px-siaf-md py-siaf-xxs" aria-label="Ruta de navegación">
       <ol class="siaf-text-caption-1 flex w-full min-w-0 items-center gap-siaf-xxs overflow-visible leading-none">
         <li class="flex shrink-0 items-center gap-siaf-xxs">
-          <a
-            class="inline-flex size-8 items-center justify-center rounded-siaf-md text-text transition hover:bg-surface-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
-            [routerLink]="resolvedHomeHref"
-            aria-label="Inicio"
-          >
+          <span class="inline-flex size-8 items-center justify-center text-text" role="img" aria-label="Inicio">
             <siaf-icon name="home" [size]="20" />
-          </a>
+          </span>
           @if (displayItems.length > 0) {
             <siaf-icon class="text-text-muted" name="keyboard_arrow_right" [size]="12" />
           }
@@ -104,15 +100,9 @@ let siguienteId = 0;
               >
                 @for (item of mobileCollapsedItems; track item.label) {
                   <li>
-                    @if (item.href) {
-                      <a class="siaf-text-caption-1-medium block truncate px-siaf-md py-siaf-sm text-text hover:bg-surface-muted" siafTooltip [routerLink]="item.href">
-                        {{ item.label }}
-                      </a>
-                    } @else {
-                      <span class="siaf-text-caption-1-medium block truncate px-siaf-md py-siaf-sm text-text-muted" siafTooltip>
+                                          <span class="siaf-text-caption-1-medium block truncate px-siaf-md py-siaf-sm text-text-muted" siafTooltip>
                         {{ item.label }}
                       </span>
-                    }
                   </li>
                 }
               </ul>
@@ -146,15 +136,9 @@ let siguienteId = 0;
               >
                 @for (item of desktopCollapsedItems; track item.label) {
                   <li>
-                    @if (item.href) {
-                      <a class="siaf-text-caption-1-medium block truncate px-siaf-md py-siaf-sm text-text hover:bg-surface-muted" siafTooltip [routerLink]="item.href">
-                        {{ item.label }}
-                      </a>
-                    } @else {
-                      <span class="siaf-text-caption-1-medium block truncate px-siaf-md py-siaf-sm text-text-muted" siafTooltip>
+                                          <span class="siaf-text-caption-1-medium block truncate px-siaf-md py-siaf-sm text-text-muted" siafTooltip>
                         {{ item.label }}
                       </span>
-                    }
                   </li>
                 }
               </ul>
@@ -164,12 +148,7 @@ let siguienteId = 0;
 
         @for (item of mobileVisibleItems; track item.label; let last = $last) {
           <li class="flex min-w-0 flex-1 items-center gap-siaf-xxs md:hidden">
-            @if (item.href && !last) {
-              <a class="min-w-0 flex-1 truncate font-medium text-text hover:underline" siafTooltip [routerLink]="item.href">
-                {{ item.label }}
-              </a>
-            } @else {
-              <span
+                          <span
                 class="min-w-0 flex-1 truncate" siafTooltip
                 [class.font-medium]="!last"
                 [class.font-normal]="last"
@@ -178,7 +157,6 @@ let siguienteId = 0;
               >
                 {{ item.label }}
               </span>
-            }
             @if (!last) {
               <siaf-icon class="text-text-muted" name="keyboard_arrow_right" [size]="12" />
             }
@@ -187,12 +165,7 @@ let siguienteId = 0;
 
         @for (item of desktopVisibleItems; track item.label; let last = $last) {
           <li class="hidden min-w-0 shrink-0 items-center gap-siaf-xxs md:flex">
-            @if (item.href && !last) {
-              <a class="max-w-[180px] truncate font-medium text-text hover:underline" siafTooltip [routerLink]="item.href">
-                {{ item.label }}
-              </a>
-            } @else {
-              <span
+                          <span
                 class="max-w-[220px] truncate" siafTooltip
                 [class.font-medium]="!last"
                 [class.font-normal]="last"
@@ -201,7 +174,6 @@ let siguienteId = 0;
               >
                 {{ item.label }}
               </span>
-            }
             @if (!last) {
               <siaf-icon class="text-text-muted" name="keyboard_arrow_right" [size]="12" />
             }

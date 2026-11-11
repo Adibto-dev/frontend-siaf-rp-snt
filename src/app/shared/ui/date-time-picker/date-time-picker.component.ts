@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, inject, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 
 import { ButtonComponent } from '../button/button.component';
 import { IconComponent } from '../icon/icon.component';
@@ -13,11 +13,19 @@ type CalendarDay = {
   label: string;
   value: string;
   disabled?: boolean;
+  /** Casilla vacía antes del día 1 o después del último: los días de otros meses no se muestran. */
+  vacio?: boolean;
 };
+
+/** Alto aproximado del calendario abierto (cabecera, días de la semana y 6 semanas): decide si abre arriba. */
+const ALTO_CALENDARIO = 330;
 
 /**
  * Selector de fecha (y opcionalmente hora) con calendario propio, label flotante,
- * estados de error/éxito y `[minDate]` para deshabilitar días anteriores.
+ * estados de error/éxito, `[minDate]` para deshabilitar días anteriores y `[maxDate]` para los posteriores.
+ *
+ * La grilla muestra solo los días del mes (6 semanas fijas, con casillas vacías), y el calendario abre hacia arriba
+ * cuando no cabe debajo del campo.
  *
  * Es el control canónico de fecha del design system: úsalo en vez de un `input type="date"`
  * nativo para que el campo respete tokens, textos en español y el formato dd/mm/aaaa.
@@ -27,6 +35,7 @@ type CalendarDay = {
  * Con `minDate`, los meses y años que terminan antes quedan deshabilitados.
  *
  * @usar
+ * - Con `[maxDate]` cuando la fecha no puede ser futura: la fecha de operación de saldos iniciales, hasta hoy.
  * - Para las fechas de vigencia de una solicitud («Fecha inicio desde» y «Fecha fin hasta» en clase de ajuste, tipo de
  *   asiento, evento y evento contable), con `[minDate]` para que el fin no quede antes del inicio.
  * - Para los rangos «Fecha desde» / «Fecha hasta» de los paneles de búsqueda de las consultas y de libros contables.
@@ -107,7 +116,9 @@ type CalendarDay = {
         @if (pickerOpen) {
           <button class="fixed inset-0 z-30 cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closePicker()"></button>
           <section
-            class="absolute left-0 top-[calc(100%+4px)] z-40 w-[268px] rounded-siaf-md bg-surface p-siaf-xs shadow-siaf-elevation-2"
+            class="absolute left-0 z-40 w-[268px] rounded-siaf-md bg-surface p-siaf-xs shadow-siaf-elevation-2"
+            [style.top]="abreArriba ? null : 'calc(100% + 4px)'"
+            [style.bottom]="abreArriba ? 'calc(100% + 4px)' : null"
             role="dialog"
             aria-label="Seleccionar fecha"
             siafFoco
@@ -215,6 +226,9 @@ type CalendarDay = {
 
             <div class="grid grid-cols-7">
               @for (day of days; track day.value) {
+                @if (day.vacio) {
+                  <span class="size-9" aria-hidden="true"></span>
+                } @else {
                 <button
                   class="siaf-text-body-2 flex size-9 items-center justify-center rounded-full px-siaf-xs py-siaf-xxs transition hover:border hover:border-[var(--sys-color-border-states-hover)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-disabled)]"
                   type="button"
@@ -229,6 +243,7 @@ type CalendarDay = {
                 >
                   {{ day.label }}
                 </button>
+                }
               }
             </div>
             }
@@ -272,6 +287,8 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
   @Input() hint = '';
   @Input() error = '';
   @Input() state: DatePickerState = 'enabled';
+  /** Con fecha elegida, pinta el borde de éxito. Apagado por defecto, como en `siaf-input`. */
+  @Input() autoSuccess = false;
   @Input() value = '';
   @Input() disabled = false;
   /** Modo lectura (Figma «Readonly forms»): pinta `readonly-field` con la fecha, sin el selector. */
@@ -284,6 +301,12 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
   @Input() fullWidth = false;
   /** Fecha mínima seleccionable en formato ISO (YYYY-MM-DD). Los días anteriores quedan deshabilitados. */
   @Input() minDate = '';
+  /** Fecha máxima seleccionable en formato ISO (YYYY-MM-DD). Los días posteriores quedan deshabilitados. */
+  @Input() maxDate = '';
+
+  private readonly host = inject(ElementRef<HTMLElement>);
+  /** El calendario abre arriba del campo cuando debajo no hay espacio en la ventana. */
+  abreArriba = false;
 
   @Output() valueChange = new EventEmitter<string>();
 
@@ -340,35 +363,25 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
     const firstDay = new Date(this.viewYear, this.viewMonth, 1);
     const startOffset = firstDay.getDay();
     const daysInMonth = new Date(this.viewYear, this.viewMonth + 1, 0).getDate();
-    const previousMonthDays = new Date(this.viewYear, this.viewMonth, 0).getDate();
     const calendarDays: CalendarDay[] = [];
 
-    for (let index = startOffset - 1; index >= 0; index -= 1) {
-      const day = previousMonthDays - index;
-      calendarDays.push({
-        label: this.pad(day),
-        value: this.toDateValue(this.viewYear, this.viewMonth - 1, day),
-        disabled: true
-      });
+    for (let index = 0; index < startOffset; index += 1) {
+      calendarDays.push({ label: '', value: `vacio-inicio-${index}`, disabled: true, vacio: true });
     }
 
     for (let day = 1; day <= daysInMonth; day += 1) {
       const dateValue = this.toDateValue(this.viewYear, this.viewMonth, day);
-      const isBeforeMin = this.minDate ? dateValue < this.minDate : false;
+      const fueraDeRango = (this.minDate ? dateValue < this.minDate : false) || (this.maxDate ? dateValue > this.maxDate : false);
       calendarDays.push({
         label: this.pad(day),
         value: dateValue,
-        ...(isBeforeMin ? { disabled: true } : {})
+        ...(fueraDeRango ? { disabled: true } : {})
       });
     }
 
-    const nextMonthDays = 42 - calendarDays.length;
-    for (let day = 1; day <= nextMonthDays; day += 1) {
-      calendarDays.push({
-        label: this.pad(day),
-        value: this.toDateValue(this.viewYear, this.viewMonth + 1, day),
-        disabled: true
-      });
+    // Siempre 6 semanas: el calendario no cambia de alto al pasar de mes.
+    for (let index = calendarDays.length; index < 42; index += 1) {
+      calendarDays.push({ label: '', value: `vacio-fin-${index}`, disabled: true, vacio: true });
     }
 
     return calendarDays;
@@ -379,7 +392,7 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
       return 'error';
     }
 
-    if (this.state === 'success' || (this.hasValue && !this.pickerOpen)) {
+    if (this.state === 'success' || (this.autoSuccess && this.hasValue && !this.pickerOpen)) {
       return 'success';
     }
 
@@ -393,16 +406,16 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
 
     // Con error, el borde sigue rojo al enfocar y el foco se ve en un contorno azul por fuera (WCAG 2.4.7).
     if (this.effectiveState === 'error') {
-      return 'border-2 border-[var(--sys-color-border-feedback-danger)] hover:border-[var(--sys-color-border-feedback-danger)] focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-[var(--sys-color-border-states-focus)]';
+      return 'border-2 border-[var(--sys-color-border-feedback-danger)] hover:border-[var(--sys-color-border-feedback-danger)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]';
     }
 
     if (this.effectiveState === 'success') {
-      return 'border-2 border-[var(--sys-color-border-feedback-success)] hover:border-[var(--sys-color-border-feedback-success)] focus:border-[var(--sys-color-border-states-focus)]';
+      return 'border-2 border-[var(--sys-color-border-feedback-success)] hover:border-[var(--sys-color-border-feedback-success)] focus-visible:border-[var(--sys-color-border-states-focus)]';
     }
 
     return this.pickerOpen
       ? 'border-2 border-[var(--sys-color-border-states-focus)]'
-      : 'border-[var(--sys-color-border-states-enabled)] hover:border-2 hover:border-[var(--sys-color-border-states-hover)] focus:border-2 focus:border-[var(--sys-color-border-states-focus)]';
+      : 'border-[var(--sys-color-border-states-enabled)] hover:border-2 hover:border-[var(--sys-color-border-states-hover)] focus-visible:border-2 focus-visible:border-[var(--sys-color-border-states-focus)]';
   }
 
   get labelClass(): string {
@@ -428,6 +441,9 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
 
     this.pickerOpen = !this.pickerOpen;
     if (this.pickerOpen) {
+      const campo = ((this.host.nativeElement as HTMLElement).querySelector('button') ?? this.host.nativeElement).getBoundingClientRect();
+      const abajo = window.innerHeight - campo.bottom;
+      this.abreArriba = abajo < ALTO_CALENDARIO && campo.top > abajo;
       this.vista = 'dias';
       this.syncViewToSelection();
     }
@@ -450,13 +466,14 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
 
   /** Un mes queda deshabilitado si termina antes de `minDate`. */
   mesDeshabilitado(mes: number): boolean {
-    if (!this.minDate) return false;
-    return this.toDateValue(this.viewYear, mes + 1, 0) < this.minDate;
+    const antes = this.minDate ? this.toDateValue(this.viewYear, mes + 1, 0) < this.minDate : false;
+    const despues = this.maxDate ? this.toDateValue(this.viewYear, mes, 1) > this.maxDate : false;
+    return antes || despues;
   }
 
   /** Un año queda deshabilitado si termina antes de `minDate`. */
   anioDeshabilitado(anio: number): boolean {
-    return this.minDate ? `${anio}-12-31` < this.minDate : false;
+    return (this.minDate ? `${anio}-12-31` < this.minDate : false) || (this.maxDate ? `${anio}-01-01` > this.maxDate : false);
   }
 
   /** El mes o el año de la cabecera abren su grilla; pulsarlos otra vez vuelve a los días. */

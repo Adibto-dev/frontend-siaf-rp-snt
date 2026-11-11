@@ -219,6 +219,8 @@ type SolicitudeHeaderMobileAction = {
   icon: string;
   variant: SolicitudeHeaderButtonTone;
   disabled: boolean;
+  /** Motivo del deshabilitado (tooltip). */
+  reason: string;
   event: EventEmitter<void>;
 };
 
@@ -351,10 +353,10 @@ const MOBILE_PRIMARY_ACTION_CLASS =
         </div>
       } @else if (resolvedType === 'actions' && showButtonGroup) {
         <div class="hidden w-full flex-wrap items-center justify-end gap-siaf-sm lg:flex lg:w-auto lg:shrink-0">
-          <siaf-button variant="secondary" size="md" icon="close" (click)="canceled.emit()">Cancelar</siaf-button>
-          <siaf-button [variant]="resolvedSaveVariant" size="md" icon="save" [disabled]="saveDisabled" (click)="saved.emit()">Grabar</siaf-button>
+          <siaf-button variant="secondary" size="md" icon="close" [disabled]="!!actionsBlockedReason" [disabledReason]="actionsBlockedReason" (click)="canceled.emit()">Cancelar</siaf-button>
+          <siaf-button [variant]="resolvedSaveVariant" size="md" icon="save" [disabled]="saveDisabled || !!actionsBlockedReason" [disabledReason]="motivoGrabar" (click)="saved.emit()">Grabar</siaf-button>
           @if (resolvedShowVerify) {
-            <siaf-button size="md" icon="task_alt" [disabled]="verifyDisabled" (click)="verified.emit()">{{ verifyLabel }}</siaf-button>
+            <siaf-button size="md" icon="task_alt" [disabled]="verifyDisabled || !!actionsBlockedReason" [disabledReason]="motivoVerificar" (click)="verified.emit()">{{ verifyLabel }}</siaf-button>
           }
         </div>
       }
@@ -377,7 +379,7 @@ const MOBILE_PRIMARY_ACTION_CLASS =
             <siaf-button size="md" icon="inventory" (click)="approved.emit()">{{ approveLabel }}</siaf-button>
           }
           @if (resolvedShowVerify) {
-            <siaf-button size="md" icon="task_alt" [disabled]="verifyDisabled" (click)="verified.emit()">{{ verifyLabel }}</siaf-button>
+            <siaf-button size="md" icon="task_alt" [disabled]="verifyDisabled" [disabledReason]="motivoVerificar" (click)="verified.emit()">{{ verifyLabel }}</siaf-button>
           }
         </div>
       }
@@ -394,6 +396,7 @@ const MOBILE_PRIMARY_ACTION_CLASS =
               size="md"
               [icon]="principal ? accion.icon : ''"
               [disabled]="accion.disabled"
+              [disabledReason]="accion.reason"
               (click)="accion.event.emit()"
             >{{ accion.label }}</siaf-button>
           }
@@ -434,6 +437,23 @@ export class SolicitudeHeaderComponent {
   @Input() tagTone: SolicitudeHeaderTagTone = 'accent';
   @Input() saveVariant: SolicitudeHeaderButtonTone = 'secondary';
   @Input() saveDisabled = false;
+  /** Con texto, Cancelar, Grabar y Verificar quedan deshabilitados y lo muestran en un tooltip (ej. un formulario interno abierto). */
+  @Input() actionsBlockedReason = '';
+  /** Motivo de Grabar deshabilitado; sin valor, «No hay cambios para grabar.». '' lo oculta (ej. mientras graba). */
+  @Input() saveDisabledReason: string | null = null;
+  /** Motivo de Verificar deshabilitado; sin valor, «Debe grabar primero.» en Nuevo y «Complete la información del documento.» después. */
+  @Input() verifyDisabledReason: string | null = null;
+
+  get motivoGrabar(): string {
+    if (this.actionsBlockedReason) return this.actionsBlockedReason;
+    return this.saveDisabled ? (this.saveDisabledReason ?? 'No hay cambios para grabar.') : '';
+  }
+
+  get motivoVerificar(): string {
+    if (this.actionsBlockedReason && this.resolvedType === 'actions') return this.actionsBlockedReason;
+    if (!this.verifyDisabled) return '';
+    return this.verifyDisabledReason ?? (this.state === 'new' ? 'Debe grabar primero.' : 'Complete la información del documento.');
+  }
   @Input() verifyDisabled = false;
   @Input() showDelete = false;
   @Input() showEdit = false;
@@ -547,14 +567,15 @@ export class SolicitudeHeaderComponent {
   /** Acciones de la barra móvil en el orden de escritorio; la última es la principal. */
   get mobileActions(): SolicitudeHeaderMobileAction[] {
     const actions: SolicitudeHeaderMobileAction[] = [];
-    const add = (visible: boolean, label: string, icon: string, variant: SolicitudeHeaderButtonTone, disabled: boolean, event: EventEmitter<void>) => {
-      if (visible) actions.push({ label, icon, variant, disabled, event });
+    const add = (visible: boolean, label: string, icon: string, variant: SolicitudeHeaderButtonTone, disabled: boolean, event: EventEmitter<void>, reason = '') => {
+      if (visible) actions.push({ label, icon, variant, disabled, reason: disabled ? reason : '', event });
     };
 
     if (this.resolvedType === 'actions') {
-      add(true, 'Cancelar', 'close', 'secondary', false, this.canceled);
-      add(true, 'Grabar', 'save', this.resolvedSaveVariant, this.saveDisabled, this.saved);
-      add(this.resolvedShowVerify, this.verifyLabel, 'task_alt', 'accent', this.verifyDisabled, this.verified);
+      const bloqueado = !!this.actionsBlockedReason;
+      add(true, 'Cancelar', 'close', 'secondary', bloqueado, this.canceled, this.actionsBlockedReason);
+      add(true, 'Grabar', 'save', this.resolvedSaveVariant, this.saveDisabled || bloqueado, this.saved, this.motivoGrabar);
+      add(this.resolvedShowVerify, this.verifyLabel, 'task_alt', 'accent', this.verifyDisabled || bloqueado, this.verified, this.motivoVerificar);
       return actions;
     }
 
@@ -563,7 +584,7 @@ export class SolicitudeHeaderComponent {
     add(this.resolvedShowDelete, this.deleteLabel, 'delete', 'secondary', this.resolvedDeleteDisabled, this.deleted);
     add(this.resolvedShowEdit, this.editLabel, 'edit', this.resolvedEditVariant, false, this.edited);
     add(this.resolvedShowApprove, this.approveLabel, 'inventory', 'accent', false, this.approved);
-    add(this.resolvedShowVerify, this.verifyLabel, 'task_alt', 'accent', this.verifyDisabled, this.verified);
+    add(this.resolvedShowVerify, this.verifyLabel, 'task_alt', 'accent', this.verifyDisabled, this.verified, this.motivoVerificar);
     return actions;
   }
 

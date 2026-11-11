@@ -88,6 +88,11 @@ usuarios de demostración, el recorrido de la clase y cómo sumar un proceso.
 - **Formularios de solicitud**: «Grabar» solo con cambios (foto del formulario con `shared/utils/form-snapshot.util.ts`
   al entrar a editar); el sustento se toma en `(confirmed)` de `siaf-upload-side-nav`; las acciones de aprobar,
   observar y rechazar van con `siaf-request-approval-modals`.
+- **Salida de una solicitud**: el componente declara `readonly salida = new SalidaProtegida(enCurso, pendiente)`
+  (`core/state/salida-protegida.ts`) y sus rutas `canDeactivate: [salidaProtegidaGuard]`. Mientras se crea o edita, el
+  armazón deshabilita la navegación (menú lateral, ☰, notificaciones y cambio de perfil); con datos o cambios sin grabar,
+  «Cancelar» y la flecha atrás abren `siaf-modal variant="cancel"` («¿Cancelar documento?»). Tras grabar,
+  `salida.permitirSalida()` antes de navegar. Las migas de pan son solo informativas (sin enlaces).
 - **Modales, paneles y desplegables**: foco con la directiva `siafFoco`, no a mano.
 - **Gráficos** (Chart.js): los arma `siaf-query-report-page` desde `charts` de su configuración.
 - **Al crear o cambiar un componente**: JSDoc sobre la clase (es su ficha), `npm run ui-kit:manifest`, su categoría en

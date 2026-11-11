@@ -1,7 +1,8 @@
-import { NgClass } from '@angular/common';
+import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 import { IconComponent } from '../icon/icon.component';
+import { TooltipDirective } from '../tooltip/tooltip.directive';
 
 /**
  * Variantes del Figma: `filled` (rojo acento), `outline` (borde gris) y `text` (sin borde).
@@ -52,6 +53,9 @@ const TIPO_POR_VARIANTE: Record<ButtonVariant, TipoFigma> = {
  * - Varios `filled` en el mismo bloque: compiten entre sí; dejar uno y bajar el resto a `outline` o `text`.
  * - Para acciones destructivas no hay variante `danger`: usar `filled` y confirmar con un modal.
  * - Para abrir un menú de opciones: usar `siaf-icon-dropdown-menu`.
+ * Deshabilitado con `disabledReason`: el motivo sale en un tooltip al pasar el puntero o llegar con Tab (el botón
+ * nativo deshabilitado no recibe ninguno de los dos, así que lo recibe un envoltorio).
+ *
  * @figma 8305:2071 Buttons
  * @figma 8307:5607 Icon buttons
  * @teclado
@@ -84,8 +88,17 @@ const TIPO_POR_VARIANTE: Record<ButtonVariant, TipoFigma> = {
 @Component({
   selector: 'siaf-button',
   standalone: true,
-  imports: [IconComponent, NgClass],
+  imports: [IconComponent, NgClass, NgTemplateOutlet, TooltipDirective],
   template: `
+    <!-- Deshabilitado con motivo: el envoltorio recibe el puntero y el Tab (un button disabled no) y muestra el tooltip. -->
+    @if (conMotivo) {
+      <span class="inline-flex w-full rounded-siaf-md outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]" tabindex="0" [siafTooltip]="disabledReason">
+      <ng-container *ngTemplateOutlet="boton" />
+      </span>
+    } @else {
+      <ng-container *ngTemplateOutlet="boton" />
+    }
+    <ng-template #boton>
     <button
       class="siaf-button inline-flex items-center justify-center gap-siaf-xs rounded-siaf-md border outline-none transition-[box-shadow,border-color,background-color] duration-150 disabled:cursor-not-allowed"
       [type]="type"
@@ -96,6 +109,7 @@ const TIPO_POR_VARIANTE: Record<ButtonVariant, TipoFigma> = {
       [attr.aria-label]="ariaLabel || (iconOnly ? icon : null)"
       [attr.aria-busy]="loading ? 'true' : null"
       [ngClass]="[variantClass, sizeClass]"
+      [class.pointer-events-none]="conMotivo"
     >
       @if (loading) {
         <span class="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true"></span>
@@ -111,6 +125,7 @@ const TIPO_POR_VARIANTE: Record<ButtonVariant, TipoFigma> = {
         <siaf-icon [name]="icon" [size]="iconSize" />
       }
     </button>
+    </ng-template>
   `,
   styles: `
     :host {
@@ -251,10 +266,16 @@ const TIPO_POR_VARIANTE: Record<ButtonVariant, TipoFigma> = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ButtonComponent {
+  get conMotivo(): boolean {
+    return this.disabled && !this.loading && !!this.disabledReason;
+  }
+
   @Input() variant: ButtonVariant = 'filled';
   @Input() size: ButtonSize = 'md';
   @Input() type: 'button' | 'submit' | 'reset' = 'button';
   @Input() disabled = false;
+  /** Por qué está deshabilitado: se muestra en un tooltip al pasar el puntero o llegar con Tab. */
+  @Input() disabledReason = '';
   @Input() loading = false;
   @Input() icon = '';
   @Input() iconPosition: 'start' | 'end' = 'start';

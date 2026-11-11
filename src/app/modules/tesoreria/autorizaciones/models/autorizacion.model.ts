@@ -48,14 +48,14 @@ export interface Responsable {
 /** Responsables del Gestor de identidades (sintéticos, Figma 24415:156428). */
 export const RESPONSABLES: Responsable[] = [
   // La creadora de la demo (Victoria): viene elegida por defecto para seguir el recorrido de la clase.
-  { usuario: 'RU45872', tipoDocumento: 'DNI', dni: '45872163', nombres: 'VICTORIA MENDOZA PAREDES', correo: 'victoria.mendoza@lab-demo.com.pe' },
-  { usuario: 'RU21568', tipoDocumento: 'DNI', dni: '71290045', nombres: 'RICARDO JOHN DOE BUSTAMANTE', correo: 'ricardo.doe@mef.gob.pe' },
-  { usuario: 'RU15846', tipoDocumento: 'DNI', dni: '45827163', nombres: 'MARIA ELENA QUISPE TORRES', correo: 'mquispe@mef.gob.pe' },
-  { usuario: 'RU22471', tipoDocumento: 'RUC', dni: '10483926751', nombres: 'CARLOS ALBERTO MENDOZA RÍOS', correo: 'cmendoza@mef.gob.pe' },
-  { usuario: 'RU10538', tipoDocumento: 'DNI', dni: '71934528', nombres: 'ANA LUCÍA VARGAS PEÑA', correo: 'avargas@mef.gob.pe' },
-  { usuario: 'RU38192', tipoDocumento: 'DNI', dni: '48261739', nombres: 'JORGE LUIS FERNÁNDEZ CASTRO', correo: 'jfernandez@mef.gob.pe' },
-  { usuario: 'RU27654', tipoDocumento: 'RUC', dni: '10629384571', nombres: 'ROSA ISABEL HUAMÁN SALAZAR', correo: 'rhuaman@mef.gob.pe' },
-  { usuario: 'RU41023', tipoDocumento: 'DNI', dni: '63718294', nombres: 'PEDRO MIGUEL ROJAS DÍAZ', correo: 'projas@mef.gob.pe' },
+  { usuario: 'RU45872', tipoDocumento: 'DNI', dni: '45872163', nombres: 'VICTORIA MENDOZA PAREDES', correo: 'consultor_ucp10@mef.gob.pe' },
+  { usuario: 'RU21568', tipoDocumento: 'DNI', dni: '71290045', nombres: 'RICARDO JOHN DOE BUSTAMANTE', correo: 'consultor_ucp15@mef.gob.pe' },
+  { usuario: 'RU15846', tipoDocumento: 'DNI', dni: '45827163', nombres: 'MARIA ELENA QUISPE TORRES', correo: 'consultor_ucp16@mef.gob.pe' },
+  { usuario: 'RU22471', tipoDocumento: 'RUC', dni: '10483926751', nombres: 'CARLOS ALBERTO MENDOZA RÍOS', correo: 'consultor_ucp17@mef.gob.pe' },
+  { usuario: 'RU10538', tipoDocumento: 'DNI', dni: '71934528', nombres: 'ANA LUCÍA VARGAS PEÑA', correo: 'consultor_ucp18@mef.gob.pe' },
+  { usuario: 'RU38192', tipoDocumento: 'DNI', dni: '48261739', nombres: 'JORGE LUIS FERNÁNDEZ CASTRO', correo: 'consultor_ucp19@mef.gob.pe' },
+  { usuario: 'RU27654', tipoDocumento: 'RUC', dni: '10629384571', nombres: 'ROSA ISABEL HUAMÁN SALAZAR', correo: 'consultor_ucp20@mef.gob.pe' },
+  { usuario: 'RU41023', tipoDocumento: 'DNI', dni: '63718294', nombres: 'PEDRO MIGUEL ROJAS DÍAZ', correo: 'consultor_ucp21@mef.gob.pe' },
 ];
 
 /** Responsable elegido al crear una autorización: la creadora de la demo. */
