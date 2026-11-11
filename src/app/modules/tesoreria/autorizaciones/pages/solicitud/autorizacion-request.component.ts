@@ -77,7 +77,7 @@ interface Formulario {
 
 /** El procedimiento viene preseleccionado: por ahora hay uno solo. */
 const FORMULARIO_VACIO: Formulario = {
-  procedimiento: PROCEDIMIENTOS[0].value, responsable: RESPONSABLE_PREDETERMINADO, cuentaBancaria: '', vigente: 'si', fechaDesde: '', fechaHasta: '', registroId: '', tipoModificacion: '',
+  procedimiento: PROCEDIMIENTOS[0].value, responsable: '', cuentaBancaria: '', vigente: 'si', fechaDesde: '', fechaHasta: '', registroId: '', tipoModificacion: '',
 };
 
 type Panel = 'responsable' | 'cuenta' | 'registro';
@@ -90,8 +90,8 @@ const COLUMNAS: Record<Panel, SelectionColumn<Fila>[]> = {
   // Figma 24415:156428: usuario, documento (tipo y número), nombres y correo institucional.
   responsable: [
     { key: 'usuario', label: 'Usuario', widthClass: 'w-[100px]' },
-    { key: 'tipoDocumento', label: 'Tipo de documento', widthClass: 'w-[110px]' },
-    { key: 'dni', label: 'N° documento', widthClass: 'w-[130px]' },
+    { key: 'tipoDocumento', label: 'Tipo', widthClass: 'w-[90px]', group: 'Documento' },
+    { key: 'dni', label: 'Número', widthClass: 'w-[130px]', group: 'Documento' },
     { key: 'nombres', label: 'Nombres y apellidos' },
     { key: 'correo', label: 'Correo institucional', widthClass: 'w-[200px]' },
   ],
@@ -250,8 +250,8 @@ export class AutorizacionRequestComponent implements OnInit {
     const r = responsablePorUsuario(this.form().responsable);
     return r ? [
       { label: 'Usuario', value: r.usuario },
-      { label: 'N° Documento', value: documentoResponsable(r) },
       { label: 'Nombres y apellidos', value: r.nombres },
+      { label: 'Documento', value: documentoResponsable(r) },
     ] : [];
   });
 
@@ -424,7 +424,9 @@ export class AutorizacionRequestComponent implements OnInit {
   abrirPanel(panel: Panel): void {
     const f = this.form();
     this.busqueda.set('');
-    this.seleccionTemporal.set((panel === 'responsable' ? f.responsable : panel === 'cuenta' ? f.cuentaBancaria : f.registroId) || null);
+    // Sin responsable elegido, el panel abre con el predeterminado marcado (el usuario de la demo): basta con Aceptar.
+    const responsable = f.responsable || RESPONSABLE_PREDETERMINADO;
+    this.seleccionTemporal.set((panel === 'responsable' ? responsable : panel === 'cuenta' ? f.cuentaBancaria : f.registroId) || null);
     this.panel.set(panel);
   }
 

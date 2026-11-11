@@ -47,6 +47,24 @@ describe('SelectionSideNavComponent', () => {
     fixture.detectChanges();
   }
 
+  it('con group arma la cabecera en dos filas: el grupo encima de sus columnas', () => {
+    render({ columns: [
+      { key: 'id', label: 'Id' },
+      { key: 'codigo', label: 'Código', group: 'Clase' },
+      { key: 'descripcion', label: 'Descripción', group: 'Clase' },
+    ] });
+    const filas = fixture.debugElement.queryAll(By.css('thead tr'));
+    expect(filas.length).toBe(2);
+    const grupo = filas[0].queryAll(By.css('th')).find((th) => th.nativeElement.textContent.trim() === 'Clase')!;
+    expect(grupo.nativeElement.getAttribute('colspan')).toBe('2');
+    expect(filas[1].queryAll(By.css('th')).map((th) => th.nativeElement.textContent.trim())).toEqual(['Código', 'Descripción']);
+  });
+
+  it('sin group la cabecera tiene una sola fila', () => {
+    render();
+    expect(fixture.debugElement.queryAll(By.css('thead tr')).length).toBe(1);
+  });
+
   it('open=false no renderiza nada', () => {
     render({ open: false });
     expect(fixture.debugElement.query(By.css('aside'))).toBeNull();

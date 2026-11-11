@@ -20,6 +20,17 @@ export interface SelectionColumn<T = Record<string, unknown>> {
   cellClass?: string;
   /** Renderer opcional. Si no se da, se usa `row[key]` como string. */
   render?: (row: T) => string;
+  /**
+   * Título de grupo: las columnas seguidas con el mismo `group` comparten una cabecera encima (p. ej. «Documento» sobre
+   * Tipo y Número). Las columnas sin grupo ocupan las dos filas de la cabecera.
+   */
+  group?: string;
+}
+
+/** Tramo de la primera fila de una cabecera agrupada: un grupo o una columna suelta. */
+interface TramoCabecera<T> {
+  group?: string;
+  columns: SelectionColumn<T>[];
 }
 
 export type SelectionMode = 'single' | 'multiple';
@@ -67,6 +78,8 @@ export type SelectionMode = 'single' | 'multiple';
  *   asiento (RN-012).
  * - Con `customTable` cuando la tabla no es plana: periodos del asiento de ajuste y de la apertura contable, eventos
  *   del catálogo de eventos contables.
+ * - Con `group` en las columnas para agrupar la cabecera en dos filas: «Documento» sobre Tipo y Número en el panel del
+ *   responsable de la autorización excepcional.
  * @evitar
  * - Para elegir entre pocas opciones fijas: usar `siaf-input` tipo select, `siaf-select-options` o `siaf-radio-group`.
  * - Para adjuntar archivos: usar `siaf-upload-side-nav`; para mostrar u ocultar columnas, `siaf-column-visibility-panel`.
@@ -163,18 +176,47 @@ export type SelectionMode = 'single' | 'multiple';
             <div class="mt-siaf-md siaf-sidepanel-table-scroll">
               <table class="siaf-text-body-2 w-full border-collapse text-left" [ngClass]="tableMinWidthClass">
                 <thead>
-                  <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text">
-                    <th class="w-12 rounded-l-siaf-sm px-siaf-sm"></th>
-                    @for (col of columns; track col.key; let last = $last) {
-                      <th
-                        class="px-siaf-md py-siaf-sm"
-                        [class.rounded-r-siaf-sm]="last"
-                        [ngClass]="col.widthClass || ''"
-                      >
-                        {{ col.label }}
-                      </th>
-                    }
-                  </tr>
+                  @if (tieneGrupos()) {
+                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text">
+                      <th class="w-12 rounded-l-siaf-sm px-siaf-sm" rowspan="2"></th>
+                      @for (tramo of tramosCabecera(); track $index; let last = $last) {
+                        @if (tramo.group) {
+                          <th class="siaf-table-th--grupo px-siaf-md py-siaf-sm" [class.rounded-r-siaf-sm]="last" [attr.colspan]="tramo.columns.length">{{ tramo.group }}</th>
+                        } @else {
+                          <th class="px-siaf-md py-siaf-sm" rowspan="2" [class.rounded-r-siaf-sm]="last" [ngClass]="tramo.columns[0].widthClass || ''">{{ tramo.columns[0].label }}</th>
+                        }
+                      }
+                    </tr>
+                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text">
+                      @for (tramo of tramosCabecera(); track $index) {
+                        @if (tramo.group) {
+                          @for (col of tramo.columns; track col.key; let primera = $first, ultima = $last) {
+                            <th
+                              class="px-siaf-md py-siaf-sm"
+                              [class.siaf-table-th--grupo-inicio]="primera"
+                              [class.siaf-table-th--grupo-fin]="ultima"
+                              [ngClass]="col.widthClass || ''"
+                            >
+                              {{ col.label }}
+                            </th>
+                          }
+                        }
+                      }
+                    </tr>
+                  } @else {
+                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text">
+                      <th class="w-12 rounded-l-siaf-sm px-siaf-sm"></th>
+                      @for (col of columns; track col.key; let last = $last) {
+                        <th
+                          class="px-siaf-md py-siaf-sm"
+                          [class.rounded-r-siaf-sm]="last"
+                          [ngClass]="col.widthClass || ''"
+                        >
+                          {{ col.label }}
+                        </th>
+                      }
+                    </tr>
+                  }
                 </thead>
                 <tbody>
                   @for (row of rows; track rowId(row)) {
@@ -374,6 +416,22 @@ export class SelectionSideNavComponent<T = Record<string, unknown>> implements O
 
   rowId(row: T): string {
     return String((row as Record<string, unknown>)[this.idKey] ?? '');
+  }
+
+  /** Hay alguna columna con `group`: la cabecera va en dos filas. */
+  tieneGrupos(): boolean {
+    return this.columns.some((c) => !!c.group);
+  }
+
+  /** Primera fila de la cabecera agrupada: junta las columnas seguidas del mismo grupo. */
+  tramosCabecera(): TramoCabecera<T>[] {
+    const tramos: TramoCabecera<T>[] = [];
+    for (const col of this.columns) {
+      const ultimo = tramos[tramos.length - 1];
+      if (col.group && ultimo?.group === col.group) ultimo.columns.push(col);
+      else tramos.push({ group: col.group, columns: [col] });
+    }
+    return tramos;
   }
 
   cellValue(row: T, col: SelectionColumn<T>): string {

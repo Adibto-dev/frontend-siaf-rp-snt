@@ -263,8 +263,8 @@ export class EjemplosOverlaysComponent {
   readonly columnasAbierto = signal(false);
 
   readonly columnasCuenta: SelectionColumn<CuentaEjemplo>[] = [
-    { key: 'codigo', label: 'Código', widthClass: 'w-[120px]' },
-    { key: 'nombre', label: 'Denominación' },
+    { key: 'codigo', label: 'Código', widthClass: 'w-[120px]', group: 'Cuenta contable' },
+    { key: 'nombre', label: 'Denominación', group: 'Cuenta contable' },
   ];
   readonly cuentas: CuentaEjemplo[] = [
     { id: 'c1', codigo: '1101.01', nombre: 'Caja M/N' },
