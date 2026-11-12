@@ -252,7 +252,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
               [attr.aria-label]="labelText ? null : ariaLabel || null"
               [attr.aria-required]="required"
               [disabled]="disabled"
-              [value]="internalValue"
+              [value]="valorMostrado"
               [attr.autocomplete]="autocomplete || null"
               (focus)="focused = true"
               (blur)="onBlur()"
@@ -590,7 +590,8 @@ export class TextFieldComponent implements OnChanges, OnDestroy, ControlValueAcc
    * numérico) y se guarda como punto.
    */
   private sanitizarDecimal(texto: string): string {
-    let limpio = texto.replace(',', '.').replace(/[^\d.]/g, '');
+    // Pegado con miles (125,000.00): la coma es de miles si también hay punto.
+    let limpio = (texto.includes('.') ? texto.replace(/,/g, '') : texto.replace(',', '.')).replace(/[^\d.]/g, '');
 
     const partes = limpio.split('.');
     if (partes.length > 2) {
@@ -603,6 +604,18 @@ export class TextFieldComponent implements OnChanges, OnDestroy, ControlValueAcc
     }
 
     return `${entero}.${decimales.slice(0, this.decimals)}`;
+  }
+
+  /**
+   * Lo que pinta el input: en `decimal`, fuera del campo, el importe con separador de miles (125000 → 125,000.00);
+   * al escribir, el número sin comas. El valor emitido nunca lleva comas.
+   */
+  get valorMostrado(): string | number | string[] {
+    if (this.type !== 'decimal' || this.focused) return this.internalValue;
+    const texto = String(this.internalValue ?? '').trim();
+    const numero = Number(texto);
+    if (!texto || Number.isNaN(numero)) return this.internalValue;
+    return numero.toLocaleString('en-US', { minimumFractionDigits: this.decimals, maximumFractionDigits: this.decimals });
   }
 
   /** Al salir del campo, deja el importe con sus decimales completos (10 → 10.00). */

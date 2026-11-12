@@ -79,6 +79,7 @@ describe('TextFieldComponent — type="decimal"', () => {
   });
 
   it('descarta letras y símbolos', () => {
+    input().dispatchEvent(new Event('focus'));
     teclear('10a');
     expect(input().value).toBe('10');
 
@@ -112,6 +113,26 @@ describe('TextFieldComponent — type="decimal"', () => {
 
     expect(component.internalValue).toBe('10.00');
     expect(emitido[emitido.length - 1]).toBe('10.00');
+  });
+
+  it('fuera del campo muestra el separador de miles y emite sin comas', () => {
+    input().dispatchEvent(new Event('focus'));
+    teclear('125000');
+    input().dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+
+    expect(input().value).toBe('125,000.00');
+    expect(emitido[emitido.length - 1]).toBe('125000.00');
+
+    input().dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    expect(input().value).toBe('125000.00');
+  });
+
+  it('acepta un importe pegado con separador de miles', () => {
+    input().dispatchEvent(new Event('focus'));
+    teclear('1,250,000.50');
+    expect(component.internalValue).toBe('1250000.50');
   });
 
   it('cierra un decimal a medio escribir', () => {
