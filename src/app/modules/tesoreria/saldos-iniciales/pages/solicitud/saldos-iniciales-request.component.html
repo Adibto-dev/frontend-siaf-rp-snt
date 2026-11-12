@@ -31,6 +31,10 @@
         </div>
       </div>
     } @else {
+      <!-- RN-1033: inconsistencias de la verificación (el documento sigue en su estado para corregirlo). -->
+      @if (erroresVerificacion().length) {
+        <siaf-alert tone="error" title="El documento no cumple las reglas de verificación" [description]="erroresVerificacion().join(' ')" />
+      }
       <!-- Condición de vigencia del ajuste, arriba de la información del documento (Figma 24007:230045). -->
       @if (esAjuste() && mensajeVigencia()) {
         <siaf-alert tone="info" title="Condición de vigencia" [description]="mensajeVigencia()" />
@@ -55,7 +59,7 @@
         <div class="grid gap-x-siaf-lg gap-y-siaf-md md:grid-cols-2 xl:grid-cols-3">
           @if (tipoOperacionEditable()) {
             @for (v of [versionSelectorTipo()]; track v) {
-              <siaf-input label="Tipo de operación del saldo" type="select" [required]="true" [options]="opcionesTipoOperacion" [value]="tipoOperacionSel()" (valueChange)="cambiarTipoOperacion($event)" />
+              <siaf-input label="Tipo de operación del saldo" type="select" [required]="true" [options]="opcionesTipoOperacion()" [value]="tipoOperacionSel()" (valueChange)="cambiarTipoOperacion($event)" />
             }
           } @else {
             <siaf-input label="Tipo de operación del saldo" [value]="tipoOperacionSel()" [disabled]="true" [readonly]="soloLectura()" />

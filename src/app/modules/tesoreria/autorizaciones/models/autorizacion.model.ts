@@ -134,6 +134,25 @@ export interface AutorizacionVigente {
   documentoEnCurso?: string | null;
 }
 
+/**
+ * RN-3008: otra autorización activa (vigente o futura) de la misma combinación responsable + procedimiento + cuenta
+ * cuyo periodo se superpone con el propuesto. `excepto` deja fuera la autorización que se modifica.
+ */
+export function autorizacionSuperpuesta(
+  registros: AutorizacionRegistro[],
+  propuesta: { responsable: string; procedimiento: string; cuentaBancaria: string; fechaDesde: string; fechaHasta: string },
+  hoy: string,
+  excepto?: string,
+): AutorizacionRegistro | undefined {
+  return registros.find((r) => r.id !== excepto && r.estado === 'Activo' && !!r.fechaDesde && !!r.fechaHasta && r.fechaHasta >= hoy
+    && r.responsable === propuesta.responsable && r.procedimiento === propuesta.procedimiento && r.cuentaBancaria === propuesta.cuentaBancaria
+    && propuesta.fechaDesde <= r.fechaHasta && propuesta.fechaHasta >= r.fechaDesde);
+}
+
+/** RN-3013: Vigencia = Sí cuando la fecha actual está entre la fecha desde y la fecha hasta. */
+export const vigenciaPorFechas = (desde: string | null | undefined, hasta: string | null | undefined, hoy: string): boolean =>
+  !!desde && !!hasta && desde <= hoy && hoy <= hasta;
+
 /** Activa y con hoy dentro de su vigencia (fechas AAAA-MM-DD). */
 export function estaVigente(r: Pick<AutorizacionRegistro, 'estado' | 'fechaDesde' | 'fechaHasta'>, hoy: string): boolean {
   return r.estado === 'Activo' && !!r.fechaDesde && !!r.fechaHasta && r.fechaDesde <= hoy && hoy <= r.fechaHasta;
@@ -151,8 +170,10 @@ export const fechaCorta = (iso: string | null | undefined): string => {
 };
 
 /** Valida la vigencia: ambas fechas y hasta ≥ desde. Devuelve el mensaje de error o null. */
-export function errorVigencia(desde: string | null | undefined, hasta: string | null | undefined): string | null {
+export function errorVigencia(desde: string | null | undefined, hasta: string | null | undefined, hoy?: string): string | null {
   if (!desde || !hasta) return 'Ingrese la fecha desde y la fecha hasta.';
+  // RN-3007: en una autorización nueva, la fecha desde es la de registro o una posterior.
+  if (hoy && desde < hoy) return 'La fecha desde no puede ser anterior a la fecha de registro.';
   if (hasta < desde) return 'La fecha hasta no puede ser anterior a la fecha desde.';
   if (hasta > sumarDias(desde, MAX_DIAS_VIGENCIA)) return `La vigencia no puede superar ${MAX_DIAS_VIGENCIA} días.`;
   return null;

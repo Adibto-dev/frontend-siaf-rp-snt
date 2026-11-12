@@ -15,6 +15,17 @@ import { CONTRASENA_DEMO, USUARIOS_DEMO } from '../../mock/usuarios-demo';
 
 type LoginTab = 'entidades' | 'proveedores';
 
+/**
+ * Lee el aviso de inactividad que deja `InactividadService` al navegar al login y lo borra del historial: se muestra una
+ * sola vez (al recargar o volver con la flecha atrás ya no reaparece).
+ */
+function leerAvisoInactividad(): boolean {
+  const estado = (history.state ?? {}) as { inactividad?: boolean };
+  if (!estado.inactividad) return false;
+  history.replaceState({ ...estado, inactividad: false }, '');
+  return true;
+}
+
 @Component({
   selector: 'siaf-login',
   standalone: true,
@@ -333,7 +344,7 @@ export class LoginComponent {
   readonly opcionesAbiertas = signal(false);
   readonly confirmarReinicio = signal(false);
   /** Llegó al login porque la sesión se cerró por inactividad (ver `InactividadService`). */
-  readonly sesionVencida = signal(!!(history.state as { inactividad?: boolean } | null)?.inactividad);
+  readonly sesionVencida = signal(leerAvisoInactividad());
   readonly minutosInactividad = MINUTOS_INACTIVIDAD;
   readonly opcionesDemo: ListItem[] = [
     {

@@ -211,6 +211,8 @@ export function calcularAjuste(id: string, fechaOperacion: string, numeroCuenta:
     .filter((l) => l.importe > 0);
   const neto = redondear(libretas.reduce((total, l) => total + importeFirmado(l), 0));
   const importeCuenta = Math.abs(neto);
+  // RN-1031: cada libreta se convierte y redondea; el nacional es la suma de esos importes (aquí, firmados).
+  const nacionalNeto = redondear(libretas.reduce((total, l) => total + importeFirmado({ ...l, importe: redondear(l.importe * cambio) }), 0));
   return {
     id,
     fechaOperacion,
@@ -219,7 +221,7 @@ export function calcularAjuste(id: string, fechaOperacion: string, numeroCuenta:
     tipoCambio: cambio,
     libretas,
     importeCuenta,
-    importeNacional: redondear(importeCuenta * cambio),
+    importeNacional: Math.abs(nacionalNeto),
     ajuste: {
       naturaleza: neto < 0 ? 'Débito' : 'Crédito',
       secuenciaReferencia: referencia.secuencia ?? '',
@@ -261,6 +263,47 @@ export function calcularSaldo(id: string, fechaOperacion: string, numeroCuenta: 
     tipoCambio: cambio,
     libretas,
     importeCuenta,
-    importeNacional: redondear(importeCuenta * cambio),
+    // RN-1031: suma de las libretas convertidas y redondeadas una por una (sin convertir el total aparte).
+    importeNacional: redondear(libretas.reduce((total, l) => total + redondear(l.importe * cambio), 0)),
   };
+}
+
+/** Saldo inicial (o de apertura) activo de una cuenta: el que se ajusta. No incluye ajustes. */
+export function saldoOrigen(registros: SaldoInicialRegistro[], cuenta: string): SaldoInicialRegistro | undefined {
+  return registros.find((r) => r.estado === 'Activo' && !r.ajuste && r.cuentaBancaria === cuenta);
+}
+
+/**
+ * Saldo vigente de una cuenta (RN-1039): el saldo de origen más los créditos y menos los débitos de los ajustes ya
+ * aprobados, por libreta. Conserva la secuencia del saldo de origen (Secuencia de Referencia).
+ */
+export function saldoVigente(registros: SaldoInicialRegistro[], cuenta: string): SaldoReferencia | null {
+  const origen = saldoOrigen(registros, cuenta);
+  if (!origen) return null;
+  const libretas = new Map(origen.libretas.map((l) => [l.idCorrelativo, l.importe]));
+  for (const r of registros) {
+    if (r.estado !== 'Activo' || !r.ajuste || r.cuentaBancaria !== cuenta) continue;
+    for (const l of r.libretas) libretas.set(l.idCorrelativo, redondear((libretas.get(l.idCorrelativo) ?? 0) + importeFirmado(l)));
+  }
+  const lista = [...libretas].map(([idCorrelativo, importe]) => ({ idCorrelativo, importe }));
+  return { secuencia: origen.secuencia, importeCuenta: redondear(lista.reduce((t, l) => t + l.importe, 0)), libretas: lista };
+}
+
+/**
+ * RN-1029 / RN-1039: con el ajuste aplicado, ninguna libreta ni la cuenta pueden quedar con saldo negativo.
+ * Devuelve un mensaje por cada una afectada (saldo vigente e importe del débito), o una lista vacía.
+ */
+export function erroresSaldoSuficiente(ajuste: SaldoInicial, vigente: SaldoReferencia): string[] {
+  const errores: string[] = [];
+  for (const l of ajuste.libretas) {
+    const actual = vigente.libretas.find((x) => x.idCorrelativo === l.idCorrelativo)?.importe ?? 0;
+    if (l.naturaleza === 'Débito' && redondear(actual - l.importe) < 0) {
+      errores.push(`La cuenta de registro ${l.idCorrelativo} tiene un saldo vigente de ${formatoImporte(actual)} y el débito es de ${formatoImporte(l.importe)}.`);
+    }
+  }
+  const neto = ajuste.ajuste?.naturaleza === 'Débito' ? -ajuste.importeCuenta : ajuste.importeCuenta;
+  if (redondear(vigente.importeCuenta + neto) < 0) {
+    errores.push(`La cuenta bancaria ${ajuste.cuentaBancaria} tiene un saldo vigente de ${formatoImporte(vigente.importeCuenta)} y el ajuste es de ${formatoImporte(ajuste.importeCuenta)}.`);
+  }
+  return errores;
 }

@@ -100,6 +100,9 @@ function fechaHora(iso: string | null | undefined): string {
               </button>
             </span>
           </siaf-alert>
+          @if (comentarioRechazo()) {
+            <siaf-alert tone="error" title="Documento rechazado por el sistema" [description]="comentarioRechazo()" />
+          }
 
           <section class="grid gap-siaf-md lg:grid-cols-[1fr_360px]">
             <siaf-solicitude-info-card [fields]="cabecera()" />
@@ -242,7 +245,13 @@ export class SaldosAperturaDocumentoComponent {
   readonly solicitud = signal<SolicitudResponse | null>(null);
   readonly saldoVisto = signal<SaldoInicial | null>(null);
 
-  readonly estado = computed((): FlowStatus => (this.solicitud()?.estado === 'PROCESADO' ? ESTADO.PROCESADO : ESTADO.REGISTRADO));
+  readonly estado = computed((): FlowStatus => {
+    const e = this.solicitud()?.estado;
+    return e === 'PROCESADO' ? ESTADO.PROCESADO : e === 'RECHAZADO' ? ESTADO.RECHAZADO : ESTADO.REGISTRADO;
+  });
+  /** RN-2012: motivo del rechazo (campo Comentario); sin número de secuencia ni registro consolidado. */
+  readonly comentarioRechazo = computed(() =>
+    this.solicitud()?.estado === 'RECHAZADO' ? this.solicitud()?.historialEstados?.find((h) => h.estadoNuevo === 'RECHAZADO')?.comentario ?? '' : '');
 
   readonly cabecera = computed((): SolicitudeInfoField[] => [
     { label: 'Fecha', value: fechaHora(this.solicitud()?.createdAt) },

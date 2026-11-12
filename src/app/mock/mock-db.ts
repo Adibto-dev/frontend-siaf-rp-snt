@@ -46,7 +46,7 @@ import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo'
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 21;
+const VERSION = 22;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -207,7 +207,8 @@ export function registrarAutorizacion(datos: DatosTaller, s: SolicitudResponse, 
   if (documento.tipoAccion === 'modificacion' && existente) {
     // La modificación es de vigencia: SÍ cambia la fecha hasta; NO da de baja (Inactivo) y conserva las fechas.
     existente.estado = d.estado;
-    if (d.estado === 'Activo') existente.fechaHasta = d.fechaHasta;
+    // RN-3010: si aún no empezaba, también cambia la fecha desde.
+    if (d.estado === 'Activo') { existente.fechaHasta = d.fechaHasta; existente.fechaDesde = d.fechaDesde ?? existente.fechaDesde; }
     existente.documentoId = s.id;
     existente.numeroDocumento = documento.numero;
     existente.fechaRegistro = fecha;
@@ -573,15 +574,20 @@ const SISTEMA = USUARIO_SISTEMA;
 interface SemillaApertura {
   /** Día del registro (yyyy-mm-dd), a las 00:00:00. */
   dia: string;
-  estado: 'REGISTRADO' | 'PROCESADO';
+  estado: 'REGISTRADO' | 'PROCESADO' | 'RECHAZADO';
   entidad: string;
   saldos: { cuenta: string; total: number }[];
+  /** RN-2004 / RN-2012: motivo del rechazo (campo Comentario). */
+  comentario?: string;
 }
 
 const SEMILLAS_APERTURA: SemillaApertura[] = [
   { dia: '2026-01-01', estado: 'PROCESADO', entidad: '0001', saldos: [{ cuenta: '11040103570200000000', total: 100000 }] },
   { dia: '2026-01-01', estado: 'PROCESADO', entidad: '0018', saldos: [{ cuenta: '00000281794000000005', total: 1250000 }] },
   { dia: '2026-10-27', estado: 'REGISTRADO', entidad: '0002', saldos: [{ cuenta: '19300456712000000002', total: 420000 }] },
+  // Rechazado: se agotaron los reintentos de recuperación del saldo de cierre; sin secuencia ni registro consolidado.
+  { dia: '2026-01-01', estado: 'RECHAZADO', entidad: '0011', saldos: [{ cuenta: '01100586230200000007', total: 75000 }],
+    comentario: 'Cuenta bancaria 01100586230200000007: no se pudo recuperar el saldo de cierre de Registro de Operaciones Bancarias en Libro Bancos (fuente no disponible) tras 3 intentos. Incidencia: 01/01/2026 00:00:02.' },
 ];
 
 function crearSaldosApertura(datos: DatosTaller): void {
@@ -590,7 +596,7 @@ function crearSaldosApertura(datos: DatosTaller): void {
     const registrado = new Date(`${semilla.dia}T00:00:00`).toISOString();
     const procesado = new Date(`${semilla.dia}T00:00:02`).toISOString();
     const historial: HistorialItem[] = [filaHistorial(datos, null, 'REGISTRADO', registrado, SISTEMA, ROL_SISTEMA)];
-    if (semilla.estado === 'PROCESADO') historial.push(filaHistorial(datos, 'REGISTRADO', 'PROCESADO', procesado, SISTEMA, ROL_SISTEMA));
+    if (semilla.estado !== 'REGISTRADO') historial.push(filaHistorial(datos, 'REGISTRADO', semilla.estado, procesado, SISTEMA, ROL_SISTEMA, semilla.comentario ?? null));
     const ultima = historial[historial.length - 1].createdAt;
     const solicitud: SolicitudResponse = {
       id,

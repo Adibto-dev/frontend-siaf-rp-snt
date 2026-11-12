@@ -80,6 +80,8 @@ import {
   formatoFecha,
   formatoImporte,
   redondear,
+  saldoOrigen,
+  saldoVigente,
   tipoCambio,
   type MonedaSaldo,
 } from '../../models/saldo-inicial.model';
@@ -190,10 +192,11 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
   /** Autorizaciones vigentes del usuario (una por cuenta); con alguna, el tipo de operación se habilita. */
   readonly vigentes = signal<AutorizacionVigente[]>([]);
   private readonly registrosSaldo = signal<SaldoInicialRegistro[]>([]);
-  readonly opcionesTipoOperacion = [
+  /** RN-1003: «2 - Ajuste» solo aparece con una autorización vigente y aplicable (o en un documento de ajuste ya hecho). */
+  readonly opcionesTipoOperacion = computed(() => [
     { label: TIPO_OPERACION, value: TIPO_OPERACION },
-    { label: TIPO_OPERACION_AJUSTE, value: TIPO_OPERACION_AJUSTE },
-  ];
+    ...(this.vigentesLibres().length || this.esAjuste() ? [{ label: TIPO_OPERACION_AJUSTE, value: TIPO_OPERACION_AJUSTE }] : []),
+  ]);
   readonly tipoOperacionSel = signal(TIPO_OPERACION);
   readonly esAjuste = computed(() => this.tipoOperacionSel() === TIPO_OPERACION_AJUSTE);
   /** Documento nuevo con autorización vigente: el tipo de operación empieza sin elegir y es lo primero que se completa. */
@@ -220,12 +223,13 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
   /** El ajuste ya hecho en este documento (uno solo). */
   readonly ajusteHecho = computed(() => this.saldos().find((x) => x.ajuste) ?? null);
   /** Saldo registrado de la cuenta autorizada (sin ajustes): lo que se ajusta. */
-  private readonly saldoOriginal = computed(() =>
-    this.registrosSaldo().find((r) => r.estado === 'Activo' && !r.ajuste && r.cuentaBancaria === this.cuentaAjuste()) ?? null);
+  private readonly saldoOriginal = computed(() => saldoOrigen(this.registrosSaldo(), this.cuentaAjuste() ?? '') ?? null);
+  /** RN-1039: el ajuste parte del saldo vigente (origen más los ajustes ya aprobados). */
+  private readonly saldoVigenteCuenta = computed(() => saldoVigente(this.registrosSaldo(), this.cuentaAjuste() ?? ''));
   readonly referenciaAjuste = computed<SaldoReferencia | null>(() => {
     const a = this.ajusteHecho()?.ajuste;
     if (a) return { secuencia: a.secuenciaReferencia, importeCuenta: a.saldoInicial, libretas: a.libretasIniciales };
-    return this.saldoOriginal();
+    return this.saldoVigenteCuenta();
   });
   readonly filasAjuste = computed<FilaAjuste[]>(() => {
     const hecho = this.ajusteHecho();
@@ -238,9 +242,10 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
       }];
     }
     const o = this.saldoOriginal();
+    const vigente = this.saldoVigenteCuenta();
     return o ? [{
       id: o.registroId, fechaOperacion: o.fechaOperacion, secuenciaReferencia: o.secuencia ?? '', cuentaBancaria: o.cuentaBancaria,
-      moneda: o.moneda, importeCuenta: o.importeCuenta, importeNacional: o.importeNacional, saldoInicial: o.importeCuenta,
+      moneda: o.moneda, importeCuenta: o.importeCuenta, importeNacional: o.importeNacional, saldoInicial: vigente?.importeCuenta ?? o.importeCuenta,
       saldoActual: null, sustento: o.sustento ?? null, sustentoId: o.sustentoId ?? null, libretas: o.libretas,
     }] : [];
   });
@@ -382,7 +387,8 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
   readonly visualizador = computed(() => this.permissions.currentRole() === 'viewer');
   readonly elaborado = computed(() => this.estado() !== 'NUEVO');
   readonly soloLectura = computed(() => this.elaborado() && !this.editando());
-  readonly puedeVerificar = computed(() => ['ELABORADO', 'OBSERVADO'].includes(this.estado()));
+  /** RN-1002: se verifica desde Elaborado; un Observado primero se corrige y graba (vuelve a Elaborado). */
+  readonly puedeVerificar = computed(() => this.estado() === 'ELABORADO');
   readonly numeroDocumento = computed(() => this.solicitud()?.numero ?? '');
 
   readonly headerState = computed<SolicitudeHeaderState>(() => {
@@ -490,12 +496,27 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
   readonly importeCuentaBorrador = computed(() =>
     this.esAjuste() ? Math.abs(this.netoAjuste()) : redondear(Object.values(this.borrador().importes).reduce((total, v) => total + (parseFloat(v) || 0), 0)),
   );
-  readonly importeNacionalBorrador = computed(() => redondear(this.importeCuentaBorrador() * (this.tipoCambioBorrador() ?? 1)));
+  /** RN-1031: cada libreta se convierte y redondea; el nacional es la suma (en el ajuste, con el signo de su naturaleza). */
+  readonly importeNacionalBorrador = computed(() => {
+    const b = this.borrador();
+    const cambio = this.tipoCambioBorrador() ?? 1;
+    const total = Object.entries(b.importes).reduce((t, [id, v]) => {
+      const nacional = redondear((parseFloat(v) || 0) * cambio);
+      return t + (this.esAjuste() ? importeFirmado({ importe: nacional, naturaleza: b.naturalezas[id] ?? 'Crédito' }) : nacional);
+    }, 0);
+    return Math.abs(redondear(total));
+  });
   /** Hoy (YYYY-MM-DD): la fecha de operación no puede ser posterior; el calendario deshabilita los días siguientes. */
   readonly hoy = ((f: Date) => `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`)(new Date());
   /** Respaldo por si llega una fecha posterior (p. ej. un borrador guardado antes): el campo lo marca con error. */
   readonly errorFecha = computed(() => (this.borrador().fechaOperacion > this.hoy ? 'No se admiten fechas posteriores a la actual.' : ''));
-  readonly puedeAceptarSaldo = computed(() => !!this.borrador().fechaOperacion && !this.errorFecha() && !!this.cuentaBorrador() && this.importeCuentaBorrador() > 0);
+  /**
+   * RN-1030: el saldo inicial admite importes ≥ 0 (basta con escribir uno, aunque sea 0.00); el ajuste necesita al menos
+   * un importe > 0 y su consolidado puede ser 0.00 cuando débitos y créditos se compensan (RN-1026).
+   */
+  private readonly hayImportesEscritos = computed(() => Object.values(this.borrador().importes).some((v) => v !== '' && !isNaN(parseFloat(v)) && parseFloat(v) >= 0));
+  readonly puedeAceptarSaldo = computed(() => !!this.borrador().fechaOperacion && !this.errorFecha() && !!this.cuentaBorrador()
+    && (this.esAjuste() ? this.hayImportesAjuste() : this.hayImportesEscritos()));
   /** Foto del saldo al abrirlo para editar; al agregar uno nuevo no hay foto. */
   private readonly fotoBorrador = signal<string | null>(null);
   private fotoDe(b: Borrador): string {
@@ -519,11 +540,21 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
     { key: 'denominacion', label: 'Denominación' },
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[90px]' },
   ];
+  /**
+   * Cuentas que se pueden elegir a mano: las de la entidad que no están ya en el documento (cargadas a mano o por
+   * plantilla), salvo la del saldo que se está editando. Así una cuenta no se repite entre carga manual y masiva.
+   */
   readonly cuentasDeEntidad = computed(() => {
     const q = this.busquedaCuenta();
-    return CUENTAS_BANCARIAS.filter((c) => c.entidadCodigo === this.entidadCodigo())
+    const editado = this.saldoEditado();
+    const usadas = new Set([...this.saldos().filter((s) => s.id !== editado).map((s) => s.cuentaBancaria), ...this.cuentasConSaldoAprobado()]);
+    return CUENTAS_BANCARIAS.filter((c) => c.entidadCodigo === this.entidadCodigo() && !usadas.has(c.numero))
       .filter((c) => !q || [c.numero, c.denominacion, c.moneda].some((v) => contiene(v, q)));
   });
+  /** RN-1022: cuentas con un saldo inicial aprobado (activo) en el periodo: no se registran otra vez. */
+  readonly cuentasConSaldoAprobado = computed(() => new Set(this.registrosSaldo()
+    .filter((r) => r.estado === 'Activo' && !r.ajuste && !r.automatico && r.fechaOperacion.startsWith(PERIODO))
+    .map((r) => r.cuentaBancaria)));
   /** Una cuenta ya agregada en otro saldo no se puede volver a elegir. */
   readonly cuentasUsadas = computed(() =>
     this.saldos().filter((s) => s.id !== this.saldoEditado()).map((s) => s.cuentaBancaria),
@@ -533,8 +564,10 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
   readonly cargaMasivaAbierta = signal(false);
   /** Cuentas de la entidad que aún no están en el documento: las que ofrece la plantilla precargada. */
   readonly cuentasParaCarga = computed(() =>
-    CUENTAS_BANCARIAS.filter((c) => c.entidadCodigo === this.entidadCodigo() && !this.saldos().some((s) => s.cuentaBancaria === c.numero)));
-  readonly cuentasEnDocumento = computed(() => this.saldos().map((s) => s.cuentaBancaria));
+    CUENTAS_BANCARIAS.filter((c) => c.entidadCodigo === this.entidadCodigo() && !this.saldos().some((s) => s.cuentaBancaria === c.numero)
+      && !this.cuentasConSaldoAprobado().has(c.numero)));
+  /** Cuentas que el Excel no puede traer: las del documento y las que ya tienen saldo inicial aprobado (RN-1054). */
+  readonly cuentasEnDocumento = computed(() => [...this.saldos().map((s) => s.cuentaBancaria), ...this.cuentasConSaldoAprobado()]);
   readonly nuevoIdSaldo = (): string => `nuevo-${this.siguienteSaldo++}`;
   /** Texto del snackbar cuando no es uno de los avisos de flujo. */
   readonly avisoMensaje = signal('');
@@ -577,10 +610,10 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
     () => !this.soloLectura() && ((this.estado() === 'NUEVO' ? this.fotoActual() !== this.fotoNueva : this.hayCambios()) || this.editorAbierto()),
   );
 
-  /** Verificar: en ELABORADO u OBSERVADO; al editar, con los datos completos (graba lo pendiente antes). */
+  /** Verificar: en ELABORADO; al editar, con los datos completos (graba lo pendiente antes; un Observado, solo con cambios). */
   readonly verificarDeshabilitado = computed(() => {
     if (this.cargando() || this.saving()) return true;
-    if (this.editando()) return !this.entidad() || this.saldos().length === 0 || this.editorAbierto();
+    if (this.editando()) return !this.entidad() || this.saldos().length === 0 || this.editorAbierto() || (!this.puedeVerificar() && !this.hayCambios());
     return !this.puedeVerificar();
   });
 
@@ -638,7 +671,8 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
       if (!id && this.vigentesLibres().length > 0) this.tipoOperacionSel.set('');
     });
     if (id) this.cargar(id);
-    else this.saldosApi.listarRegistros().subscribe((r) => this.registrosSaldo.set(r));
+    // Registros aprobados: saldo de referencia del ajuste y cuentas que ya tienen saldo inicial (RN-1022).
+    this.saldosApi.listarRegistros().subscribe((r) => this.registrosSaldo.set(r));
 
     if (!id) this.fotoNueva = this.fotoActual();
 
@@ -906,8 +940,8 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
           switchMap(() => (luegoVerificar ? this.solicitudesApi.cambiarEstado(id, { estadoNuevo: 'VERIFICADO' }) : of(null))),
         )
         .subscribe({
-          next: () => { this.editando.set(false); this.mostrarAviso(luegoVerificar ? 'creation-verified' : 'creation-elaborated'); this.cargar(id); },
-          error: () => this.cargar(id),
+          next: () => { this.editando.set(false); this.erroresVerificacion.set([]); this.mostrarAviso(luegoVerificar ? 'creation-verified' : 'creation-elaborated'); this.cargar(id); },
+          error: (e: { error?: { errores?: string[] } | null }) => { this.erroresVerificacion.set(e?.error?.errores ?? []); this.editando.set(false); this.cargar(id); },
         });
       return;
     }
@@ -980,14 +1014,28 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
     const id = this.solicitudId;
     if (!id) return;
     this.saving.set(true);
+    this.erroresVerificacion.set([]);
     llamada(id).subscribe({
       next: () => { this.mostrarAviso(aviso); this.cargar(id); },
-      error: () => this.saving.set(false),
+      error: (e: { error?: { errores?: string[] } | null }) => {
+        this.saving.set(false);
+        // RN-1033: con reglas no conformes el documento sigue en su estado y se muestran las inconsistencias.
+        this.erroresVerificacion.set(e?.error?.errores ?? []);
+      },
     });
   }
 
+  /** Inconsistencias de la última verificación o aprobación (vacío si fue conforme). */
+  readonly erroresVerificacion = signal<string[]>([]);
+
   private mostrarAviso(variante: SnackbarVariant): void {
-    this.aviso.set(variante);
+    // CP07: mensaje literal al verificar.
+    if (variante === 'creation-verified') {
+      this.avisoMensaje.set(`El documento de tipo Creación con número ${this.numeroDocumento()} se ha verificado correctamente.`);
+      this.aviso.set('custom');
+    } else {
+      this.aviso.set(variante);
+    }
     this.avisoAbierto.set(true);
   }
 

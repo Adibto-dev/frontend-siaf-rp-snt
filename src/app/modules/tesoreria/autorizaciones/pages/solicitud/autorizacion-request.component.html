@@ -151,7 +151,7 @@
               </div>
             } @else {
               @if (!esModificacion()) {
-                <siaf-alert tone="info" description="La vigencia se establece automáticamente como activa al crear el registro." />
+                <siaf-alert tone="info" description="La vigencia se calcula con las fechas: es «Sí» cuando la fecha actual está dentro del periodo." />
               }
               <div class="grid items-start gap-x-siaf-xl gap-y-siaf-md md:grid-cols-3">
                 <siaf-radio-group
@@ -159,16 +159,17 @@
                   [inline]="true"
                   [disabled]="!esModificacion()"
                   [options]="opcionesVigencia"
-                  [value]="form().vigente"
+                  [value]="vigenciaCalculada()"
                   (valueChange)="cambiarVigencia($event)"
                 />
-                <!-- Modificación: la fecha desde es la de la creación (bloqueada); con NO, la fecha hasta también. -->
+                <!-- Creación: desde hoy (RN-3007). Modificación: la fecha desde solo cambia si aún no empieza (RN-3010). -->
                 <siaf-date-time-picker
                   label="Fecha desde"
                   [required]="true"
                   [fullWidth]="true"
                   [defaultToToday]="false"
-                  [disabled]="esModificacion()"
+                  [minDate]="hoy"
+                  [disabled]="!fechaDesdeEditable()"
                   [value]="form().fechaDesde"
                   (valueChange)="actualizar('fechaDesde', $event)"
                 />

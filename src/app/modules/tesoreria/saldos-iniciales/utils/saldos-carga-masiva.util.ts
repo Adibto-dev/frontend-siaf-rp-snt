@@ -23,9 +23,15 @@ function descargar(blob: Blob, nombre: string): void {
   URL.revokeObjectURL(url);
 }
 
+/** Importe de ejemplo de la plantilla precargada: distinto por cuenta y libreta, siempre mayor a cero. */
+function importeDemo(cuenta: number, libreta: number): number {
+  return Math.round((125_000 + cuenta * 48_250.5 + libreta * 17_340.25) * 100) / 100;
+}
+
 /**
  * Plantilla de carga masiva de saldos iniciales: una fila por cuenta de registro (libreta). Vacía, solo trae la
- * cabecera; precargada, trae las libretas de las cuentas elegidas para completar la fecha y los importes.
+ * cabecera; precargada, trae las libretas de las cuentas elegidas con la fecha de hoy e importes de ejemplo, lista
+ * para subirla en la demo.
  */
 export async function descargarPlantillaSaldos(cuentas: string[]): Promise<void> {
   const Workbook = await libroExcel();
@@ -45,13 +51,16 @@ export async function descargarPlantillaSaldos(cuentas: string[]): Promise<void>
     fila.eachCell((celda) => (celda.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3A86C8' } }));
   }
 
-  for (const numero of cuentas) {
+  // Precargada para la demo: fecha de hoy e importes de ejemplo, lista para subirla tal cual (se pueden editar).
+  const hoy = new Date();
+  const fechaHoy = [hoy.getDate(), hoy.getMonth() + 1].map((v) => String(v).padStart(2, '0')).join('/') + `/${hoy.getFullYear()}`;
+  cuentas.forEach((numero, c) => {
     const cuenta = cuentaPorNumero(numero);
-    if (!cuenta) continue;
-    for (const libreta of cuentasRegistroDe(numero)) {
-      hoja.addRow(['dd/mm/aaaa', cuenta.numero, cuenta.moneda, cuenta.denominacion, libreta.idCorrelativo, libreta.numero, libreta.descripcion, 0]);
-    }
-  }
+    if (!cuenta) return;
+    cuentasRegistroDe(numero).forEach((libreta, l) => {
+      hoja.addRow([fechaHoy, cuenta.numero, cuenta.moneda, cuenta.denominacion, libreta.idCorrelativo, libreta.numero, libreta.descripcion, importeDemo(c, l)]);
+    });
+  });
   hoja.getColumn(COLUMNAS.importe).numFmt = '#,##0.00';
 
   const buffer = await libro.xlsx.writeBuffer();
@@ -59,9 +68,35 @@ export async function descargarPlantillaSaldos(cuentas: string[]): Promise<void>
   descargar(blob, cuentas.length ? 'Plantilla_saldos_iniciales_precargada.xlsx' : 'Plantilla_saldos_iniciales.xlsx');
 }
 
+/** Una observación de la carga: fila del Excel (null si es del archivo), campo y motivo (RN-1054). */
+export interface ObservacionCarga {
+  fila: number | null;
+  campo: string;
+  motivo: string;
+}
+
 export interface ResultadoCargaSaldos {
   saldos: SaldoInicial[];
+  /** Textos para la pantalla («Fila 4: …»). */
   errores: string[];
+  /** Todas las observaciones, para el Excel que se descarga. */
+  observaciones: ObservacionCarga[];
+}
+
+/** Máximo de filas de datos (sin contar las dos de cabecera) que admite una carga: parámetro del taller. */
+export const MAX_FILAS_CARGA = 500;
+
+/** RN-1054: Excel con la fila, el campo y el motivo de cada observación, para corregir y volver a cargar. */
+export async function descargarObservacionesCarga(observaciones: ObservacionCarga[]): Promise<void> {
+  const Workbook = await libroExcel();
+  const libro = new Workbook();
+  const hoja = libro.addWorksheet('Observaciones');
+  hoja.addRow(['Fila', 'Campo', 'Motivo']);
+  hoja.getRow(1).font = { bold: true };
+  [10, 26, 90].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
+  for (const o of observaciones) hoja.addRow([o.fila ?? '—', o.campo, o.motivo]);
+  const buffer = await libro.xlsx.writeBuffer();
+  descargar(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Observaciones_carga_saldos_iniciales.xlsx');
 }
 
 /** Valor de una celda como texto (exceljs devuelve texto enriquecido o fórmulas como objetos). */
@@ -99,8 +134,10 @@ function importe(valor: unknown): number | null {
 }
 
 /**
- * Lee la plantilla subida. Todas las filas deben estar correctas: con algún error no se carga nada y se devuelven los
- * errores (con su fila). Cada cuenta bancaria es un saldo; sus libretas se suman como en el formulario.
+ * Lee la plantilla subida (RN-1054). Todas las filas deben estar correctas: con alguna observación no se carga nada y
+ * se devuelven las observaciones (fila, campo y motivo) para la pantalla y para el Excel de observaciones. Cada cuenta
+ * bancaria es un saldo; sus libretas se suman como en el formulario. `cuentasUsadas` son las cuentas que el archivo no
+ * puede traer: las que ya están en el documento y las que tienen un saldo inicial aprobado.
  */
 export async function leerPlantillaSaldos(
   archivo: File,
@@ -108,17 +145,30 @@ export async function leerPlantillaSaldos(
   cuentasUsadas: string[],
   nuevoId: () => string,
 ): Promise<ResultadoCargaSaldos> {
+  const observaciones: ObservacionCarga[] = [];
+  const observar = (fila: number | null, campo: string, motivo: string): void => { observaciones.push({ fila, campo, motivo }); };
+  const resultado = (saldos: SaldoInicial[]): ResultadoCargaSaldos => {
+    const errores = observaciones.map((o) => (o.fila ? `Fila ${o.fila}: ${o.motivo}` : o.motivo));
+    const extra = errores.length - MAX_ERRORES;
+    return { saldos, observaciones, errores: extra > 0 ? [...errores.slice(0, MAX_ERRORES), `… y ${extra} errores más.`] : errores };
+  };
+
   const Workbook = await libroExcel();
   const libro = new Workbook();
   try {
     await libro.xlsx.load(await archivo.arrayBuffer());
   } catch {
-    return { saldos: [], errores: ['El archivo no es un Excel (.xlsx) válido.'] };
+    observar(null, 'Archivo', 'El archivo no es un Excel (.xlsx) válido.');
+    return resultado([]);
   }
   const hoja = libro.worksheets[0];
-  if (!hoja) return { saldos: [], errores: ['El archivo no tiene hojas.'] };
+  if (!hoja) { observar(null, 'Archivo', 'El archivo no tiene hojas.'); return resultado([]); }
+  const filasDatos = Math.max(0, hoja.actualRowCount - (PRIMERA_FILA - 1));
+  if (filasDatos > MAX_FILAS_CARGA) {
+    observar(null, 'Archivo', `El archivo tiene ${filasDatos} filas de datos; el máximo es ${MAX_FILAS_CARGA}.`);
+    return resultado([]);
+  }
 
-  const errores: string[] = [];
   const grupos = new Map<string, { fecha: string; importes: Record<string, number> }>();
   hoja.eachRow((fila, n) => {
     if (n < PRIMERA_FILA) return;
@@ -126,34 +176,29 @@ export async function leerPlantillaSaldos(
     const numero = texto(valor(COLUMNAS.cuenta)).replace(/\s/g, '');
     const id = texto(valor(COLUMNAS.idCorrelativo)).replace(/\s/g, '');
     const fechaTexto = texto(valor(COLUMNAS.fecha));
+    const vacio = (v: unknown) => v === null || v === undefined || texto(v) === '';
+    if (!numero && !id && vacio(valor(COLUMNAS.importe)) && (!fechaTexto || fechaTexto === 'dd/mm/aaaa')) return; // fila vacía
     const monto = importe(valor(COLUMNAS.importe));
-    if (!numero && !id && !monto && (!fechaTexto || fechaTexto === 'dd/mm/aaaa')) return; // fila vacía
 
     const cuenta = cuentaPorNumero(numero);
-    if (!cuenta) { errores.push(`Fila ${n}: la cuenta bancaria ${numero || '(vacía)'} no existe.`); return; }
-    if (cuenta.entidadCodigo !== entidadCodigo) { errores.push(`Fila ${n}: la cuenta ${numero} no pertenece a la entidad financiera.`); return; }
-    if (cuentasUsadas.includes(numero)) { errores.push(`Fila ${n}: la cuenta ${numero} ya está en el documento.`); return; }
+    if (!cuenta) { observar(n, 'Cuenta bancaria', `la cuenta bancaria ${numero || '(vacía)'} no existe.`); return; }
+    if (cuenta.entidadCodigo !== entidadCodigo) { observar(n, 'Cuenta bancaria', `la cuenta ${numero} no pertenece a la entidad financiera.`); return; }
+    if (cuentasUsadas.includes(numero)) { observar(n, 'Cuenta bancaria', `la cuenta ${numero} ya está en el documento o tiene un saldo inicial aprobado.`); return; }
     const iso = fecha(valor(COLUMNAS.fecha));
-    if (!iso) { errores.push(`Fila ${n}: ingrese la fecha de operación (dd/mm/aaaa).`); return; }
+    if (!iso) { observar(n, 'Fecha de operación', 'ingrese la fecha de operación (dd/mm/aaaa).'); return; }
     const libreta = cuentasRegistroDe(numero).find((l) => l.idCorrelativo === id.padStart(6, '0'));
-    if (!libreta) { errores.push(`Fila ${n}: el ${ABREVIATURAS.idCorrelativo.termino} ${id || '(vacío)'} no pertenece a la cuenta ${numero}.`); return; }
-    if (monto === null || monto < 0) { errores.push(`Fila ${n}: el importe debe ser un número mayor o igual a cero.`); return; }
+    if (!libreta) { observar(n, ABREVIATURAS.idCorrelativo.termino, `el ${ABREVIATURAS.idCorrelativo.termino} ${id || '(vacío)'} no pertenece a la cuenta ${numero}.`); return; }
+    // RN-1030: el saldo inicial admite importes mayores o iguales a cero.
+    if (monto === null || monto < 0) { observar(n, ABREVIATURAS.importeCuenta.termino, 'el importe debe ser un número mayor o igual a cero.'); return; }
 
     const grupo = grupos.get(numero) ?? { fecha: iso, importes: {} };
-    if (grupo.fecha !== iso) { errores.push(`Fila ${n}: la cuenta ${numero} tiene fechas de operación distintas.`); return; }
-    if (libreta.idCorrelativo in grupo.importes) { errores.push(`Fila ${n}: la libreta ${libreta.idCorrelativo} está repetida.`); return; }
+    if (grupo.fecha !== iso) { observar(n, 'Fecha de operación', `la cuenta ${numero} tiene fechas de operación distintas.`); return; }
+    if (libreta.idCorrelativo in grupo.importes) { observar(n, ABREVIATURAS.idCorrelativo.termino, `la libreta ${libreta.idCorrelativo} está repetida.`); return; }
     grupo.importes[libreta.idCorrelativo] = monto;
     grupos.set(numero, grupo);
   });
 
-  for (const [numero, g] of grupos) {
-    if (!Object.values(g.importes).some((v) => v > 0)) errores.push(`La cuenta ${numero} no tiene importes mayores a cero.`);
-  }
-  if (!grupos.size && !errores.length) errores.push('El archivo no tiene datos para cargar.');
-  if (errores.length) {
-    const extra = errores.length - MAX_ERRORES;
-    return { saldos: [], errores: extra > 0 ? [...errores.slice(0, MAX_ERRORES), `… y ${extra} errores más.`] : errores };
-  }
-  const saldos = [...grupos].map(([numero, g]) => calcularSaldo(nuevoId(), g.fecha, numero, g.importes));
-  return { saldos, errores: [] };
+  if (!grupos.size && !observaciones.length) observar(null, 'Archivo', 'El archivo no tiene datos para cargar.');
+  if (observaciones.length) return resultado([]);
+  return resultado([...grupos].map(([numero, g]) => calcularSaldo(nuevoId(), g.fecha, numero, g.importes)));
 }

@@ -391,8 +391,10 @@ input[type="checkbox"]:disabled:checked {
 .siaf-sidepanel-overlay {
   animation: siaf-overlay-fade-in 300ms ease-in both;
 }
+/* `backwards` y no `both`: al terminar la entrada el panel no conserva `transform`. Un `transform` lo volvería el
+   bloque contenedor de los desplegables `position: fixed` (select-multiple) y quedarían corridos y recortados. */
 .siaf-sidepanel-overlay > aside {
-  animation: siaf-sidepanel-in 300ms ease-in both;
+  animation: siaf-sidepanel-in 300ms ease-in backwards;
 }
 .siaf-sidepanel-overlay.cerrando {
   animation: siaf-overlay-fade-out 300ms ease-in-out both;

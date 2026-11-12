@@ -61,6 +61,7 @@ import {
   nombreEntidadDeCuenta,
   nombreProcedimiento,
   responsablePorUsuario,
+  vigenciaPorFechas,
 } from '../../models/autorizacion.model';
 import { CUENTAS_BANCARIAS } from '../../../saldos-iniciales/models/saldo-inicial.model';
 
@@ -282,7 +283,7 @@ export class AutorizacionRequestComponent implements OnInit, ConSalidaProtegida 
     const f = this.form();
     const si = f.vigente === 'si';
     return [
-      { caption: 'Vigente', value: si ? 'Sí' : 'No' },
+      { caption: 'Vigente', value: si && this.vigenciaCalculada() === 'si' ? 'Sí' : 'No' },
       { caption: 'Fecha desde', value: si ? fechaCorta(f.fechaDesde) : '--' },
       { caption: 'Fecha hasta', value: si ? fechaCorta(f.fechaHasta) : '--' },
     ];
@@ -298,7 +299,24 @@ export class AutorizacionRequestComponent implements OnInit, ConSalidaProtegida 
   /** Creación: hasta 3 días de vigencia. Modificación: hasta 2 días más que la fecha hasta registrada. */
   private readonly problemaVigencia = computed(() => {
     const f = this.form();
-    return this.esModificacion() ? errorAmpliacion(this.registroElegido()?.fechaHasta, f.fechaHasta) : errorVigencia(f.fechaDesde, f.fechaHasta);
+    if (!this.esModificacion()) return errorVigencia(f.fechaDesde, f.fechaHasta, this.soloLectura() ? undefined : this.hoy);
+    if (f.fechaHasta && f.fechaDesde && f.fechaHasta < f.fechaDesde) return 'La fecha hasta no puede ser anterior a la fecha desde.';
+    return errorAmpliacion(this.registroElegido()?.fechaHasta, f.fechaHasta);
+  });
+
+  /** Hoy (AAAA-MM-DD, hora local). */
+  readonly hoy = ((d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date());
+  /** RN-3010: en la modificación, la fecha desde se cambia solo si la autorización aún no empieza. */
+  readonly fechaDesdeEditable = computed(() => {
+    if (!this.esModificacion()) return true;
+    const r = this.registroElegido();
+    return !!r?.fechaDesde && this.hoy < r.fechaDesde && this.form().vigente === 'si';
+  });
+  /** RN-3013: la vigencia se calcula con las fechas (Sí si hoy está dentro del periodo). */
+  readonly vigenciaCalculada = computed<'si' | 'no'>(() => {
+    const f = this.form();
+    if (this.esModificacion()) return f.vigente;
+    return vigenciaPorFechas(f.fechaDesde, f.fechaHasta, this.hoy) ? 'si' : 'no';
   });
 
   readonly errorFechas = computed(() => {

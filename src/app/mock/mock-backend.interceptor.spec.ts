@@ -156,7 +156,7 @@ describe('mockBackendInterceptor', () => {
   }));
 
   describe('registro automático de saldos de apertura (RASA)', () => {
-    it('lo crea el sistema: no se puede crear y ambos roles ven solo los Procesados, con sus registros', fakeAsync(() => {
+    it('lo crea el sistema: no se puede crear; ambos roles ven Registrado, Procesado y Rechazado y solo los Procesados tienen registros', fakeAsync(() => {
       const ana = entrar('45872163');
       const luis = entrar('70318246');
       const tipos = esperar(http.get<{ codigo: string }[]>(`${API}/tipos-documento`, { headers: ana })).valor!;
@@ -165,12 +165,14 @@ describe('mockBackendInterceptor', () => {
       const registros = esperar(http.get<SaldoInicialRegistro[]>(`${API}/saldos-iniciales`, { headers: ana })).valor!;
 
       expect(tipos.some((t) => t.codigo === 'RASA')).toBeFalse();
-      expect(deAna.map((s) => s.estado)).toEqual(['PROCESADO', 'PROCESADO']);
-      expect(deLuis.map((s) => s.estado)).toEqual(['PROCESADO', 'PROCESADO']);
+      // CP18: también los Registrado; RN-2012: el Rechazado queda en consulta.
+      expect(deAna.map((s) => s.estado).sort()).toEqual(['PROCESADO', 'PROCESADO', 'RECHAZADO', 'REGISTRADO']);
+      expect(deLuis.map((s) => s.estado).sort()).toEqual(['PROCESADO', 'PROCESADO', 'RECHAZADO', 'REGISTRADO']);
       for (const s of deAna) {
         expect(s.numero).toMatch(/^SI-DRSI-\d{5}-\d{4}-MEF-OGA$/);
         const suyos = registros.filter((r) => r.documentoId === s.id);
-        expect(suyos.length).toBe(s.detalleSaldosIniciales!.saldos.length);
+        // RN-2012: sin secuencia ni registro consolidado si no está Procesado.
+        expect(suyos.length).toBe(s.estado === 'PROCESADO' ? s.detalleSaldosIniciales!.saldos.length : 0);
         expect(suyos.every((r) => r.automatico && r.movimiento === 'SIA001 - Saldo de Apertura' && /^\d{6}$/.test(r.secuencia ?? ''))).toBeTrue();
       }
     }));
@@ -223,10 +225,14 @@ describe('mockBackendInterceptor', () => {
       const id = crearRaut(rosa, 'creacion').id!;
       const base = { procedimiento: 'saldos-iniciales', responsable: 'RU41023', cuentaBancaria: '11040103570200000000', estado: 'Activo' };
       const guardar = (extra: object) => esperar(http.post(`${API}/solicitudes/${id}/autorizacion`, { ...base, ...extra }, { headers: rosa }));
-      expect(guardar({ fechaDesde: '2026-11-01', fechaHasta: null }).error?.status).toBe(400);
-      expect(guardar({ fechaDesde: '2026-11-10', fechaHasta: '2026-11-01' }).error?.status).toBe(400);
-      expect(guardar({ fechaDesde: '2026-11-01', fechaHasta: '2026-11-05' }).error?.status).toBe(400);
-      expect(guardar({ fechaDesde: '2026-11-01', fechaHasta: '2026-11-04' }).error).toBeUndefined();
+      const hoy = new Date().toISOString().slice(0, 10);
+      const dia = (n: number) => sumarDias(hoy, n);
+      expect(guardar({ fechaDesde: dia(0), fechaHasta: null }).error?.status).toBe(400);
+      expect(guardar({ fechaDesde: dia(9), fechaHasta: dia(0) }).error?.status).toBe(400);
+      expect(guardar({ fechaDesde: dia(0), fechaHasta: dia(4) }).error?.status).toBe(400);
+      // RN-3007: la fecha desde no puede ser anterior a la de registro.
+      expect(guardar({ fechaDesde: dia(-1), fechaHasta: dia(1) }).error?.error.message).toContain('anterior a la fecha de registro');
+      expect(guardar({ fechaDesde: dia(0), fechaHasta: dia(3) }).error).toBeUndefined();
     }));
 
     it('Autorizar (desde NUEVO o ELABORADO) aprueba en un paso: elaborado y aprobado por el creador, verificado por el sistema; vigencia NO deja el registro Inactivo', fakeAsync(() => {
@@ -235,7 +241,8 @@ describe('mockBackendInterceptor', () => {
       const antes = registros().length;
 
       const creacion = crearRaut(rosa, 'creacion').id!;
-      const datos = { procedimiento: 'saldos-iniciales', responsable: 'RU41023', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: '2026-11-01', fechaHasta: '2026-11-03' };
+      const hoy = new Date().toISOString().slice(0, 10);
+      const datos = { procedimiento: 'saldos-iniciales', responsable: 'RU41023', cuentaBancaria: '11040103570200000000', estado: 'Activo', fechaDesde: hoy, fechaHasta: sumarDias(hoy, 2) };
       expect(esperar(http.post(`${API}/solicitudes/${creacion}/autorizacion`, datos, { headers: rosa })).error).toBeUndefined();
       expect(estado(rosa, creacion, 'ELABORADO').error).toBeUndefined();
       // Otro creador no puede autorizarlo; el creador autorizador lo autoriza desde ELABORADO.
@@ -245,10 +252,10 @@ describe('mockBackendInterceptor', () => {
       expect(detalle.historialEstados!.map((h) => `${h.estadoNuevo}:${h.creador?.nombres}`)).toEqual(['NUEVO:Santiago', 'ELABORADO:Santiago', 'VERIFICADO:SIAF RP', 'APROBADO:Santiago']);
       const nueva = registros().find((r) => r.documentoId === creacion)!;
       expect(registros().length).toBe(antes + 1);
-      expect([nueva.estado, nueva.fechaDesde, nueva.fechaHasta]).toEqual(['Activo', '2026-11-01', '2026-11-03']);
-      // Un responsable no puede tener otra autorización activa, aunque sea de otra cuenta.
+      expect([nueva.estado, nueva.fechaDesde, nueva.fechaHasta]).toEqual(['Activo', hoy, sumarDias(hoy, 2)]);
+      // RN-3008: la misma combinación no admite un periodo superpuesto.
       const otra = crearRaut(rosa, 'creacion').id!;
-      expect(esperar(http.post(`${API}/solicitudes/${otra}/autorizacion`, { ...datos, cuentaBancaria: '12073303572000000003' }, { headers: rosa })).error?.error.message).toContain('ya tiene una autorización activa');
+      expect(esperar(http.post(`${API}/solicitudes/${otra}/autorizacion`, datos, { headers: rosa })).error?.error.message).toContain('se superpone');
 
       const modificacion = crearRaut(rosa, 'modificacion').id!;
       const vigencia = { ...datos, registroId: nueva.id, tipoModificacion: 'vigencia' };
@@ -256,8 +263,8 @@ describe('mockBackendInterceptor', () => {
       // SÍ sin cambiar la fecha hasta no es una modificación.
       expect(guardarMod({}).error?.status).toBe(400);
       // La ampliación es de 2 días como máximo.
-      expect(guardarMod({ fechaHasta: '2026-11-06' }).error?.status).toBe(400);
-      expect(guardarMod({ fechaHasta: '2026-11-05' }).error).toBeUndefined();
+      expect(guardarMod({ fechaHasta: sumarDias(hoy, 5) }).error?.status).toBe(400);
+      expect(guardarMod({ fechaHasta: sumarDias(hoy, 4) }).error).toBeUndefined();
       expect(guardarMod({ estado: 'Inactivo' }).error).toBeUndefined();
       // Autorizar directo desde NUEVO, sin grabar.
       expect(estado(rosa, modificacion, 'APROBADO').error).toBeUndefined();
@@ -266,7 +273,7 @@ describe('mockBackendInterceptor', () => {
       const modificada = registros().find((r) => r.id === nueva.id)!;
       expect(registros().length).toBe(antes + 1);
       // NO: queda Inactivo y conserva sus fechas.
-      expect([modificada.estado, modificada.fechaDesde, modificada.fechaHasta, modificada.documentoId]).toEqual(['Inactivo', '2026-11-01', '2026-11-03', modificacion]);
+      expect([modificada.estado, modificada.fechaDesde, modificada.fechaHasta, modificada.documentoId]).toEqual(['Inactivo', hoy, sumarDias(hoy, 2), modificacion]);
       expect(modificada.documentos.map((d) => d.tipoAccion)).toEqual(['creacion', 'modificacion']);
     }));
     function crearRsinAjuste(ana: HttpHeaders): string {
@@ -322,13 +329,14 @@ describe('mockBackendInterceptor', () => {
       saldos: [{
         id: 'nuevo-1',
         fechaOperacion: '2026-07-13',
-        cuentaBancaria: '12073303572000000003',
+        // Cuenta sin saldo inicial aprobado en 2026 (RN-1022).
+        cuentaBancaria: '12073303572000000011',
         moneda: 'USD',
         tipoCambio: 1,
         // Totales inventados: el backend los recalcula desde las libretas.
         importeCuenta: 1,
         importeNacional: 1,
-        libretas: [{ idCorrelativo: '000002', importe: 50000 }, { idCorrelativo: '000003', importe: 50000 }],
+        libretas: [{ idCorrelativo: '000022', importe: 50000 }, { idCorrelativo: '000023', importe: 50000 }],
       }],
     };
 
@@ -349,7 +357,30 @@ describe('mockBackendInterceptor', () => {
       expect(saldo.importeCuenta).toBe(100000);
       expect(saldo.tipoCambio).toBeGreaterThanOrEqual(3.39);
       expect(saldo.tipoCambio).toBeLessThanOrEqual(3.45);
-      expect(saldo.importeNacional).toBe(Math.round(100000 * saldo.tipoCambio * 100) / 100);
+      // RN-1031: suma de cada libreta convertida y redondeada.
+      expect(saldo.importeNacional).toBe(Math.round(2 * Math.round(50000 * saldo.tipoCambio * 100)) / 100);
+    }));
+
+    it('RN-1022: no admite un segundo saldo inicial para una cuenta con saldo aprobado en el periodo', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const id = crearRsin(ana);
+      const conSaldo = { ...SALDOS, saldos: [{ ...SALDOS.saldos[0], cuentaBancaria: '12073303572000000003', libretas: [{ idCorrelativo: '000002', importe: 10 }] }] };
+      const r = esperar(http.post(`${API}/solicitudes/${id}/saldos-iniciales`, conSaldo, { headers: ana }));
+      expect(r.error?.error.message).toContain('ya tiene un saldo inicial aprobado');
+    }));
+
+    it('RN-1002 / RN-1042: un Observado no se verifica directo y sí se puede eliminar', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const luis = entrar('70318246');
+      const id = crearRsin(ana);
+      esperar(http.post(`${API}/solicitudes/${id}/saldos-iniciales`, SALDOS, { headers: ana }));
+      const cambiar = (h: HttpHeaders, estadoNuevo: string, comentario?: string) =>
+        esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo, comentario }, { headers: h }));
+      cambiar(ana, 'ELABORADO');
+      expect(cambiar(ana, 'VERIFICADO').error).toBeUndefined();
+      expect(cambiar(luis, 'OBSERVADO', 'Revise la fecha.').error).toBeUndefined();
+      expect(cambiar(ana, 'VERIFICADO').error?.status).toBe(409);
+      expect(cambiar(ana, 'ELIMINADO').error).toBeUndefined();
     }));
 
     it('rechaza una cuenta bancaria de otra entidad financiera o repetida', fakeAsync(() => {

@@ -8,7 +8,7 @@ import { TextFieldComponent } from '../../../../../shared/ui/text-field/text-fie
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { UploaderComponent } from '../../../../../shared/ui/uploader/uploader.component';
 import { CuentaBancaria, SaldoInicial } from '../../models/saldo-inicial.model';
-import { descargarPlantillaSaldos, leerPlantillaSaldos } from '../../utils/saldos-carga-masiva.util';
+import { ObservacionCarga, descargarObservacionesCarga, descargarPlantillaSaldos, leerPlantillaSaldos } from '../../utils/saldos-carga-masiva.util';
 
 type ModoPlantilla = 'vacio' | 'precargado';
 
@@ -70,6 +70,8 @@ type ModoPlantilla = 'vacio' | 'precargado';
 
           @if (errores().length) {
             <siaf-alert tone="error" title="No se cargó el archivo" [description]="errores().join(' ')" />
+            <!-- RN-1054: Excel con la fila, el campo y el motivo de cada observación. -->
+            <siaf-button variant="outline" size="sm" icon="download" (click)="descargarObservaciones()">Descargar observaciones</siaf-button>
           }
         </div>
       }
@@ -104,6 +106,13 @@ export class SaldosCargaMasivaComponent {
     if (valor !== 'precargado') this.cuentas.set([]);
   }
 
+  /** Observaciones de la última carga rechazada (para el Excel). */
+  private observaciones: ObservacionCarga[] = [];
+
+  descargarObservaciones(): void {
+    void descargarObservacionesCarga(this.observaciones);
+  }
+
   descargar(): void {
     void descargarPlantillaSaldos(this.modo() === 'precargado' ? this.cuentas() : []);
   }
@@ -122,10 +131,11 @@ export class SaldosCargaMasivaComponent {
     const archivo = this.archivo();
     if (!archivo) return;
     this.procesando.set(true);
-    const { saldos, errores } = await leerPlantillaSaldos(archivo, this.entidadCodigo, this.cuentasUsadas, this.nuevoId);
+    const { saldos, errores, observaciones } = await leerPlantillaSaldos(archivo, this.entidadCodigo, this.cuentasUsadas, this.nuevoId);
     this.procesando.set(false);
     if (errores.length) {
       this.errores.set(errores);
+      this.observaciones = observaciones;
       return;
     }
     this.loaded.emit(saldos);

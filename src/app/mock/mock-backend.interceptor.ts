@@ -7,8 +7,8 @@ import type { SolicitudResponse } from '../core/api/solicitudes-api.service';
 import { APP_CONFIG } from '../core/config/app.config';
 import type { EstadoDocumento } from '../core/models/documento.model';
 import { CODIGO_DOCUMENTO as CODIGO_TRASLADO, TrasladoDatos, validarTraslado } from '../modules/tesoreria/traspasos-cuentas-registros/models/traslado.model';
-import { AutorizacionDatos, AutorizacionVigente, CODIGO_DOCUMENTO as CODIGO_AUTORIZACION, PERMISO_AUTORIZAR, PROCEDIMIENTOS, USUARIO_AJUSTE_SALDO, cuentaDeAutorizacion, errorAmpliacion, errorVigencia, estaVigente, responsablePorUsuario } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
-import { CODIGO_DOCUMENTO as CODIGO_SALDOS, SaldosInicialesDatos, calcularAjuste, calcularSaldo, cuentaPorNumero, entidadPorCodigo } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
+import { AutorizacionDatos, AutorizacionVigente, CODIGO_DOCUMENTO as CODIGO_AUTORIZACION, PERMISO_AUTORIZAR, PROCEDIMIENTOS, USUARIO_AJUSTE_SALDO, autorizacionSuperpuesta, cuentaDeAutorizacion, errorAmpliacion, errorVigencia, estaVigente, responsablePorUsuario } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
+import { CODIGO_DOCUMENTO as CODIGO_SALDOS, SaldoInicial, SaldosInicialesDatos, calcularAjuste, calcularSaldo, cuentaPorNumero, entidadPorCodigo, erroresSaldoSuficiente, saldoOrigen, saldoVigente } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import {
   DatosTaller,
   ENTIDAD_CREADORA,
@@ -230,13 +230,18 @@ function bandeja(ctx: Contexto, estados?: EstadoDocumento[]): Respuesta {
   const tipos = (query.get('tipos') ?? '').split(',').filter(Boolean);
   const busqueda = (query.get('search') ?? '').trim().toLowerCase();
 
-  let lista = datos.solicitudes.filter((s) => s.entidadCreadora?.id === sesion.perfil.entidadId && s.estado !== 'NUEVO' && s.estado !== 'REGISTRADO');
-  // REGISTRADO: el sistema aún no procesa el documento automático; recién al quedar PROCESADO aparece en las bandejas.
+  // Los documentos automáticos (RASA) en REGISTRADO también se listan (en consulta), como pide CP18.
+  let lista = datos.solicitudes.filter((s) => s.entidadCreadora?.id === sesion.perfil.entidadId && s.estado !== 'NUEVO');
   if (estados) lista = lista.filter((s) => estados.includes(s.estado));
   if (tipos.length) lista = lista.filter((s) => tipos.includes(s.catDocumento?.codigo ?? ''));
+  // RN-1044: el creador ve sus propios documentos de saldos iniciales (los automáticos, RASA, los ven todos).
+  if (!estados && sesion.perfil.rolCodigo === 'CREADOR') {
+    lista = lista.filter((s) => s.catDocumento?.codigo !== CODIGO_SALDOS || s.creador?.id === sesion.usuario.id);
+  }
   if (busqueda) {
+    // RN-1045: también por cuenta bancaria de los saldos del documento.
     lista = lista.filter((s) =>
-      [s.numero, s.asuntoMotivo, s.catDocumento?.nombre, s.creador ? nombreCompleto(s.creador) : '']
+      [s.numero, s.asuntoMotivo, s.catDocumento?.nombre, s.creador ? nombreCompleto(s.creador) : '', ...(s.detalleSaldosIniciales?.saldos.map((x) => x.cuentaBancaria) ?? [])]
         .some((valor) => (valor ?? '').toLowerCase().includes(busqueda)),
     );
   }
@@ -251,7 +256,7 @@ function bandeja(ctx: Contexto, estados?: EstadoDocumento[]): Respuesta {
 }
 
 const bandejaCreador: Manejador = (ctx) => bandeja(ctx);
-const bandejaAprobador: Manejador = (ctx) => bandeja(ctx, ['VERIFICADO', 'OBSERVADO', 'APROBADO', 'RECHAZADO', 'PROCESADO']);
+const bandejaAprobador: Manejador = (ctx) => bandeja(ctx, ['VERIFICADO', 'OBSERVADO', 'APROBADO', 'RECHAZADO', 'PROCESADO', 'REGISTRADO']);
 
 const detalleSolicitud: Manejador = ({ datos, params }) => {
   const s = buscarSolicitud(datos, params[0]);
@@ -318,7 +323,38 @@ const guardarTraslado: Manejador = ({ req, datos, params }) => {
 /** Cuentas de registro de una cuenta bancaria con su saldo disponible (Saldos iniciales + traslados procesados). */
 const libretasTraslado: Manejador = ({ datos, query }) => ok(libretasConSaldo(datos, query.get('cuenta') ?? ''));
 
-const guardarSaldosIniciales: Manejador = ({ req, datos, params }) => {
+/** RN-1004 / RN-1022: un saldo inicial por cuenta bancaria y periodo fiscal (año de la fecha de operación). */
+function erroresDuplicidad(datos: DatosTaller, saldos: SaldoInicial[]): string[] {
+  return saldos.filter((x) => !x.ajuste).flatMap((x) => {
+    const periodo = x.fechaOperacion.slice(0, 4);
+    const previo = datos.registrosSaldos.find((r) => r.estado === 'Activo' && !r.ajuste && !r.automatico
+      && r.cuentaBancaria === x.cuentaBancaria && r.fechaOperacion.slice(0, 4) === periodo);
+    return previo ? [`La cuenta ${x.cuentaBancaria} ya tiene un saldo inicial aprobado para el periodo ${periodo} (secuencia ${previo.secuencia}).`] : [];
+  });
+}
+
+/**
+ * RN-1032: reglas que revisa «Verificar» (y otra vez «Aprobar») en un documento de saldos iniciales o de ajuste.
+ * Saldo inicial: duplicidad por cuenta y periodo. Ajuste: autorización vigente de la cuenta (RN-1049), saldo de
+ * origen activo (RN-1024) y saldo suficiente para el débito (RN-1029 / RN-1039).
+ */
+function validarSaldos(datos: DatosTaller, s: SolicitudResponse): string[] {
+  const saldos = s.detalleSaldosIniciales?.saldos ?? [];
+  if (!saldos.length) return ['Agregue al menos un saldo inicial.'];
+  const errores = erroresDuplicidad(datos, saldos);
+  const hoy = new Date().toISOString().slice(0, 10);
+  for (const x of saldos.filter((y) => y.ajuste)) {
+    const vigente = saldoVigente(datos.registrosSaldos, x.cuentaBancaria);
+    if (!vigente) { errores.push(`La cuenta ${x.cuentaBancaria} ya no tiene un saldo inicial activo para ajustar.`); continue; }
+    if (!datos.registrosAutorizacion.some((r) => r.cuentaBancaria === x.cuentaBancaria && estaVigente(r, hoy))) {
+      errores.push(`No hay una autorización excepcional vigente para ajustar la cuenta ${x.cuentaBancaria}.`);
+    }
+    errores.push(...erroresSaldoSuficiente(x, vigente));
+  }
+  return errores;
+}
+
+const guardarSaldosIniciales: Manejador =({ req, datos, params }) => {
   const s = buscarSolicitud(datos, params[0]);
   if (!s) return error(404, 'La solicitud no existe.');
   if (s.catDocumento?.codigo !== CODIGO_SALDOS) return error(409, 'La solicitud no es de saldos iniciales.');
@@ -337,7 +373,10 @@ const guardarSaldosIniciales: Manejador = ({ req, datos, params }) => {
   const saldos = dto.saldos.map((x) => calcularSaldo(x.id, x.fechaOperacion, x.cuentaBancaria,
     Object.fromEntries(x.libretas.map((l) => [l.idCorrelativo, l.importe]))))
     .map((x, i) => ({ ...x, sustento: dto.saldos[i].sustento || null, sustentoId: dto.saldos[i].sustento ? dto.saldos[i].sustentoId || null : null }));
-  if (saldos.some((x) => x.importeCuenta <= 0)) return error(400, 'Cada saldo debe tener al menos un importe mayor a cero.');
+  // RN-1030: el saldo inicial admite importes mayores o iguales a cero.
+  if (saldos.some((x) => x.importeCuenta < 0)) return error(400, 'Los importes del saldo inicial deben ser mayores o iguales a cero.');
+  const duplicado = erroresDuplicidad(datos, saldos)[0];
+  if (duplicado) return error(400, duplicado);
   s.detalleSaldosIniciales = { documentoId: s.id, entidadFinanciera: dto.entidadFinanciera, saldos };
   s.updatedAt = new Date().toISOString();
   guardarDatos(datos);
@@ -361,16 +400,19 @@ function guardarAjusteSaldo(datos: DatosTaller, s: SolicitudResponse, dto: Saldo
   if (dto.saldos.length !== 1) return error(400, 'Un ajuste se hace sobre una sola cuenta bancaria.');
   const [x] = dto.saldos;
   if (!x.fechaOperacion) return error(400, 'Indique la fecha de operación.');
-  const original = datos.registrosSaldos.find((r) => r.estado === 'Activo' && !r.ajuste && r.cuentaBancaria === x.cuentaBancaria);
-  if (!original) return error(400, 'La cuenta bancaria no tiene saldo inicial registrado.');
+  const original = saldoOrigen(datos.registrosSaldos, x.cuentaBancaria);
+  // RN-1039: el ajuste parte del saldo vigente (origen más ajustes aprobados).
+  const vigente = saldoVigente(datos.registrosSaldos, x.cuentaBancaria);
+  if (!original || !vigente) return error(400, 'La cuenta bancaria no tiene saldo inicial registrado.');
   const yaGrabado = s.detalleSaldosIniciales?.saldos.some((y) => y.ajuste && y.cuentaBancaria === x.cuentaBancaria);
   const hoy = new Date().toISOString().slice(0, 10);
   const autorizacion = datos.registrosAutorizacion.find((r) => r.cuentaBancaria === x.cuentaBancaria && estaVigente(r, hoy));
   if (!yaGrabado && !autorizacion) return error(400, 'No tiene una autorización vigente para ajustar el saldo inicial de esta cuenta.');
   if (ajusteEnCurso(datos, x.cuentaBancaria, s.id)) return error(400, 'Ya existe un documento de ajuste en curso para esta cuenta bancaria.');
   const ajuste = calcularAjuste(x.id, x.fechaOperacion, x.cuentaBancaria,
-    Object.fromEntries(x.libretas.map((l) => [l.idCorrelativo, { importe: l.importe, naturaleza: l.naturaleza ?? 'Crédito' }])), original);
-  if (ajuste.importeCuenta <= 0) return error(400, 'El ajuste debe tener un importe distinto de cero.');
+    Object.fromEntries(x.libretas.map((l) => [l.idCorrelativo, { importe: l.importe, naturaleza: l.naturaleza ?? 'Crédito' }])), vigente);
+  // RN-1030 / RN-1026: cada libreta del ajuste es mayor a cero; el consolidado puede ser 0.00 si se compensan.
+  if (!ajuste.libretas.length) return error(400, 'Registre al menos un importe de ajuste mayor a cero.');
   s.detalleSaldosIniciales = { documentoId: s.id, entidadFinanciera: original.entidadFinanciera, saldos: [{ ...ajuste, sustento: x.sustento || null, sustentoId: x.sustento ? x.sustentoId || null : null }] };
   s.updatedAt = new Date().toISOString();
   guardarDatos(datos);
@@ -395,14 +437,24 @@ const guardarAutorizacion: Manejador = ({ req, datos, params, sesion }) => {
     if (registro.estado !== 'Activo') return error(400, 'Solo se modifican autorizaciones activas.');
     // Solo cambia la vigencia: la fecha desde es la de la creación; SÍ exige una fecha hasta nueva; NO da de baja.
     const activo = dto.estado === 'Activo';
+    const hoy = new Date().toISOString().slice(0, 10);
+    // RN-3010: antes de que empiece, también se cambia la fecha desde; ya iniciada, solo la fecha hasta.
+    const noEmpezo = !!registro.fechaDesde && hoy < registro.fechaDesde;
+    const fechaDesde = activo && noEmpezo && dto.fechaDesde ? dto.fechaDesde : registro.fechaDesde;
     if (activo) {
+      if (noEmpezo && fechaDesde && fechaDesde < hoy) return error(400, 'La fecha desde no puede ser anterior a la fecha actual.');
+      if (fechaDesde && dto.fechaHasta && dto.fechaHasta < fechaDesde) return error(400, 'La fecha hasta no puede ser anterior a la fecha desde.');
       const problema = errorAmpliacion(registro.fechaHasta, dto.fechaHasta);
       if (problema) return error(400, problema);
+      // RN-3008: sin superponerse con otra autorización de la misma combinación (sin contar la que se modifica).
+      if (autorizacionSuperpuesta(datos.registrosAutorizacion, { ...registro, fechaDesde: fechaDesde ?? '', fechaHasta: dto.fechaHasta ?? '' }, hoy, registro.id)) {
+        return error(400, 'El periodo se superpone con otra autorización del mismo responsable, procedimiento y cuenta bancaria.');
+      }
     }
     s.detalleAutorizacion = {
       documentoId: s.id, registroId: registro.id, tipoModificacion: 'vigencia',
       procedimiento: registro.procedimiento, responsable: registro.responsable, cuentaBancaria: registro.cuentaBancaria,
-      estado: activo ? 'Activo' : 'Inactivo', fechaDesde: registro.fechaDesde, fechaHasta: activo ? dto.fechaHasta : registro.fechaHasta,
+      estado: activo ? 'Activo' : 'Inactivo', fechaDesde, fechaHasta: activo ? dto.fechaHasta : registro.fechaHasta,
     };
   } else {
     if (!PROCEDIMIENTOS.some((p) => p.value === dto?.procedimiento)) return error(400, 'Seleccione el procedimiento.');
@@ -410,11 +462,13 @@ const guardarAutorizacion: Manejador = ({ req, datos, params, sesion }) => {
     if (!cuentaDeAutorizacion(dto.cuentaBancaria)) return error(400, 'Seleccione la cuenta bancaria.');
     // Solo se autoriza el ajuste de una cuenta que ya tiene saldo inicial.
     if (!cuentasConSaldoInicial(datos).has(dto.cuentaBancaria)) return error(400, 'La cuenta bancaria no tiene saldo inicial registrado.');
-    const problema = errorVigencia(dto.fechaDesde, dto.fechaHasta);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const problema = errorVigencia(dto.fechaDesde, dto.fechaHasta, hoy);
     if (problema) return error(400, problema);
-    // Un responsable tiene una sola autorización activa a la vez (hasta que grabe su ajuste).
-    const ocupado = datos.registrosAutorizacion.some((r) => r.estado === 'Activo' && r.responsable === dto.responsable);
-    if (ocupado) return error(400, 'El responsable ya tiene una autorización activa.');
+    // RN-3008: no se superpone con otra autorización de la misma combinación responsable + procedimiento + cuenta.
+    if (autorizacionSuperpuesta(datos.registrosAutorizacion, { ...dto, fechaDesde: dto.fechaDesde ?? '', fechaHasta: dto.fechaHasta ?? '' }, hoy)) {
+      return error(400, 'El periodo se superpone con otra autorización del mismo responsable, procedimiento y cuenta bancaria.');
+    }
     s.detalleAutorizacion = { documentoId: s.id, ...dto, estado: 'Activo', registroId: null, tipoModificacion: null };
   }
   s.updatedAt = new Date().toISOString();
@@ -470,6 +524,19 @@ const TRANSICIONES: Record<'CREADOR' | 'APROBADOR', Partial<Record<EstadoDocumen
 };
 
 /**
+ * Saldos iniciales (RSIN): desde Observado se corrige y graba (→ Elaborado, RN-1002) o se elimina (RN-1042); se
+ * verifica solo desde Elaborado.
+ */
+const TRANSICIONES_SALDOS: Record<'CREADOR' | 'APROBADOR', Partial<Record<EstadoDocumento, EstadoDocumento[]>>> = {
+  CREADOR: {
+    NUEVO: ['ELABORADO'],
+    ELABORADO: ['ELABORADO', 'VERIFICADO', 'ELIMINADO'],
+    OBSERVADO: ['ELABORADO', 'ELIMINADO'],
+  },
+  APROBADOR: TRANSICIONES.APROBADOR,
+};
+
+/**
  * RAUT (autorización excepcional, sin aprobador): Grabar → ELABORADO; Autorizar (desde NUEVO o ELABORADO) → APROBADO
  * en un solo paso, dejando en el historial elaborado (creador), verificado (sistema SIAF RP) y aprobado (creador).
  */
@@ -487,13 +554,14 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
   const rol = sesion.perfil.rolCodigo as 'CREADOR' | 'APROBADOR';
   const esAutorizacion = s.catDocumento?.codigo === CODIGO_AUTORIZACION;
   if (esAutorizacion && !puedeAutorizar(sesion)) return error(403, 'Su perfil no puede registrar autorizaciones excepcionales.');
-  const permitidos = (esAutorizacion ? TRANSICIONES_AUTORIZACION : TRANSICIONES[rol])?.[s.estado] ?? [];
+  const esSaldos = s.catDocumento?.codigo === CODIGO_SALDOS;
+  const permitidos = (esAutorizacion ? TRANSICIONES_AUTORIZACION : esSaldos ? TRANSICIONES_SALDOS[rol] : TRANSICIONES[rol])?.[s.estado] ?? [];
   if (!nuevo || !permitidos.includes(nuevo)) {
     return error(409, `No se puede pasar de ${s.estado} a ${nuevo ?? '—'} con el perfil ${sesion.perfil.rol}.`);
   }
   const comentario = dto.comentario?.trim() ?? '';
   if ((nuevo === 'OBSERVADO' || nuevo === 'RECHAZADO') && !comentario) return error(400, 'Escriba el comentario.');
-  if (nuevo === 'ELIMINADO' && (s.historialEstados ?? []).some((h) => h.estadoNuevo === 'OBSERVADO')) {
+  if (!esSaldos && nuevo === 'ELIMINADO' && (s.historialEstados ?? []).some((h) => h.estadoNuevo === 'OBSERVADO')) {
     return error(409, 'No se puede eliminar una solicitud que fue observada.');
   }
   if (esAutorizacion && (nuevo === 'ELABORADO' || nuevo === 'APROBADO')) {
@@ -513,6 +581,15 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
     const errores = validarTraslado(s.detalleTraslado, libretasConSaldo(datos, s.detalleTraslado?.cuentaBancaria ?? ''));
     if (errores.length) {
       const mensaje = nuevo === 'APROBADO' ? 'El saldo disponible cambió y ya no alcanza: no se puede aprobar.' : 'El documento tiene errores de verificación.';
+      return error(nuevo === 'APROBADO' ? 409 : 400, mensaje, { errores });
+    }
+  }
+
+  // Saldos iniciales y ajustes: el sistema revisa las reglas al verificar y otra vez al aprobar (RN-1032, RN-1029).
+  if (esSaldos && (nuevo === 'VERIFICADO' || nuevo === 'APROBADO')) {
+    const errores = validarSaldos(datos, s);
+    if (errores.length) {
+      const mensaje = nuevo === 'APROBADO' ? 'El documento ya no cumple las reglas: no se puede aprobar.' : 'El documento tiene errores de verificación.';
       return error(nuevo === 'APROBADO' ? 409 : 400, mensaje, { errores });
     }
   }
