@@ -46,7 +46,7 @@ import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo'
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 22;
+const VERSION = 23;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -57,7 +57,7 @@ export interface NotificacionMock extends NotificacionResponse {
 export interface DatosTaller {
   version: number;
   solicitudes: SolicitudResponse[];
-  /** Traslados entre cuentas de registros procesados (documentos RTCR). */
+  /** Traslados entre cuentas de registros aprobados (documentos RTCR). */
   registrosTraslado: TrasladoRegistro[];
   /** Saldos iniciales aprobados (documentos RSIN). */
   registrosSaldos: SaldoInicialRegistro[];
@@ -629,7 +629,7 @@ function crearSaldosApertura(datos: DatosTaller): void {
 
 /**
  * Cuentas de registro de una cuenta bancaria con su saldo disponible: lo que dejaron los saldos iniciales activos
- * (los ajustes con su signo) más lo que movieron los traslados procesados (el crédito suma y el débito resta).
+ * (los ajustes con su signo) más lo que movieron los traslados aprobados (el crédito suma y el débito resta).
  */
 export function libretasConSaldo(datos: DatosTaller, cuentaBancaria: string): LibretaSaldo[] {
   const saldo = new Map<string, number>();
@@ -671,24 +671,9 @@ export function registrarTraslado(datos: DatosTaller, s: SolicitudResponse, fech
   });
 }
 
-/** Traslado procesado: avisa al creador y a los aprobadores que las libretas quedaron actualizadas. */
-export function notificarProcesado(datos: DatosTaller, s: SolicitudResponse, fecha: string, leida = false): void {
-  const base = {
-    tipo: 'DOCUMENTO_PROCESADO',
-    titulo: 'Traslado procesado',
-    mensaje: `El documento ${s.numero} se registró en las libretas de las cuentas de registro.`,
-    leida,
-    leidaEn: leida ? fecha : null,
-    createdAt: fecha,
-    documento: { id: s.id, numero: s.numero, catDocumento: TIPO_DOCUMENTO },
-  };
-  datos.notificaciones.push({ id: nuevoId(datos, 'not'), ...base, paraUsuarioId: s.creador?.id });
-  datos.notificaciones.push({ id: nuevoId(datos, 'not'), ...base, paraRolCodigo: 'APROBADOR' });
-}
-
 interface SemillaTraslado {
   creada: string;
-  estado: 'ELABORADO' | 'VERIFICADO' | 'OBSERVADO' | 'RECHAZADO' | 'PROCESADO';
+  estado: 'ELABORADO' | 'VERIFICADO' | 'OBSERVADO' | 'RECHAZADO' | 'APROBADO';
   cuenta: string;
   /** [idCorrelativo, naturaleza, importe] */
   movimientos: [string, 'Débito' | 'Crédito', number][];
@@ -701,9 +686,9 @@ const CUT = '00000281794000000005';
 const RO = '11040103570200000000';
 
 const SEMILLAS_TRASLADO: SemillaTraslado[] = [
-  { creada: '2026-09-14', estado: 'PROCESADO', cuenta: CUT, justificacion: 'Consolidar lo recaudado por IPM e Impuesto al Rodaje en FONCOMUN.',
+  { creada: '2026-09-14', estado: 'APROBADO', cuenta: CUT, justificacion: 'Consolidar lo recaudado por IPM e Impuesto al Rodaje en FONCOMUN.',
     movimientos: [['000032', 'Débito', 100000], ['000033', 'Débito', 50000], ['000034', 'Crédito', 150000]] },
-  { creada: '2026-09-22', estado: 'PROCESADO', cuenta: RO, justificacion: 'Distribuir recursos ordinarios entre dos cuentas de registro.',
+  { creada: '2026-09-22', estado: 'APROBADO', cuenta: RO, justificacion: 'Distribuir recursos ordinarios entre dos cuentas de registro.',
     movimientos: [['000012', 'Débito', 10000], ['000013', 'Crédito', 6000], ['000014', 'Crédito', 4000]] },
   { creada: '2026-10-06', estado: 'RECHAZADO', cuenta: CUT, justificacion: 'Trasladar el saldo de la cuenta de registro 5 a la 6.',
     movimientos: [['000036', 'Débito', 30000], ['000037', 'Crédito', 30000]], comentario: '[Información incorrecta] La cuenta de destino no corresponde al recurso.' },
@@ -729,10 +714,9 @@ function crearTraslados(datos: DatosTaller): void {
     if (semilla.estado === 'OBSERVADO' || semilla.estado === 'RECHAZADO') {
       historial.push(filaHistorial(datos, 'VERIFICADO', semilla.estado, enFecha(semilla.creada, 11, 2), luis, ROL_APROBADOR, semilla.comentario ?? null));
     }
-    if (semilla.estado === 'PROCESADO') {
-      const aprobado = enFecha(semilla.creada, 11, 2);
-      historial.push(filaHistorial(datos, 'VERIFICADO', 'APROBADO', aprobado, luis, ROL_APROBADOR));
-      historial.push(filaHistorial(datos, 'APROBADO', 'PROCESADO', aprobado, SISTEMA, ROL_SISTEMA));
+    // Flujo manual: termina en APROBADO (PROCESADO es solo de los documentos automáticos).
+    if (semilla.estado === 'APROBADO') {
+      historial.push(filaHistorial(datos, 'VERIFICADO', 'APROBADO', enFecha(semilla.creada, 11, 2), luis, ROL_APROBADOR));
     }
     const ultima = historial[historial.length - 1].createdAt;
     const movimientos: MovimientoTraslado[] = semilla.movimientos.map(([idCorrelativo, naturaleza, importe]) => ({ idCorrelativo, naturaleza, importe }));
@@ -754,8 +738,8 @@ function crearTraslados(datos: DatosTaller): void {
       sustentos: [],
       historialEstados: historial,
     };
-    if (semilla.estado === 'PROCESADO') solicitud.fechaAprobacion = ultima;
+    if (semilla.estado === 'APROBADO') solicitud.fechaAprobacion = ultima;
     datos.solicitudes.push(solicitud);
-    if (semilla.estado === 'PROCESADO') registrarTraslado(datos, solicitud, ultima);
+    if (semilla.estado === 'APROBADO') registrarTraslado(datos, solicitud, ultima);
   }
 }

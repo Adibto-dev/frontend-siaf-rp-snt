@@ -28,6 +28,7 @@ import { DocumentSummaryCardComponent } from '../../../../../shared/ui/document-
 import { EmptySectionComponent } from '../../../../../shared/ui/empty-section/empty-section.component';
 import { FlowStatus } from '../../../../../shared/ui/flow-status-tag/flow-status-tag.component';
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
+import { AlertComponent } from '../../../../../shared/ui/alert/alert.component';
 import { MessageBoxComponent } from '../../../../../shared/ui/message-box/message-box.component';
 import { RadioComponent, RadioOption } from '../../../../../shared/ui/radio/radio.component';
 import { SidePanelComponent } from '../../../../../shared/ui/side-panel/side-panel.component';
@@ -137,6 +138,7 @@ const TEXTOS: Record<FormaSeleccion, TextosForma> = {
     DocumentSummaryCardComponent,
     EmptySectionComponent,
     IconComponent,
+    AlertComponent,
     MessageBoxComponent,
     RadioComponent,
     RequestApprovalModalsComponent,
@@ -324,9 +326,10 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
       return ids.size;
     };
     return [
-      { caption: 'Cuentas de origen', value: String(contar('origen')) },
-      { caption: 'Cuentas de destino', value: String(contar('destino')) },
-      { caption: 'Total a trasladar', value: `${moneda} ${formatoImporte(this.totalDebitos())}` },
+      { caption: 'Cuentas de origen', value: String(contar('origen')), excedido: false },
+      { caption: 'Cuentas de destino', value: String(contar('destino')), excedido: false },
+      // `excedido`: el total se pinta en rojo si algún importe supera el saldo de su origen.
+      { caption: 'Total a trasladar', value: `${moneda} ${formatoImporte(this.totalDebitos())}`, excedido: true },
     ];
   });
 
@@ -366,8 +369,11 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
     () => !this.soloLectura() && ((this.estado() === 'NUEVO' ? this.fotoActual() !== this.fotoNueva : this.hayCambios())),
   );
 
-  /** Para grabar basta la cuenta, al menos un par con importe y el motivo: las reglas se revisan al verificar. */
-  private readonly formularioCompleto = computed(() => !!this.cuentaElegida() && this.movimientos().length > 0 && cumpleMinimoTextoLibre(this.motivo()));
+  /** Para grabar basta la cuenta y al menos un par con importe: las reglas se revisan al verificar. El motivo es
+   *  opcional; si se escribe, con el mínimo de caracteres. */
+  private readonly formularioCompleto = computed(
+    () => !!this.cuentaElegida() && this.movimientos().length > 0 && (!this.motivo().trim() || cumpleMinimoTextoLibre(this.motivo())),
+  );
 
   /** Verificar: en ELABORADO u OBSERVADO; al editar, con los datos completos (graba lo pendiente antes). */
   readonly verificarDeshabilitado = computed(() => {
@@ -531,6 +537,40 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
     const debito = this.movimientos().find((m) => m.naturaleza === 'Débito' && m.idCorrelativo === idOrigen)?.importe ?? 0;
     return debito > (this.libretaPorId().get(idOrigen)?.saldoDisponible ?? 0);
   }
+
+  /** Error del campo de importe: en «por origen» marca todas las filas de la tarjeta cuyo origen se excede; en
+   *  «por destino», la fila cuya cuenta de origen (la asignada) no alcanza. El detalle va en `alertaSaldo`. */
+  errorImporte(principal: string, secundaria: string): string {
+    return this.excedeSaldo(this.origenDeFila(principal, secundaria)) ? 'Supera el saldo disponible.' : '';
+  }
+
+  /** Si algún importe de la tarjeta excede el saldo de su origen: pinta en rojo el monto de la cabecera. */
+  tarjetaExcedida(principal: string, filas: readonly { id: string }[]): boolean {
+    return filas.some((f) => this.excedeSaldo(this.origenDeFila(principal, f.id)));
+  }
+
+  /** Cuentas de origen cuyo débito supera su saldo disponible, en el orden de las tarjetas. */
+  readonly origenesExcedidos = computed(() => {
+    const ids = new Set<string>();
+    for (const t of this.tarjetas()) {
+      for (const f of t.filas) {
+        const origen = this.origenDeFila(t.id, f.id);
+        if (this.excedeSaldo(origen)) ids.add(origen);
+      }
+    }
+    return [...ids];
+  });
+
+  /** Texto de la alerta única de la sección, o vacío si todos los importes caben en el saldo de su origen. */
+  readonly alertaSaldo = computed(() => {
+    const ids = this.origenesExcedidos();
+    if (ids.length === 0) return '';
+    const cuentas =
+      ids.length === 1
+        ? `de la cuenta de origen ${ids[0]}`
+        : `de las cuentas de origen ${ids.slice(0, -1).join(', ')} y ${ids[ids.length - 1]}`;
+    return `El importe a trasladar supera el saldo disponible ${cuentas}. Corrija los importes marcados.`;
+  });
 
   /** El origen de una fila de la tarjeta: la principal en «por origen», la asignada en «por destino». */
   origenDeFila(principal: string, secundaria: string): string {

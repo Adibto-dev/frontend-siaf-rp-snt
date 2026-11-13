@@ -18,7 +18,6 @@ import {
   UNIDAD_CREADORA,
   filaHistorial,
   libretasConSaldo,
-  notificarProcesado,
   registrarTraslado,
   guardarDatos,
   leerDatos,
@@ -619,14 +618,9 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
   if (nuevo === 'VERIFICADO') s.fechaEvaluacion = ahora;
   if (nuevo === 'APROBADO') s.fechaAprobacion = ahora;
 
-  // Traslado aprobado: se reserva el saldo, el Motor de Conciliación (simulado) responde conforme al instante y el
-  // documento queda PROCESADO con las libretas actualizadas.
-  if (nuevo === 'APROBADO' && s.catDocumento?.codigo === CODIGO_TRASLADO) {
-    s.historialEstados = [...(s.historialEstados ?? []), filaHistorial(datos, 'APROBADO', 'PROCESADO', ahora, USUARIO_SISTEMA, ROL_SISTEMA)];
-    s.estado = 'PROCESADO';
-    registrarTraslado(datos, s, ahora);
-    notificarProcesado(datos, s, ahora);
-  }
+  // Traslado aprobado: flujo manual, el documento termina en APROBADO (PROCESADO es solo de los automáticos). Al
+  // aprobar se mueven las libretas y se crea el registro del traslado.
+  if (nuevo === 'APROBADO' && s.catDocumento?.codigo === CODIGO_TRASLADO) registrarTraslado(datos, s, ahora);
 
   // Al aprobar saldos iniciales, cada saldo recibe su secuencia y pasa a los registros.
   if (nuevo === 'APROBADO') registrarSaldos(datos, s, ahora);

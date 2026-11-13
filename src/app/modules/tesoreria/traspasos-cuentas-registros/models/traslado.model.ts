@@ -56,7 +56,7 @@ export interface LibretaSaldo {
   saldoDisponible: number;
 }
 
-/** Un traslado procesado: la pestaña Registros y la consulta. */
+/** Un traslado aprobado: la pestaña Registros y la consulta. */
 export interface TrasladoRegistro extends TrasladoDatos {
   id: string;
   /** Secuencia del registro (000001). */
@@ -68,7 +68,7 @@ export interface TrasladoRegistro extends TrasladoDatos {
   entidadSiglas: string;
   documentoId: string;
   numeroDocumento: string;
-  /** Fecha en que quedó procesado (ISO). */
+  /** Fecha en que quedó aprobado (ISO). */
   fechaRegistro: string;
 }
 

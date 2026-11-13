@@ -45,6 +45,19 @@ describe('TextFieldComponent — type="decimal"', () => {
     expect(input().getAttribute('inputmode')).toBe('decimal');
   });
 
+  it('ejemplo: sin etiqueta se ve en gris y no nombra al campo; con etiqueta no se usa', () => {
+    fixture.componentRef.setInput('label', '');
+    fixture.componentRef.setInput('ariaLabel', 'Importe 000062');
+    fixture.componentRef.setInput('ejemplo', '0.00');
+    fixture.detectChanges();
+    expect(input().placeholder).toBe('0.00');
+    expect(input().getAttribute('aria-label')).toBe('Importe 000062');
+
+    fixture.componentRef.setInput('label', 'Importe');
+    fixture.detectChanges();
+    expect(input().placeholder).toBe('Importe');
+  });
+
   it('deja escribir un importe con decimales de punta a punta', () => {
     input().dispatchEvent(new Event('focus'));
 

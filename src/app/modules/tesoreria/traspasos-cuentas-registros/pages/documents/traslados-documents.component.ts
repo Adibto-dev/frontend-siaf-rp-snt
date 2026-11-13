@@ -22,7 +22,7 @@ const cuentas = (r: TrasladoRegistro, naturaleza: 'Débito' | 'Crédito'): strin
 
 /**
  * «Documentos y registros» del traslado entre cuentas de registros. La pantalla entera la arma
- * `siaf-documents-records-page`: esta página solo carga la bandeja (documentos) y los traslados procesados
+ * `siaf-documents-records-page`: esta página solo carga la bandeja (documentos) y los traslados aprobados
  * (registros) y los pasa como filas.
  */
 @Component({

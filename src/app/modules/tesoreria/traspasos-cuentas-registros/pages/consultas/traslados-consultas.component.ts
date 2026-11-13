@@ -19,7 +19,7 @@ const aFechaPe = (iso: string): string => iso.slice(0, 10).split('-').reverse().
 
 /**
  * «Consultas y reportes» del traslado entre cuentas de registros. La pantalla entera la arma `siaf-query-report-page`
- * desde esta configuración. Esta página solo responde la consulta (filtra los traslados procesados con los
+ * desde esta configuración. Esta página solo responde la consulta (filtra los traslados aprobados con los
  * parámetros) y genera el archivo al exportar.
  */
 @Component({
@@ -50,8 +50,8 @@ export class TrasladosConsultasComponent {
     title: nombreDeProceso(CONSULTAS_PROCESS_ID, 'Consultas y reportes de traslado entre cuentas de registros'),
     breadcrumbs: buildProcessBreadcrumbs(CONSULTAS_PROCESS_ID, CONSULTAS_ROUTE),
     parameterFields: [
-      { key: 'desde', label: 'Procesado desde', type: 'date', required: true, icon: 'calendar_today' },
-      { key: 'hasta', label: 'Procesado hasta', type: 'date', required: true, icon: 'event' },
+      { key: 'desde', label: 'Aprobado desde', type: 'date', required: true, icon: 'calendar_today' },
+      { key: 'hasta', label: 'Aprobado hasta', type: 'date', required: true, icon: 'event' },
       { key: 'cuentas', label: 'Cuentas bancarias', type: 'select-multiple', icon: 'account_balance', options: CUENTAS_BANCARIAS.map((c) => ({ value: c.numero, label: `${c.numero} - ${c.denominacion}` })) },
       { key: 'modalidad', label: 'Modalidad', type: 'select', icon: 'swap_horiz', options: MODALIDADES },
     ],
@@ -77,14 +77,14 @@ export class TrasladosConsultasComponent {
     ],
     charts: {
       kpis: [
-        { title: 'Traslados procesados', icon: 'swap_horiz', tone: 'informative', aggregate: 'count' },
+        { title: 'Traslados aprobados', icon: 'swap_horiz', tone: 'informative', aggregate: 'count' },
         { title: 'Varios orígenes (N a 1)', icon: 'call_merge', tone: 'success', aggregate: 'count', where: { column: 'modalidad', value: 'N a 1' } },
         { title: 'Varios destinos (1 a N)', icon: 'call_split', tone: 'warning', aggregate: 'count', where: { column: 'modalidad', value: '1 a N' } },
       ],
       charts: [
-        { title: 'Traslados por cuenta bancaria', description: 'Cantidad de traslados procesados en cada cuenta bancaria.', type: 'bar', groupBy: 'denominacion', aggregate: 'count', seriesName: 'Traslados', categoryLabel: 'Cuenta bancaria', width: 'wide' },
+        { title: 'Traslados por cuenta bancaria', description: 'Cantidad de traslados aprobados en cada cuenta bancaria.', type: 'bar', groupBy: 'denominacion', aggregate: 'count', seriesName: 'Traslados', categoryLabel: 'Cuenta bancaria', width: 'wide' },
         { title: 'Traslados por modalidad', type: 'donut', groupBy: 'modalidad', aggregate: 'count', seriesName: 'Traslados' },
-        { title: 'Traslados por mes', description: 'Traslados procesados en cada mes del periodo consultado.', type: 'line', groupBy: 'fecha', byMonth: true, aggregate: 'count', seriesName: 'Traslados' },
+        { title: 'Traslados por mes', description: 'Traslados aprobados en cada mes del periodo consultado.', type: 'line', groupBy: 'fecha', byMonth: true, aggregate: 'count', seriesName: 'Traslados' },
       ],
     },
     emptyTitle: 'Realice una consulta',
@@ -113,7 +113,7 @@ export class TrasladosConsultasComponent {
             label: 'Resultado de la consulta',
             icon: 'swap_horiz',
             title: `${filas.length} ${filas.length === 1 ? 'traslado' : 'traslados'}`,
-            description: desde && hasta ? `Procesados entre el ${aFechaPe(desde)} y el ${aFechaPe(hasta)}.` : undefined,
+            description: desde && hasta ? `Aprobados entre el ${aFechaPe(desde)} y el ${aFechaPe(hasta)}.` : undefined,
             fields: [
               { label: 'Cuentas bancarias', value: cuentas.length ? cuentas.map((c) => cuentaPorNumero(c)?.denominacion ?? c).join(', ') : 'Todas' },
               { label: 'Modalidad', value: modalidad || 'Todas' },

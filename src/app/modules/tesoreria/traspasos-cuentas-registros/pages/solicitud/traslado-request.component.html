@@ -77,11 +77,17 @@
         @if (!forma() || !cuentaElegida()) {
           <message-box text="No se ha seleccionado ningún tipo. Elija la cuenta bancaria y la modalidad de traslado." />
         } @else {
+          @if (alertaSaldo(); as alerta) {
+            <siaf-alert tone="error" title="Saldo insuficiente" [description]="alerta" />
+          }
           <dl class="m-0 grid gap-siaf-lg rounded-siaf-md bg-[var(--sys-color-bg-surfaces-surface-low)] p-siaf-lg text-[var(--sys-color-text-neutral-medium)] md:grid-cols-3 md:gap-siaf-xl">
             @for (i of indicadores(); track i.caption) {
               <div class="flex min-w-0 flex-col gap-siaf-xs">
                 <dt class="siaf-text-body-2-medium">{{ i.caption }}</dt>
-                <dd class="siaf-text-heading-5-bold m-0 break-words">{{ i.value }}</dd>
+                <dd
+                  class="siaf-text-heading-5-bold m-0 break-words"
+                  [class]="i.excedido && origenesExcedidos().length > 0 ? 'text-[var(--sys-color-text-feedback-danger)]' : ''"
+                >{{ i.value }}</dd>
               </div>
             }
           </dl>
@@ -117,14 +123,14 @@
                   </div>
                   <div class="flex min-w-0 flex-col items-end gap-0.5 text-right">
                     <span class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]" [siafTooltip]="textos().importePrincipalTermino">{{ textos().importePrincipal }}</span>
-                    <span class="siaf-text-body-2-bold whitespace-nowrap text-[var(--sys-color-text-neutral-high)]">{{ formatoImporte(t.total) }}</span>
+                    <span
+                      class="siaf-text-body-2-bold whitespace-nowrap"
+                      [class]="tarjetaExcedida(t.id, t.filas) ? 'text-[var(--sys-color-text-feedback-danger)]' : 'text-[var(--sys-color-text-neutral-high)]'"
+                    >{{ formatoImporte(t.total) }}</span>
                   </div>
                 </div>
 
                 <div class="flex flex-col gap-siaf-md p-siaf-md">
-                  @if (forma() === 'origen' && excedeSaldo(t.id)) {
-                    <message-box text="El importe a debitar supera el saldo disponible de la cuenta de origen." />
-                  }
                   <div class="flex min-h-10 items-center justify-between gap-siaf-md">
                     <h4 class="m-0 text-sm font-bold uppercase text-text">{{ textos().secundarias }}</h4>
                     @if (!soloLectura()) {
@@ -163,9 +169,10 @@
                                   <siaf-input
                                     [ariaLabel]="textos().importeSecundariaTermino + ' ' + f.id"
                                     type="decimal"
+                                    ejemplo="0.00"
                                     [autoSuccess]="false"
                                     [value]="f.importe || ''"
-                                    [error]="forma() === 'destino' && excedeSaldo(f.id) ? 'Supera el saldo disponible.' : ''"
+                                    [error]="errorImporte(t.id, f.id)"
                                     (valueChange)="cambiarImporte(t.id, f.id, $event)"
                                   />
                                 </td>
@@ -190,7 +197,6 @@
       <siaf-solicitude-form-card title="Motivo del traslado">
         <text-area-control
           placeholder="Descripción"
-          [required]="true"
           [maxlength]="200"
           [minlength]="minCaracteresTexto"
           [readonly]="soloLectura()"

@@ -32,6 +32,7 @@ import { UploaderComponent } from '../../../shared/ui/uploader/uploader.componen
               <siaf-input label="Correo (type correo o email)" type="correo" autocomplete="email" />
               <siaf-input label="Número entero (number)" type="number" hint="Solo enteros: con decimales el campo se vacía" />
               <siaf-input label="Importe (decimal)" type="decimal" [decimals]="2" hint="Para importes: acepta 1250.50" />
+              <siaf-input ariaLabel="Importe en celda de tabla" type="decimal" ejemplo="0.00" hint="En tabla: sin etiqueta, con ejemplo 0.00" />
               <siaf-input label="Contraseña" type="password" autocomplete="current-password" />
               <siaf-input label="Tipo de documento (select)" type="select" [options]="opciones" />
               <div class="sm:col-span-2">

@@ -35,7 +35,8 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
  * - En una tabla, panel o modal con scroll: la lista del select flota sobre la página (no la recorta el contenedor),
  *   abre hacia arriba si abajo no hay espacio y sigue al campo con el scroll.
  * - Dentro de una celda de tabla: sin `label` (la cabecera ya nombra la columna) y con `ariaLabel` para el lector
- *   de pantalla, ej. `[ariaLabel]="'Importe ' + fila.id"`.
+ *   de pantalla, ej. `[ariaLabel]="'Importe ' + fila.id"`. Para un importe, `ejemplo="0.00"`: muestra el formato en
+ *   gris mientras está vacío sin volverse etiqueta (`placeholder` sí es etiqueta: flota y nombra al campo).
  * - `type="select"` o `select-multiple` para listas cortas y cerradas: tipo de plan contable, tipo de libro y mes,
  *   ámbitos institucionales o estados en los paneles de búsqueda.
  * - `type="decimal"` para importes, como el importe de cada cuenta del asiento de ajuste; `number` solo para enteros.
@@ -248,7 +249,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
               class="siaf-text-body-2 min-w-0 flex-1 bg-transparent leading-6 text-[var(--sys-color-text-neutral-medium)] outline-none placeholder:text-[var(--sys-color-text-neutral-low)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-medium)] disabled:placeholder:text-[var(--sys-color-text-neutral-disabled)]"
               [type]="inputType"
               [attr.inputmode]="inputMode"
-              [placeholder]="floatingLabel || required ? '' : labelText"
+              [placeholder]="placeholderNativo"
               [attr.aria-label]="labelText ? null : ariaLabel || null"
               [attr.aria-required]="required"
               [disabled]="disabled"
@@ -301,6 +302,9 @@ export class TextFieldComponent implements OnChanges, OnDestroy, ControlValueAcc
   /** Nombre para lectores de pantalla sin etiqueta visible (ej. un campo dentro de una celda de tabla, sin `label`). */
   @Input() ariaLabel = '';
   @Input() placeholder = '';
+  /** Valor de muestra en gris mientras el campo está vacío y sin etiqueta (ej. `0.00` en un importe de tabla). A
+   *  diferencia de `placeholder`, no flota ni da nombre al campo: el nombre sigue saliendo de `ariaLabel`. */
+  @Input() ejemplo = '';
   @Input() hint = '';
   @Input() error = '';
   @Input() state: TextFieldState = 'enabled';
@@ -378,6 +382,12 @@ export class TextFieldComponent implements OnChanges, OnDestroy, ControlValueAcc
 
   get labelText(): string {
     return this.label || this.placeholder;
+  }
+
+  /** `placeholder` nativo del `<input>`: la etiqueta mientras no flota o, sin etiqueta, el `ejemplo`. */
+  get placeholderNativo(): string {
+    if (!this.labelText) return this.ejemplo;
+    return this.floatingLabel || this.required ? '' : this.labelText;
   }
 
   get placeholderText(): string {

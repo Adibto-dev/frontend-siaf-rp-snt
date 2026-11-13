@@ -24,7 +24,7 @@ export class TrasladosApiService {
     return this.http.get<LibretaSaldo[]>(`${this.base}/traslados/libretas`, { params: new HttpParams().set('cuenta', cuentaBancaria) });
   }
 
-  /** Traslados procesados: pestaña Registros y consulta. */
+  /** Traslados aprobados: pestaña Registros y consulta. */
   listarRegistros(): Observable<TrasladoRegistro[]> {
     return this.http.get<TrasladoRegistro[]>(`${this.base}/traslados`);
   }

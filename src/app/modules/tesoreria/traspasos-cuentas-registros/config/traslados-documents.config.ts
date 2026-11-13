@@ -67,7 +67,7 @@ const filterCampoOptions: DocumentsRecordsFilterOption[] = [
 const filterValorOptions: DocumentsRecordsFilterOption[] = [
   { label: ESTADO.ELABORADO, value: ESTADO.ELABORADO },
   { label: ESTADO.VERIFICADO, value: ESTADO.VERIFICADO },
-  { label: ESTADO.PROCESADO, value: ESTADO.PROCESADO },
+  { label: ESTADO.APROBADO, value: ESTADO.APROBADO },
   { label: 'Creación', value: 'Creación' },
 ];
 
@@ -88,7 +88,7 @@ export const TRASLADOS_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   recordHistoryDocumentLabel: NOMBRE_DOCUMENTO,
   // El historial de un registro es el del documento que lo creó.
   recordHistoryKind: 'documento',
-  statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.OBSERVADO, ESTADO.PROCESADO, ESTADO.RECHAZADO],
+  statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.OBSERVADO, ESTADO.APROBADO, ESTADO.RECHAZADO],
   actionTypeFilterOptions: ['Creación'],
   filterCampoOptions,
   filterValorOptions,

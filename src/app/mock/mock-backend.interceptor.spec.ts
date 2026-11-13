@@ -94,7 +94,7 @@ describe('mockBackendInterceptor', () => {
       return id;
     }
 
-    it('recorre el flujo: número TR-DTCR correlativo, verificar, y aprobar deja el documento Procesado con las libretas movidas', fakeAsync(() => {
+    it('recorre el flujo: número TR-DTCR correlativo, verificar, y aprobar deja el documento Aprobado con las libretas movidas', fakeAsync(() => {
       const ana = entrar('45872163');
       const antes = esperar(http.get<LibretaSaldo[]>(`${API}/traslados/libretas?cuenta=${CUT}`, { headers: ana })).valor!;
       const [origen, destino] = antes;
@@ -109,8 +109,8 @@ describe('mockBackendInterceptor', () => {
       esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'APROBADO' }, { headers: luis }));
 
       const detalle = esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: luis })).valor!;
-      expect(detalle.estado).toBe('PROCESADO');
-      expect(detalle.historialEstados?.map((h) => h.estadoNuevo)).toEqual(['NUEVO', 'ELABORADO', 'VERIFICADO', 'APROBADO', 'PROCESADO']);
+      expect(detalle.estado).toBe('APROBADO');
+      expect(detalle.historialEstados?.map((h) => h.estadoNuevo)).toEqual(['NUEVO', 'ELABORADO', 'VERIFICADO', 'APROBADO']);
 
       const despues = esperar(http.get<LibretaSaldo[]>(`${API}/traslados/libretas?cuenta=${CUT}`, { headers: ana })).valor!;
       expect(despues[0].saldoDisponible).toBe(origen.saldoDisponible - 1000);
@@ -121,7 +121,7 @@ describe('mockBackendInterceptor', () => {
       expect(registro?.secuencia).toBe('000003');
 
       const avisos = esperar(http.get<{ titulo: string; documento: { id: string } }[]>(`${API}/notificaciones`, { headers: ana })).valor!;
-      expect(avisos.some((n) => n.documento.id === id && n.titulo === 'Traslado procesado')).toBeTrue();
+      expect(avisos.some((n) => n.documento.id === id && n.titulo === 'Solicitud aprobada')).toBeTrue();
     }));
 
     it('verificar revisa todas las reglas: débito mayor al saldo y totales que no cuadran', fakeAsync(() => {
