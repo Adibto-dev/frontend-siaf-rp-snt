@@ -296,7 +296,7 @@ export class TrayNotificationsViewComponent implements OnInit {
   private resolveRoute(notif: NotificacionResponse): string {
     // Taller: traslado entre cuentas de registros (RTCR) y saldos iniciales (RSIN).
     const codigo = (notif.documento?.catDocumento?.codigo ?? notif.solicitud?.tipoDocumento?.codigo ?? '').toUpperCase();
-    const rutas: Record<string, string> = { RTCR: '/procesos/traspasos-cuentas-registros/solicitud', RSIN: '/procesos/saldos-iniciales/solicitud', RAUT: '/procesos/autorizaciones/solicitud' };
+    const rutas: Record<string, string> = { RTCR: '/procesos/traspasos-cuentas-registros/solicitud', RSIN: '/procesos/saldos-iniciales/solicitud', RAUT: '/procesos/autorizaciones/solicitud', RAFI: '/procesos/asignacion-financiera/solicitud' };
     return rutas[codigo] ?? '/procesos/traspasos-cuentas-registros/solicitud';
   }
 }

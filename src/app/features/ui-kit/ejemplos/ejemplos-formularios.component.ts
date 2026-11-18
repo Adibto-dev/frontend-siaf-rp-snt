@@ -97,6 +97,7 @@ import { UploaderComponent } from '../../../shared/ui/uploader/uploader.componen
         <div class="flex flex-col gap-4">
           <siaf-radio-group label="Modalidad" name="uikit-modalidad" [options]="modalidades" value="presencial" />
           <siaf-radio-group label="¿Afecta presupuesto?" name="uikit-si-no" [inline]="true" [options]="siNo" value="si" />
+          <siaf-radio-group label="Periodicidad" name="uikit-periodicidad" [cards]="true" [columns]="3" [options]="periodicidades" value="mensual" />
         </div>
       }
       @case ('siaf-select-options') {
@@ -202,6 +203,11 @@ export class EjemplosFormulariosComponent {
   readonly modalidades: RadioOption[] = [
     { label: 'Presencial', value: 'presencial' },
     { label: 'Remota', value: 'remota' },
+  ];
+  readonly periodicidades: RadioOption[] = [
+    { value: 'mensual', label: 'Mensual', description: 'Una asignación por mes de recaudación' },
+    { value: 'semestral', label: 'Semestral', description: 'Agrupa 6 meses de recaudación' },
+    { value: 'anual', label: 'Anual', description: 'Agrupa todo el ejercicio fiscal' },
   ];
   readonly siNo: RadioOption[] = [
     { label: 'Sí', value: 'si' },

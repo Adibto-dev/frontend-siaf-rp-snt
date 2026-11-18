@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
 
 import { ButtonComponent } from '../../ui/button/button.component';
 import { IconComponent } from '../../ui/icon/icon.component';
@@ -80,6 +80,10 @@ export type SelectionMode = 'single' | 'multiple';
  *   del catálogo de eventos contables.
  * - Con `group` en las columnas para agrupar la cabecera en dos filas: «Documento» sobre Tipo y Número en el panel del
  *   responsable de la autorización excepcional.
+ * - Con `showFilters` cuando el catálogo se filtra por más campos que el buscador: el botón `filter_list` abre a la
+ *   derecha el panel «Filtros» con los campos proyectados (`<div filtros>…</div>`) y Cancelar / Aplicar
+ *   (`filtersCancelled` / `filtersApplied`). Cuentas de registros de la asignación financiera (grupo, subgrupo y
+ *   ubicación geográfica).
  * @evitar
  * - Para elegir entre pocas opciones fijas: usar `siaf-input` tipo select, `siaf-select-options` o `siaf-radio-group`.
  * - Para adjuntar archivos: usar `siaf-upload-side-nav`; para mostrar u ocultar columnas, `siaf-column-visibility-panel`.
@@ -146,12 +150,28 @@ export type SelectionMode = 'single' | 'multiple';
             </button>
           </header>
 
-          <div class="min-h-0 flex-1 overflow-y-auto px-siaf-md py-siaf-md">
-            <siaf-form-table-search
-              [value]="searchValue"
-              [ariaLabel]="searchPlaceholder"
-              (valueChange)="searchChange.emit($event)"
-            />
+          <div class="flex min-h-0 flex-1">
+          <div class="min-h-0 min-w-0 flex-1 overflow-y-auto px-siaf-md py-siaf-md">
+            <div class="flex items-center gap-siaf-xs">
+              <div class="min-w-0 flex-1">
+                <siaf-form-table-search
+                  [value]="searchValue"
+                  [ariaLabel]="searchPlaceholder"
+                  (valueChange)="searchChange.emit($event)"
+                />
+              </div>
+              @if (showFilters) {
+                <siaf-button
+                  variant="outline"
+                  size="md"
+                  icon="filter_list"
+                  [iconOnly]="true"
+                  ariaLabel="Filtros"
+                  [attr.aria-expanded]="filtrosAbiertos()"
+                  (click)="filtrosAbiertos.set(!filtrosAbiertos())"
+                />
+              }
+            </div>
 
             @if (mode === 'multiple' && showSelectAll) {
               <div class="mt-siaf-md">
@@ -289,6 +309,20 @@ export type SelectionMode = 'single' | 'multiple';
             }
           </div>
 
+          @if (showFilters && filtrosAbiertos()) {
+            <section class="flex w-[320px] shrink-0 flex-col border-l border-[var(--sys-color-divider-default)]" aria-label="Filtros">
+              <h3 class="siaf-text-heading-6-bold-caps m-0 px-siaf-md pt-siaf-md text-text">Filtros</h3>
+              <div class="grid min-h-0 flex-1 content-start gap-siaf-md overflow-y-auto px-siaf-md py-siaf-md">
+                <ng-content select="[filtros]" />
+              </div>
+              <div class="flex justify-end gap-siaf-xs px-siaf-md py-siaf-sm">
+                <siaf-button variant="secondary" (click)="cancelarFiltros()">Cancelar</siaf-button>
+                <siaf-button variant="primary" (click)="aplicarFiltros()">Aplicar</siaf-button>
+              </div>
+            </section>
+          }
+          </div>
+
           <footer class="flex shrink-0 items-center justify-end gap-siaf-xs px-siaf-md py-siaf-sm">
             <siaf-button variant="secondary" (click)="onCancel()">{{ cancelLabel }}</siaf-button>
             <siaf-button
@@ -310,7 +344,30 @@ export class SelectionSideNavComponent<T = Record<string, unknown>> implements O
   readonly anim = new SidePanelAnimacion();
 
   ngOnChanges(changes: SimpleChanges): void {
-    if ('open' in changes) this.anim.actualizar(this.open);
+    if ('open' in changes) {
+      this.anim.actualizar(this.open);
+      if (!this.open) this.filtrosAbiertos.set(false);
+    }
+  }
+
+  /** Panel lateral de filtros abierto (botón junto al buscador). */
+  readonly filtrosAbiertos = signal(false);
+
+  /** Muestra el botón de filtros y su panel; los campos se proyectan con el atributo `filtros`. */
+  @Input() showFilters = false;
+  /** Aplicar del panel de filtros: el padre filtra las filas con los valores proyectados. */
+  @Output() filtersApplied = new EventEmitter<void>();
+  /** Cancelar del panel de filtros: el padre descarta los valores sin aplicar. */
+  @Output() filtersCancelled = new EventEmitter<void>();
+
+  aplicarFiltros(): void {
+    this.filtersApplied.emit();
+    this.filtrosAbiertos.set(false);
+  }
+
+  cancelarFiltros(): void {
+    this.filtersCancelled.emit();
+    this.filtrosAbiertos.set(false);
   }
 
   /** Si está abierto. Cuando se pasa a false el componente no renderiza nada. */

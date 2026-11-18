@@ -744,6 +744,8 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
   }
 
   private mostrarAviso(variante: SnackbarVariant): void {
+    // El texto libre de un aviso anterior taparía el de esta acción.
+    this.avisoMensaje.set('');
     this.aviso.set(variante);
     this.avisoAbierto.set(true);
   }

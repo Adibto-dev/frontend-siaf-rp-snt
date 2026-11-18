@@ -38,6 +38,14 @@ import {
   USUARIO_AJUSTE_SALDO,
   mensajeAutorizacionVigente,
 } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
+import {
+  AsignacionRegistro,
+  CODIGO_DOCUMENTO as CODIGO_ASIGNACION,
+  NOMBRE_DOCUMENTO as NOMBRE_ASIGNACION,
+  PREFIJO_NUMERO as PREFIJO_ASIGNACION,
+  Periodicidad,
+  movimientosAsignacion,
+} from '../modules/tesoreria/asignacion-financiera/models/asignacion.model';
 import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
 
 /**
@@ -46,7 +54,7 @@ import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo'
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 23;
+const VERSION = 25;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -59,6 +67,8 @@ export interface DatosTaller {
   solicitudes: SolicitudResponse[];
   /** Traslados entre cuentas de registros aprobados (documentos RTCR). */
   registrosTraslado: TrasladoRegistro[];
+  /** Asignaciones financieras aprobadas (documentos RAFI). */
+  registrosAsignacion: AsignacionRegistro[];
   /** Saldos iniciales aprobados (documentos RSIN). */
   registrosSaldos: SaldoInicialRegistro[];
   /** Autorizaciones aprobadas (documentos RAUT). */
@@ -70,6 +80,8 @@ export interface DatosTaller {
   secuenciaSaldo: number;
   /** Secuencia que se asigna a cada traslado al procesarse. */
   secuenciaTraslado: number;
+  /** Secuencia que se asigna a cada asignación financiera al aprobarse. */
+  secuenciaAsignacion: number;
   secuencia: number;
 }
 
@@ -78,7 +90,8 @@ export const TIPO_SALDOS = { id: 'td-rsin', codigo: CODIGO_SALDOS, nombre: NOMBR
 /** Registro automático de saldos de apertura: lo crea el sistema; no aparece en «Crear documento». */
 export const TIPO_AUTOMATICO = { id: 'td-rasa', codigo: CODIGO_AUTOMATICO, nombre: NOMBRE_AUTOMATICO };
 export const TIPO_AUTORIZACION = { id: 'td-raut', codigo: CODIGO_AUTORIZACION, nombre: NOMBRE_AUTORIZACION };
-export const TIPOS_DOCUMENTO = [TIPO_DOCUMENTO, TIPO_SALDOS, TIPO_AUTOMATICO, TIPO_AUTORIZACION];
+export const TIPO_ASIGNACION = { id: 'td-rafi', codigo: CODIGO_ASIGNACION, nombre: NOMBRE_ASIGNACION };
+export const TIPOS_DOCUMENTO = [TIPO_DOCUMENTO, TIPO_SALDOS, TIPO_AUTOMATICO, TIPO_AUTORIZACION, TIPO_ASIGNACION];
 export const ENTIDAD_CREADORA = { id: 'ent-mef', codMef: '0001', siglas: 'MEF', nombre: 'Ministerio de Economía y Finanzas' };
 export const UNIDAD_CREADORA = { id: 'uo-oga', sigla: 'OGA', nombre: 'Oficina General de Administración' };
 
@@ -163,10 +176,10 @@ export const PREFIJO_SALDOS = 'SI-DRSI';
 
 /**
  * Siguiente número de documento: PCB-<código>-<correlativo>-<año>-<entidad>-<unidad>. Los de saldos (RSIN y RASA)
- * usan el prefijo SI-DRSI y un solo correlativo; los traslados (RTCR), TR-DTCR con su propio correlativo.
+ * usan el prefijo SI-DRSI y un solo correlativo; los traslados (RTCR), TR-DTCR y las asignaciones (RAFI), AF-DAF, cada uno con su correlativo.
  */
 export function numeroDocumento(datos: DatosTaller, codigo: string, fecha: Date, entidad = ENTIDAD_CREADORA.siglas, unidad = UNIDAD_CREADORA.sigla): string {
-  const prefijo = codigo === CODIGO_SALDOS || codigo === CODIGO_AUTOMATICO ? PREFIJO_SALDOS : codigo === CODIGO_DOCUMENTO ? PREFIJO_TRASLADO : `PCB-${codigo}`;
+  const prefijo = codigo === CODIGO_SALDOS || codigo === CODIGO_AUTOMATICO ? PREFIJO_SALDOS : codigo === CODIGO_DOCUMENTO ? PREFIJO_TRASLADO : codigo === CODIGO_ASIGNACION ? PREFIJO_ASIGNACION : `PCB-${codigo}`;
   const correlativo = (datos.correlativos[prefijo] ?? 0) + 1;
   datos.correlativos[prefijo] = correlativo;
   return `${prefijo}-${String(correlativo).padStart(5, '0')}-${fecha.getFullYear()}-${entidad}-${unidad}`;
@@ -298,12 +311,14 @@ function crearDatosIniciales(): DatosTaller {
     version: VERSION,
     solicitudes: [],
     registrosTraslado: [],
+    registrosAsignacion: [],
     registrosSaldos: [],
     registrosAutorizacion: [],
     notificaciones: [],
     correlativos: {},
     secuenciaSaldo: 0,
     secuenciaTraslado: 0,
+    secuenciaAsignacion: 0,
     secuencia: 0,
   };
   const ana = USUARIOS_DEMO[0];
@@ -314,6 +329,7 @@ function crearDatosIniciales(): DatosTaller {
   crearAutorizaciones(datos);
   crearSaldosApertura(datos);
   crearTraslados(datos);
+  crearAsignaciones(datos);
 
   // Notificaciones: el aprobador tiene una solicitud por aprobar; el creador, una observada y otras ya leídas.
   const aviso = (s: SolicitudResponse, tipo: string, titulo: string, mensaje: string, leida: boolean, destino: Pick<NotificacionMock, 'paraUsuarioId' | 'paraRolCodigo'>): NotificacionMock => ({
@@ -629,7 +645,7 @@ function crearSaldosApertura(datos: DatosTaller): void {
 
 /**
  * Cuentas de registro de una cuenta bancaria con su saldo disponible: lo que dejaron los saldos iniciales activos
- * (los ajustes con su signo) más lo que movieron los traslados aprobados (el crédito suma y el débito resta).
+ * (los ajustes con su signo) más lo que movieron los traslados y las asignaciones aprobados (el crédito suma y el débito resta).
  */
 export function libretasConSaldo(datos: DatosTaller, cuentaBancaria: string): LibretaSaldo[] {
   const saldo = new Map<string, number>();
@@ -641,6 +657,10 @@ export function libretasConSaldo(datos: DatosTaller, cuentaBancaria: string): Li
   for (const t of datos.registrosTraslado) {
     if (t.estado !== 'Activo' || t.cuentaBancaria !== cuentaBancaria) continue;
     for (const m of t.movimientos) sumarA(m.idCorrelativo, m.naturaleza === 'Débito' ? -m.importe : m.importe);
+  }
+  for (const a of datos.registrosAsignacion ?? []) {
+    if (a.estado !== 'Activo' || a.cuentaBancaria !== cuentaBancaria) continue;
+    for (const m of a.movimientos) sumarA(m.idCorrelativo, m.naturaleza === 'Débito' ? -m.importe : m.importe);
   }
   return cuentasRegistroDe(cuentaBancaria).map((c) => ({
     idCorrelativo: c.idCorrelativo,
@@ -741,5 +761,104 @@ function crearTraslados(datos: DatosTaller): void {
     if (semilla.estado === 'APROBADO') solicitud.fechaAprobacion = ultima;
     datos.solicitudes.push(solicitud);
     if (semilla.estado === 'APROBADO') registrarTraslado(datos, solicitud, ultima);
+  }
+}
+
+// ─── Asignación financiera (RAFI) ──────────────────────────────────
+
+/** Al aprobarse un RAFI: la asignación pasa a los registros con su secuencia y mueve el saldo de las libretas. */
+export function registrarAsignacion(datos: DatosTaller, s: SolicitudResponse, fecha: string): void {
+  const d = s.detalleAsignacion;
+  if (!d || datos.registrosAsignacion.some((r) => r.documentoId === s.id)) return;
+  datos.secuenciaAsignacion += 1;
+  datos.registrosAsignacion.push({
+    id: nuevoId(datos, 'af'),
+    secuencia: String(datos.secuenciaAsignacion).padStart(6, '0'),
+    estado: 'Activo',
+    cuentaBancaria: d.cuentaBancaria,
+    periodicidad: d.periodicidad,
+    movimientos: d.movimientos,
+    moneda: cuentaPorNumero(d.cuentaBancaria)?.moneda ?? 'PEN',
+    total: sumar(d.movimientos, 'Débito'),
+    entidadSiglas: s.entidadCreadora?.siglas ?? '',
+    documentoId: s.id,
+    numeroDocumento: s.numero ?? '',
+    fechaRegistro: fecha,
+  });
+}
+
+interface SemillaAsignacion {
+  creada: string;
+  estado: 'ELABORADO' | 'VERIFICADO' | 'OBSERVADO' | 'RECHAZADO' | 'APROBADO';
+  cuenta: string;
+  periodicidad: Periodicidad;
+  origen: string;
+  /** [destino, importe] */
+  destinos: [string, number][];
+  justificacion: string;
+  comentario?: string;
+}
+
+/** Seis documentos de ejemplo: dos aprobados (mueven saldo) y uno en cada estado del flujo. */
+const SEMILLAS_ASIGNACION: SemillaAsignacion[] = [
+  { creada: '2026-08-04', estado: 'APROBADO', cuenta: CUT, periodicidad: { tipo: 'mensual', anio: 2026, mesAsignacion: 8 },
+    origen: '000032', destinos: [['000035', 20000], ['000036', 15000]], justificacion: 'Asignar lo recaudado en julio a las cuentas de registro 4 y 5.' },
+  { creada: '2026-07-10', estado: 'APROBADO', cuenta: RO, periodicidad: { tipo: 'semestral', anio: 2026, mesAsignacion: 7 },
+    origen: '000013', destinos: [['000015', 1500], ['000016', 1000]], justificacion: 'Asignación del primer semestre de recursos directamente recaudados.' },
+  { creada: '2026-10-08', estado: 'RECHAZADO', cuenta: CUT, periodicidad: { tipo: 'anual', anio: 2025, mesAsignacion: 10 },
+    origen: '000034', destinos: [['000037', 40000]], justificacion: 'Asignar lo recaudado en 2025 por recursos determinados.',
+    comentario: '[Información incorrecta] El mes de asignación no corresponde a la periodicidad anual.' },
+  { creada: '2026-10-21', estado: 'OBSERVADO', cuenta: RO, periodicidad: { tipo: 'mensual', anio: 2026, mesAsignacion: 10 },
+    origen: '000012', destinos: [['000014', 2000], ['000015', 1000]], justificacion: 'Asignar lo recaudado en septiembre a dos cuentas de registro.',
+    comentario: 'Detalle en el motivo el destino de los recursos asignados.' },
+  { creada: '2026-11-02', estado: 'VERIFICADO', cuenta: CUT, periodicidad: { tipo: 'mensual', anio: 2026, mesAsignacion: 11 },
+    origen: '000033', destinos: [['000035', 10000], ['000036', 5000], ['000037', 5000]], justificacion: 'Asignar lo recaudado en octubre a tres cuentas de registro.' },
+  { creada: '2026-11-12', estado: 'ELABORADO', cuenta: CUT, periodicidad: { tipo: 'semestral', anio: 2026, mesAsignacion: 12 },
+    origen: '000034', destinos: [['000032', 12000]], justificacion: 'Asignación del segundo semestre de donaciones y transferencias.' },
+];
+
+function crearAsignaciones(datos: DatosTaller): void {
+  const ana = USUARIOS_DEMO[0];
+  const luis = USUARIOS_DEMO[1];
+  for (const semilla of SEMILLAS_ASIGNACION) {
+    const id = nuevoId(datos, 'sol');
+    const creada = enFecha(semilla.creada, 9);
+    const historial: HistorialItem[] = [
+      filaHistorial(datos, null, 'NUEVO', creada, ana, ROL_CREADOR),
+      filaHistorial(datos, 'NUEVO', 'ELABORADO', creada, ana, ROL_CREADOR),
+    ];
+    if (semilla.estado !== 'ELABORADO') historial.push(filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10, 1), ana, ROL_CREADOR));
+    if (semilla.estado !== 'ELABORADO' && semilla.estado !== 'VERIFICADO') {
+      historial.push(filaHistorial(datos, 'VERIFICADO', semilla.estado, enFecha(semilla.creada, 11, 2), luis, ROL_APROBADOR, semilla.comentario ?? null));
+    }
+    const ultima = historial[historial.length - 1].createdAt;
+    const asignaciones = semilla.destinos.map(([destino, importe]) => ({ origen: semilla.origen, destino, importe }));
+    const solicitud: SolicitudResponse = {
+      id,
+      numero: numeroDocumento(datos, CODIGO_ASIGNACION, new Date(creada)),
+      catDocumento: TIPO_ASIGNACION,
+      tipoAccion: 'creacion',
+      estado: semilla.estado,
+      asuntoMotivo: `[OFICINA GENERAL DE ADMINISTRACIÓN] ${semilla.justificacion}`,
+      entidadCreadora: ENTIDAD_CREADORA,
+      unidadCreadora: UNIDAD_CREADORA,
+      creador: { id: ana.id, nombres: ana.nombres, apellidoPaterno: ana.apellidoPaterno, apellidoMaterno: ana.apellidoMaterno },
+      fechaRegistro: creada,
+      createdAt: creada,
+      updatedAt: ultima,
+      itemsCuenta: [],
+      detalleAsignacion: {
+        documentoId: id,
+        cuentaBancaria: semilla.cuenta,
+        periodicidad: semilla.periodicidad,
+        movimientos: movimientosAsignacion(semilla.origen, asignaciones),
+        asignaciones,
+      },
+      sustentos: [],
+      historialEstados: historial,
+    };
+    if (semilla.estado === 'APROBADO') solicitud.fechaAprobacion = ultima;
+    datos.solicitudes.push(solicitud);
+    if (semilla.estado === 'APROBADO') registrarAsignacion(datos, solicitud, ultima);
   }
 }

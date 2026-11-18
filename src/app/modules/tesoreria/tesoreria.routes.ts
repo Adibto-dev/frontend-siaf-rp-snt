@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 
 import { salidaProtegidaGuard } from '../../core/state/salida-protegida';
 
-/** Procesos de tesorería del taller: traslados (ejemplo), saldos iniciales y autorizaciones. Cada uno con su bandeja y su solicitud. */
+/** Procesos de tesorería del taller: traslados (ejemplo), asignación financiera, saldos iniciales y autorizaciones. Cada uno con su bandeja y su solicitud. */
 export const TESORERIA_ROUTES: Routes = [
   {
     path: 'procesos/autorizaciones',
@@ -31,6 +31,23 @@ export const TESORERIA_ROUTES: Routes = [
   { path: 'procesos/registro-cuentas-bancarias/solicitud', redirectTo: '/procesos/traspasos-cuentas-registros/solicitud' },
   { path: 'procesos/registro-cuentas-bancarias/solicitud/:id', redirectTo: '/procesos/traspasos-cuentas-registros/solicitud/:id' },
   { path: 'procesos/registro-cuentas-bancarias/consultas', redirectTo: '/procesos/traspasos-cuentas-registros/consultas' },
+  {
+    path: 'procesos/asignacion-financiera',
+    loadComponent: () =>
+      import('./asignacion-financiera/pages/documents/asignacion-documents.component').then((m) => m.AsignacionDocumentsComponent),
+  },
+  {
+    path: 'procesos/asignacion-financiera/solicitud',
+    canDeactivate: [salidaProtegidaGuard],
+    loadComponent: () =>
+      import('./asignacion-financiera/pages/solicitud/asignacion-request.component').then((m) => m.AsignacionRequestComponent),
+  },
+  {
+    path: 'procesos/asignacion-financiera/solicitud/:id',
+    canDeactivate: [salidaProtegidaGuard],
+    loadComponent: () =>
+      import('./asignacion-financiera/pages/solicitud/asignacion-request.component').then((m) => m.AsignacionRequestComponent),
+  },
   {
     path: 'procesos/traspasos-cuentas-registros',
     loadComponent: () =>

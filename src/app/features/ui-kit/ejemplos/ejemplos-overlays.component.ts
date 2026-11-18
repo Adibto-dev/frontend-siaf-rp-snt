@@ -158,9 +158,15 @@ interface CuentaEjemplo {
           [rows]="cuentas"
           [selectedIds]="cuentasElegidas()"
           (selectionChange)="cuentasElegidas.set($event)"
+          [showFilters]="true"
           (accepted)="seleccion.set(false)"
           (closed)="seleccion.set(false)"
-        />
+        >
+          <div filtros class="grid gap-siaf-md">
+            <siaf-input label="Grupo" />
+            <siaf-input label="Sub grupo" />
+          </div>
+        </siaf-selection-side-nav>
       }
       @case ('siaf-timeline-detail-panel') {
         <siaf-button variant="secondary" icon="timeline" (click)="detalleSeguimiento.set(true)">Ver detalle del seguimiento</siaf-button>

@@ -1034,6 +1034,8 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
       this.avisoMensaje.set(`El documento de tipo Creación con número ${this.numeroDocumento()} se ha verificado correctamente.`);
       this.aviso.set('custom');
     } else {
+      // El texto libre de un aviso anterior taparía el de esta acción.
+      this.avisoMensaje.set('');
       this.aviso.set(variante);
     }
     this.avisoAbierto.set(true);

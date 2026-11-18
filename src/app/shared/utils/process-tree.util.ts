@@ -93,6 +93,18 @@ const DATOS_EXTRA_POR_ID: Record<string, Partial<ProcessMenuNode>> = {
     ],
     actionTypeOptions: ['Creación', 'Modificación'],
   },
+  'doc-asigna-financiera': {
+    createRoute: '/procesos/asignacion-financiera/solicitud',
+    documentOptions: ['Solicitud de Asignación Financiera'],
+    documentCreateOptions: [
+      {
+        label: 'Solicitud de Asignación Financiera',
+        route: '/procesos/asignacion-financiera/solicitud',
+        actionTypes: ['Creación'],
+      },
+    ],
+    actionTypeOptions: ['Creación'],
+  },
 };
 
 /**

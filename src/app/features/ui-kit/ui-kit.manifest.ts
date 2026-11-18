@@ -9758,6 +9758,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": "Opciones como tarjetas lado a lado, con `description` bajo la etiqueta."
       },
       {
+        "nombre": "columns",
+        "tipo": "2 | 3",
+        "porDefecto": "2",
+        "requerida": false,
+        "descripcion": "Con `cards`: tarjetas por fila desde `md` (2 por defecto; 3, como la periodicidad de la asignación financiera)."
+      },
+      {
         "nombre": "disabled",
         "tipo": "boolean",
         "porDefecto": "false",
@@ -9814,7 +9821,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       }
     ],
-    "usar": "- Para las preguntas Sí/No en una línea con `[inline]`: «Cuenta Única del Tesoro (CUT)» y «¿Vigente?» en el catálogo\n  de eventos, «¿Tiene vigencia?» en el de eventos contables.\n- Para una sola opción entre pocas (2 a 5) que conviene ver todas a la vez; sin `inline` van apiladas.\n- Con `cards` cuando cada opción necesita explicarse: van como tarjetas lado a lado, con la etiqueta y su\n  `description`, y la elegida resaltada. Así se elige la modalidad del traslado entre cuentas de registros\n  («Por cuenta de origen» / «Por cuenta de destino»).\n- Con `label`, para que el grupo tenga `legend`, y con un `name` propio por grupo.",
+    "usar": "- Para las preguntas Sí/No en una línea con `[inline]`: «Cuenta Única del Tesoro (CUT)» y «¿Vigente?» en el catálogo\n  de eventos, «¿Tiene vigencia?» en el de eventos contables.\n- Para una sola opción entre pocas (2 a 5) que conviene ver todas a la vez; sin `inline` van apiladas.\n- Con `cards` cuando cada opción necesita explicarse: van como tarjetas lado a lado, con la etiqueta y su\n  `description`, y la elegida resaltada. Así se elige la modalidad del traslado entre cuentas de registros\n  («Por cuenta de origen» / «Por cuenta de destino»). Con `[columns]=\"3\"` van tres por fila (periodicidad de la\n  asignación financiera: Mensual, Semestral y Anual).\n- Con `label`, para que el grupo tenga `legend`, y con un `name` propio por grupo.",
     "evitar": "- Para listas largas o que vienen de un catálogo: usar `siaf-input` con `type=\"select\"` o, si hay que buscar,\n  `siaf-selection-side-nav`.\n- Para marcar varias opciones o encender algo al instante: casillas o `siaf-switch`.\n- Repetir a mano los `input type=\"radio\"` con `accent-brand-primary`, como aún hacen las secciones de vigencia y de\n  dinámica del formulario de cuenta contable.\n- Dos grupos en la misma pantalla con el `name` por defecto: comparten `radio-group` y se desmarcan entre sí.",
     "teclado": "- **Tab**: entra al grupo por la opción marcada y sale de él.\n- **Flechas**: pasan a la opción anterior o siguiente y la marcan (radio nativo).\n- **Espacio**: marca la opción enfocada.",
     "accesibilidad": "- **1.3.1 Información y relaciones (A)**: `fieldset` con `legend` (el `label`) y cada radio dentro de su `<label>`.\n  El padre debe dar `label`: sin él el grupo queda sin nombre, como hoy en los formularios de eventos, que ponen la\n  pregunta fuera del componente.\n- **4.1.2 Nombre, función y valor (A)**: radios nativos: el navegador publica el rol, el marcado y `disabled`. El\n  padre debe dar un `name` único por grupo.\n- **Pendiente · 3.3.2 Etiquetas o instrucciones (A)**: el asterisco solo existe en la `legend`, y `aria-required` va\n  en cada radio, rol que no lo admite en ARIA 1.2 (sí `radiogroup`).\n- **Pendiente · 3.3.1 Identificación de errores (A)**: no tiene entrada de error ni `aria-invalid`; el aviso de un\n  grupo obligatorio sin respuesta lo tiene que pintar y asociar el padre.\n- **2.4.7 Foco visible (AA)**: no define estilo propio; queda el anillo de foco nativo del navegador.\n- **Pendiente · 1.4.11 Contraste no textual (AA)**: el círculo lo dibuja el navegador y, marcado, lo pinta\n  `accent-brand-primary`: 8.79:1 en claro, pero 2.66:1 en oscuro.\n- **2.5.8 Tamaño del objetivo (AA)**: cada opción es una `label` de 40 px de alto, clicable entera.\n- **1.4.3 Contraste mínimo (AA)**: opciones y `legend` en `text-neutral-high` 16.29:1; asterisco\n  `text-feedback-danger` 9.84:1.",
@@ -11007,6 +11014,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": "Ids actualmente seleccionados (temporal — todavía no se aplicó)."
       },
       {
+        "nombre": "showFilters",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Muestra el botón de filtros y su panel; los campos se proyectan con el atributo `filtros`."
+      },
+      {
         "nombre": "showRowsPerPage",
         "tipo": "boolean",
         "porDefecto": "true",
@@ -11061,6 +11075,16 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": "Click en X / backdrop / Cancelar."
       },
       {
+        "nombre": "filtersApplied",
+        "tipo": "void",
+        "descripcion": "Aplicar del panel de filtros: el padre filtra las filas con los valores proyectados."
+      },
+      {
+        "nombre": "filtersCancelled",
+        "tipo": "void",
+        "descripcion": "Cancelar del panel de filtros: el padre descarta los valores sin aplicar."
+      },
+      {
         "nombre": "nextPage",
         "tipo": "void",
         "descripcion": "Navegación de paginación: página siguiente."
@@ -11091,7 +11115,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": "Emite cada vez que cambia la selección temporal (radio o check)."
       }
     ],
-    "usar": "- Para elegir uno (`single`) o varios (`multiple`) registros de un catálogo desde un formulario de solicitud: cuentas\n  contables, entidades, planes de cuentas, clases y detalles de ajuste, ámbitos, periodos o eventos.\n- Con `paginated` y `showSelectAll` cuando el catálogo es largo (cuentas del plan, cuentas del tipo de asiento): el\n  padre pagina y decide qué cuenta como «todo seleccionado».\n- Con `disabledIds` para mostrar registros que no se pueden elegir, como las clases de ajuste ya usadas por un tipo de\n  asiento (RN-012).\n- Con `customTable` cuando la tabla no es plana: periodos del asiento de ajuste y de la apertura contable, eventos\n  del catálogo de eventos contables.\n- Con `group` en las columnas para agrupar la cabecera en dos filas: «Documento» sobre Tipo y Número en el panel del\n  responsable de la autorización excepcional.",
+    "usar": "- Para elegir uno (`single`) o varios (`multiple`) registros de un catálogo desde un formulario de solicitud: cuentas\n  contables, entidades, planes de cuentas, clases y detalles de ajuste, ámbitos, periodos o eventos.\n- Con `paginated` y `showSelectAll` cuando el catálogo es largo (cuentas del plan, cuentas del tipo de asiento): el\n  padre pagina y decide qué cuenta como «todo seleccionado».\n- Con `disabledIds` para mostrar registros que no se pueden elegir, como las clases de ajuste ya usadas por un tipo de\n  asiento (RN-012).\n- Con `customTable` cuando la tabla no es plana: periodos del asiento de ajuste y de la apertura contable, eventos\n  del catálogo de eventos contables.\n- Con `group` en las columnas para agrupar la cabecera en dos filas: «Documento» sobre Tipo y Número en el panel del\n  responsable de la autorización excepcional.\n- Con `showFilters` cuando el catálogo se filtra por más campos que el buscador: el botón `filter_list` abre a la\n  derecha el panel «Filtros» con los campos proyectados (`<div filtros>…</div>`) y Cancelar / Aplicar\n  (`filtersCancelled` / `filtersApplied`). Cuentas de registros de la asignación financiera (grupo, subgrupo y\n  ubicación geográfica).",
     "evitar": "- Para elegir entre pocas opciones fijas: usar `siaf-input` tipo select, `siaf-select-options` o `siaf-radio-group`.\n- Para adjuntar archivos: usar `siaf-upload-side-nav`; para mostrar u ocultar columnas, `siaf-column-visibility-panel`.\n- Maquetar otro panel de búsqueda con overlay, tabla y botones: este reemplazó los 15 que había en los formularios.\n- Para filtrar la grilla de la página: usar `siaf-custom-filter` o `siaf-filter-pill`.",
     "teclado": "- **Tab**: al abrir, el foco entra en la X; recorre el buscador, la barra de la grilla, los controles de selección, la\n  paginación y Cancelar / Aceptar, y da la vuelta sin salir del panel. En `single` todo el grupo de radios es una sola\n  parada. Con `customTable`, la tabla proyectada trae su propio teclado.\n- **Escape**: cierra el panel (emite `closed`) y el foco vuelve al control que lo abrió.\n- **Espacio**: en `multiple` marca o desmarca la casilla enfocada; en `single` elige el radio.\n- **Flechas**: en `single` pasan al radio anterior o siguiente y lo eligen (grupo nativo por `name`); saltan los\n  deshabilitados.\n- **Enter** en el buscador: aplica la búsqueda (sigue `siaf-form-table-search`).\n- **Enter / Espacio**: activan la X y Cancelar (emiten `closed`) y Aceptar (emite `accepted` con los ids).",
     "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: `role=\"dialog\"` con `aria-modal=\"true\"` y `aria-label` igual al `title`; la\n  X se llama «Cerrar» más el título, y las casillas y los radios nativos exponen marcado y deshabilitado.\n- **2.4.3 Orden del foco (A)**: con `siafFoco`, al abrir lleva el foco a la X y al cerrar lo devuelve al campo que lo\n  abrió; Tab no sale a la página de atrás.\n- **2.1.2 Sin trampas de teclado (A)**: Tab queda dentro mientras está abierto, pero Escape siempre lo cierra.\n- **1.3.1 Información y relaciones (A)**: título `h2` y tabla real con `thead` y un `th` por columna.\n- **Pendiente · 2.4.6 Encabezados y etiquetas (AA)**: todas las casillas y radios se llaman «Seleccionar fila» (su\n  columna lleva un `th` vacío), y el buscador siempre se rotula «Buscar»: `searchPlaceholder` llega al `ariaLabel` de\n  `siaf-form-table-search`, que no lo usa.\n- **1.4.1 Uso del color (A)**: la fila elegida lleva la casilla o el radio marcado además del fondo\n  `bg-states-light-selected`; la no elegible, el control deshabilitado además de la opacidad.\n- **Pendiente · 4.1.3 Mensajes de estado (AA)**: «No se encontraron resultados.» aparece dentro de la tabla sin\n  `role=\"status\"`: el resultado de la búsqueda no se anuncia.\n- **2.4.7 Foco visible (AA)**: la X, las casillas y los radios muestran el anillo nativo del navegador (sin\n  `outline-none`); el buscador, la barra, la paginación y los botones del pie siguen su componente.",
@@ -11101,6 +11125,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "dialog"
       ],
       "atributos": [
+        "aria-expanded",
         "aria-label",
         "aria-modal"
       ]
@@ -11164,7 +11189,9 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       {
         "token": "--sys-gap-base-md",
         "via": [
+          "gap-siaf-md",
           "mt-siaf-md",
+          "pt-siaf-md",
           "px-siaf-md",
           "py-siaf-md"
         ]

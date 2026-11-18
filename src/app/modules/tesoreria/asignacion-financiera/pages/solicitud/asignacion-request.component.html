@@ -1,0 +1,340 @@
+<div class="min-h-[calc(100vh-56px)] bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
+  <siaf-solicitude-page-layout
+    [breadcrumbs]="breadcrumbs"
+    [role]="headerRole()"
+    [state]="headerState()"
+    [loading]="cargando()"
+    [heading]="heading"
+    secondaryText="Creación"
+    [showReturn]="true"
+    [showButtonGroup]="!visualizador()"
+    [saveDisabled]="!formValido() || saving()"
+    [saveDisabledReason]="saving() ? '' : null"
+    [verifyDisabled]="verificarDeshabilitado()"
+    (returned)="regresar()"
+    (canceled)="regresar()"
+    (saved)="modalGrabar.set(true)"
+    (edited)="editar()"
+    (verified)="modalVerificar.set(true)"
+    (deleted)="modalEliminar.set(true)"
+    (approved)="abrirAprobar()"
+    (observed)="abrirObservar()"
+    (rejected)="abrirRechazar()"
+  >
+    @if (cargando()) {
+      <div class="rounded-siaf-md bg-surface p-siaf-xl">
+        <div class="grid grid-cols-3 gap-siaf-md">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="siaf-skeleton-pulse h-4 w-32 rounded bg-[var(--sys-color-bg-surfaces-surface-low)]"></div>
+          }
+        </div>
+      </div>
+    } @else {
+      @if (elaborado()) {
+        <section class="grid gap-siaf-md lg:grid-cols-[1fr_360px]">
+          <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
+          <siaf-document-summary-card [documentNumber]="numeroDocumento()" [status]="estadoDocumento()" />
+        </section>
+      } @else {
+        <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
+      }
+
+      <!-- ── Movimiento interno ── -->
+      <siaf-solicitude-form-card title="Movimiento interno">
+        <siaf-summary-card [fields]="movimientoInterno" [bordered]="true" [showClose]="false" />
+      </siaf-solicitude-form-card>
+
+      <!-- ── Cuenta bancaria ── -->
+      <siaf-solicitude-form-card>
+        @if (cuentaElegida()) {
+          <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+            <h3 class="m-0 text-sm font-bold uppercase text-text">Cuenta bancaria</h3>
+            @if (!soloLectura()) {
+              <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Buscar cuenta bancaria" (click)="abrirPanelCuenta()" />
+            }
+          </div>
+          <siaf-summary-card [fields]="datosCuenta()" [bordered]="true" [showClose]="!soloLectura()" closeLabel="Quitar cuenta bancaria" (closed)="elegirCuenta('')" />
+        } @else {
+          <empty-section title="Cuenta bancaria" [disabled]="soloLectura()" (actionClicked)="abrirPanelCuenta()" />
+        }
+      </siaf-solicitude-form-card>
+
+      <!-- ── Asignación financiera (Figma 814:27120, 818:30461 y 819:33222) ── -->
+      <siaf-solicitude-form-card title="Asignación financiera">
+        <div class="flex items-center gap-siaf-xs">
+          <h3 class="m-0 text-sm font-bold uppercase text-text">Periodicidad</h3>
+          <span class="inline-flex text-[var(--sys-color-text-neutral-medium)]" tabindex="0" role="img" aria-label="Información de la periodicidad" [siafTooltip]="ayudaPeriodicidad">
+            <siaf-icon name="info" variant="outlined" [size]="20" />
+          </span>
+        </div>
+        <div class="grid gap-siaf-md md:grid-cols-3">
+          <siaf-input label="Periodicidad" type="select" [required]="true" [options]="opcionesPeriodicidad" [value]="tipoPeriodicidad()" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="elegirPeriodicidad($event)" />
+          @if (tipoPeriodicidad() === 'mensual') {
+            <siaf-input label="Año" [value]="texto(anio())" [readonly]="true" />
+          } @else {
+            <siaf-input label="Año" type="select" [required]="true" [options]="opcionesAnio" [value]="texto(anio())" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="anio.set(numero($event) ?? anio())" />
+          }
+          <siaf-input label="Mes de asignación" type="select" [required]="true" [options]="opcionesMes" [value]="texto(mesAsignacion())" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="mesAsignacion.set(numero($event))" />
+        </div>
+
+        @if (cuentaElegida()) {
+          @if (alertaSaldo(); as alerta) {
+            <siaf-alert tone="error" title="Saldo insuficiente" [description]="alerta" />
+          }
+          <dl class="m-0 grid gap-siaf-lg rounded-siaf-md bg-[var(--sys-color-bg-surfaces-surface-low)] p-siaf-lg text-[var(--sys-color-text-neutral-medium)] md:grid-cols-3 md:gap-siaf-xl">
+            @for (i of indicadores(); track i.caption) {
+              <div class="flex min-w-0 flex-col gap-siaf-xs">
+                <dt class="siaf-text-body-2-medium">{{ i.caption }}</dt>
+                <dd class="siaf-text-heading-5-bold m-0 break-words" [class]="i.excedido && excedido() ? 'text-[var(--sys-color-text-feedback-danger)]' : ''">{{ i.value }}</dd>
+              </div>
+            }
+          </dl>
+        }
+
+          @if (!origen()) {
+            <empty-section title="Cuentas de origen - Débito" [disabled]="soloLectura() || !cuentaElegida() || cargandoLibretas()" (actionClicked)="abrirPanelOrigen()" />
+          } @else {
+            <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+              <h3 class="m-0 text-sm font-bold uppercase text-text">Cuentas de origen - Débito</h3>
+              @if (!soloLectura()) {
+                <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Seleccionar cuenta de registro de origen" (click)="abrirPanelOrigen()" />
+              }
+            </div>
+            <siaf-collapsible-card
+              [expanded]="tarjetaAbierta()"
+              [closable]="!soloLectura()"
+              [closeLabel]="'Quitar ' + origen()"
+              (expandedChange)="tarjetaAbierta.set($event)"
+              (closed)="quitarOrigen()"
+            >
+              <div card-info class="grid items-center gap-siaf-md md:grid-cols-[minmax(0,1fr)_150px_150px_150px]">
+                <div class="min-w-0">
+                  <p class="siaf-text-body-2-bold m-0 truncate text-text">{{ origen() }} - {{ libretaOrigen()?.descripcion }}</p>
+                  <p class="siaf-text-caption-1 m-0 truncate">{{ libretaOrigen()?.numero }}</p>
+                </div>
+                <span class="siaf-text-body-2 inline-flex items-center gap-siaf-xs">
+                  <siaf-icon name="account_tree" [size]="20" />{{ cantidadDestinos(filasDestino().length) }}
+                </span>
+                <div class="flex min-w-0 flex-col items-end gap-0.5 text-right">
+                  <span class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]" [siafTooltip]="abrev.saldoCuenta.termino">{{ abrev.saldoCuenta.abreviatura }}</span>
+                  <span class="siaf-text-body-2-bold whitespace-nowrap text-[var(--sys-color-text-neutral-high)]">{{ formatoImporte(libretaOrigen()?.saldoDisponible ?? 0) }}</span>
+                </div>
+                <div class="flex min-w-0 flex-col items-end gap-0.5 text-right">
+                  <span class="siaf-text-caption-1 text-[var(--sys-color-text-neutral-low)]" [siafTooltip]="abrev.importeAsignar.termino">{{ abrev.importeAsignar.abreviatura }}</span>
+                  <span class="siaf-text-body-2-bold whitespace-nowrap" [class]="excedido() ? 'text-[var(--sys-color-text-feedback-danger)]' : 'text-[var(--sys-color-text-neutral-high)]'">{{ formatoImporte(totalAsignar()) }}</span>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-siaf-md p-siaf-md">
+                <div class="flex min-h-10 items-center justify-between gap-siaf-md">
+                  <h4 class="m-0 text-sm font-bold uppercase text-text">Cuentas de destino - Crédito</h4>
+                  @if (!soloLectura()) {
+                    <div class="flex items-center gap-siaf-sm">
+                      <siaf-button variant="outline" size="md" icon="upload" [iconOnly]="true" ariaLabel="Carga masiva" siafTooltip="Carga masiva" (click)="cargaMasivaAbierta.set(true)" />
+                      <siaf-button variant="accent" size="md" icon="search" [iconOnly]="true" ariaLabel="Seleccionar cuentas de registros de destino" (click)="abrirPanelDestinos()" />
+                    </div>
+                  }
+                </div>
+                @if (filasDestino().length === 0) {
+                  <message-box text="No se agregaron cuentas de destino. Haga clic en el botón para agregarlas o use la carga masiva." />
+                } @else {
+                  <div class="siaf-table-shell">
+                    <table class="siaf-table min-w-[730px]">
+                      <caption class="sr-only">Cuentas de destino de {{ origen() }}</caption>
+                      <thead>
+                        <tr class="siaf-table-head-row">
+                          <th class="siaf-table-th w-[48px]"><span class="sr-only">Asignada</span></th>
+                          <th class="siaf-table-th">Descripción</th>
+                          <th class="siaf-table-th w-[300px]">Número</th>
+                          <th class="siaf-table-th w-[200px]" [siafTooltip]="abrev.importeAcreditar.termino">{{ abrev.importeAcreditar.abreviatura }}</th>
+                          @if (!soloLectura()) {
+                            <th class="siaf-table-th w-[56px]"><span class="sr-only">Quitar</span></th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (f of filasDestino(); track f.id) {
+                          <tr class="siaf-table-row">
+                            <td class="siaf-table-td"><siaf-icon name="subdirectory_arrow_right" [size]="20" /></td>
+                            <td class="siaf-table-td">{{ f.id }} - {{ f.libreta?.descripcion }}</td>
+                            <td class="siaf-table-td">{{ f.libreta?.numero }}</td>
+                            @if (soloLectura()) {
+                              <td class="siaf-table-td text-right">{{ formatoImporte(f.importe) }}</td>
+                            } @else {
+                              <td class="siaf-table-td py-siaf-xs">
+                                <siaf-input
+                                  [ariaLabel]="abrev.importeAsignar.termino + ' ' + f.id"
+                                  type="decimal"
+                                  ejemplo="0.00"
+                                  [autoSuccess]="false"
+                                  [value]="f.importe || ''"
+                                  [error]="excedido() ? 'Supera el saldo disponible.' : ''"
+                                  (valueChange)="cambiarImporte(f.id, $event)"
+                                />
+                              </td>
+                              <td class="siaf-table-td">
+                                <siaf-button variant="text" size="sm" icon="delete" [iconOnly]="true" [ariaLabel]="'Quitar ' + f.id" (click)="quitarDestino(f.id)" />
+                              </td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+            </siaf-collapsible-card>
+          }
+      </siaf-solicitude-form-card>
+
+      <!-- ── Motivo de la asignación ── -->
+      <siaf-solicitude-form-card title="Motivo de la asignación">
+        <text-area-control
+          placeholder="Descripción"
+          [maxlength]="200"
+          [minlength]="minCaracteresTexto"
+          [readonly]="soloLectura()"
+          [value]="motivo()"
+          (valueChange)="motivo.set($event)"
+        />
+      </siaf-solicitude-form-card>
+
+      @if (historial().length > 0 || comentarioActual()) {
+        <siaf-detail-history-tabs [comentario]="comentarioActual()" [entries]="historial()" />
+      }
+
+      @if (numeroDocumento()) {
+        <siaf-action-tracker [showSummaryCards]="true" [showTabs]="false" [summaryItems]="trazabilidad()" />
+      }
+    }
+  </siaf-solicitude-page-layout>
+
+  <siaf-side-panel
+    [open]="panelErroresAbierto()"
+    title="Errores de verificación"
+    [showFooter]="true"
+    confirmLabel="Entendido"
+    cancelLabel="Cerrar"
+    (closed)="panelErroresAbierto.set(false)"
+    (canceled)="panelErroresAbierto.set(false)"
+    (confirmed)="panelErroresAbierto.set(false)"
+  >
+    <div class="flex flex-col gap-siaf-md">
+      <p class="siaf-text-body-2 m-0">El documento sigue en estado Elaborado. Corrija estos datos y vuelva a verificar.</p>
+      @for (e of errores(); track $index) {
+        <siaf-summary-card
+          [fields]="[{ label: 'Campo', value: e.campo }, { label: 'Valor', value: e.valor }, { label: 'Motivo', value: e.motivo }, { label: 'Regla', value: e.regla }]"
+          [bordered]="true"
+          [showClose]="false"
+        />
+      }
+    </div>
+  </siaf-side-panel>
+
+  <siaf-selection-side-nav
+    [open]="panelCuentaAbierto()"
+    title="Seleccionar cuenta bancaria"
+    mode="single"
+    idKey="numero"
+    [rows]="cuentasFiltradas()"
+    [columns]="columnasCuenta"
+    [searchValue]="busquedaCuenta()"
+    [selectedIds]="cuentaTemporal() ? [cuentaTemporal()!] : []"
+    (searchChange)="busquedaCuenta.set($event)"
+    (selectionChange)="cuentaTemporal.set($event[0] || null)"
+    (closed)="panelCuentaAbierto.set(false)"
+    (accepted)="aceptarCuenta($event)"
+  />
+
+  <siaf-selection-side-nav
+    [open]="!!panelLibretas()"
+    [title]="tituloPanelLibretas()"
+    [mode]="panelLibretas() === 'origen' ? 'single' : 'multiple'"
+    idKey="idCorrelativo"
+    [rows]="libretasPagina()"
+    [columns]="columnasLibreta"
+    [searchValue]="busquedaLibreta()"
+    [selectedIds]="libretasTemporales()"
+    [disabledIds]="libretasBloqueadas()"
+    [requireSelection]="false"
+    emptyMessage="La cuenta bancaria no tiene cuentas de registro."
+    tableMinWidthClass="min-w-[760px]"
+    [paginated]="true"
+    [page]="paginaLibretas()"
+    [totalPages]="totalPaginasLibretas()"
+    [pageSize]="filasLibretas()"
+    [rowsPerPage]="filasLibretas()"
+    [totalItems]="libretasFiltradas().length"
+    [showFilters]="true"
+    (searchChange)="buscarLibreta($event)"
+    (selectionChange)="libretasTemporales.set($event)"
+    (previousPage)="paginaLibretas.set(paginaLibretas() - 1)"
+    (nextPage)="paginaLibretas.set(paginaLibretas() + 1)"
+    (rowsPerPageChange)="cambiarFilasLibretas($event)"
+    (filtersApplied)="aplicarFiltrosLibreta()"
+    (filtersCancelled)="cancelarFiltrosLibreta()"
+    (closed)="panelLibretas.set(null)"
+    (accepted)="aceptarLibretas($event)"
+  >
+    <div filtros class="grid gap-siaf-md">
+      <siaf-input label="Grupo" [value]="filtrosEnEdicion().grupo" (valueChange)="editarFiltro('grupo', $event)" />
+      <siaf-input label="Sub grupo" [value]="filtrosEnEdicion().subgrupo" (valueChange)="editarFiltro('subgrupo', $event)" />
+      <hr class="m-0 border-0 border-t border-[var(--sys-color-divider-default)]" />
+      <h4 class="m-0 text-sm font-bold uppercase text-text">Ubicación geográfica</h4>
+      <siaf-input label="Departamento" type="select" [options]="opcionesDepartamento" [value]="filtrosEnEdicion().departamento" (valueChange)="editarFiltro('departamento', $event)" />
+      <siaf-input label="Provincia" type="select" [options]="opcionesProvincia()" [value]="filtrosEnEdicion().provincia" [disabled]="!filtrosEnEdicion().departamento" (valueChange)="editarFiltro('provincia', $event)" />
+      <siaf-input label="Distrito" type="select" [options]="opcionesDistrito()" [value]="filtrosEnEdicion().distrito" [disabled]="!filtrosEnEdicion().provincia" (valueChange)="editarFiltro('distrito', $event)" />
+    </div>
+  </siaf-selection-side-nav>
+
+  <siaf-asignacion-carga-masiva
+    [open]="cargaMasivaAbierta()"
+    [libretas]="libretas()"
+    [origen]="origen()"
+    (closed)="cargaMasivaAbierta.set(false)"
+    (loaded)="cargarDestinos($event)"
+  />
+
+  <siaf-request-approval-modals
+    [saveOpen]="modalGrabar()"
+    [verifyOpen]="modalVerificar()"
+    [deleteOpen]="modalEliminar()"
+    [approveOpen]="modalAprobar()"
+    [observeOpen]="modalObservar()"
+    [rejectOpen]="modalRechazar()"
+    [saving]="saving()"
+    [reason]="comentario()"
+    [rejectReasonType]="motivoRechazo()"
+    [rejectReasonTypeOptions]="motivosRechazo"
+    [snackbarVariant]="aviso()"
+    [snackbarMessage]="avisoMensaje()"
+    [snackbarOpen]="avisoAbierto()"
+    requestType="creación"
+    [requestNumber]="numeroDocumento()"
+    (saveConfirmed)="onConfirmarGrabar()"
+    (verifyConfirmed)="onConfirmarVerificar()"
+    (deleteConfirmed)="onConfirmarEliminar()"
+    (approveConfirmed)="onConfirmarAprobar()"
+    (observeConfirmed)="onConfirmarObservar()"
+    (rejectConfirmed)="onConfirmarRechazar()"
+    (saveClosed)="modalGrabar.set(false)"
+    (verifyClosed)="modalVerificar.set(false)"
+    (deleteClosed)="modalEliminar.set(false)"
+    (approvalClosed)="cerrarModalesAprobador()"
+    (reasonChange)="comentario.set($event)"
+    (rejectReasonTypeChange)="motivoRechazo.set($event)"
+    (snackbarClosed)="avisoAbierto.set(false)"
+  />
+</div>
+
+<siaf-modal
+  variant="cancel"
+  [open]="salida.modalAbierto()"
+  confirmVariant="primary"
+  confirmLabel="Aceptar"
+  cancelLabel="Cancelar"
+  [showIllustration]="true"
+  (canceled)="salida.responder(false)"
+  (closed)="salida.responder(false)"
+  (confirmed)="salida.responder(true)"
+/>

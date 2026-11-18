@@ -21,7 +21,8 @@ export interface RadioOption {
  * - Para una sola opción entre pocas (2 a 5) que conviene ver todas a la vez; sin `inline` van apiladas.
  * - Con `cards` cuando cada opción necesita explicarse: van como tarjetas lado a lado, con la etiqueta y su
  *   `description`, y la elegida resaltada. Así se elige la modalidad del traslado entre cuentas de registros
- *   («Por cuenta de origen» / «Por cuenta de destino»).
+ *   («Por cuenta de origen» / «Por cuenta de destino»). Con `[columns]="3"` van tres por fila (periodicidad de la
+ *   asignación financiera: Mensual, Semestral y Anual).
  * - Con `label`, para que el grupo tenga `legend`, y con un `name` propio por grupo.
  * @evitar
  * - Para listas largas o que vienen de un catálogo: usar `siaf-input` con `type="select"` o, si hay que buscar,
@@ -63,7 +64,7 @@ export interface RadioOption {
   ],
   template: `
     <!-- 16px entre opciones, apiladas o en línea (sys/gap/base/md). -->
-    <fieldset [class]="cards ? 'grid gap-siaf-md md:grid-cols-2' : inline ? 'flex flex-wrap items-center gap-siaf-md' : 'grid gap-siaf-md'">
+    <fieldset [class]="cards ? 'grid gap-siaf-md ' + (columns === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2') : inline ? 'flex flex-wrap items-center gap-siaf-md' : 'grid gap-siaf-md'">
       @if (label) {
         <legend class="siaf-text-body-2-medium text-text">{{ label }}@if (required) { <span class="text-[var(--sys-color-text-feedback-danger)]">*</span> }</legend>
       }
@@ -127,6 +128,8 @@ export class RadioComponent implements ControlValueAccessor {
   @Input() inline = false;
   /** Opciones como tarjetas lado a lado, con `description` bajo la etiqueta. */
   @Input() cards = false;
+  /** Con `cards`: tarjetas por fila desde `md` (2 por defecto; 3, como la periodicidad de la asignación financiera). */
+  @Input() columns: 2 | 3 = 2;
 
   @Output() valueChange = new EventEmitter<string>();
 

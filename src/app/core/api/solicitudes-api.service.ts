@@ -6,6 +6,7 @@ import { APP_CONFIG } from '../config/app.config';
 import { EstadoDocumento } from '../models/documento.model';
 import type { TrasladoDatos } from '../../modules/tesoreria/traspasos-cuentas-registros/models/traslado.model';
 import type { SaldosInicialesDatos } from '../../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
+import type { AsignacionDatos } from '../../modules/tesoreria/asignacion-financiera/models/asignacion.model';
 import type { AutorizacionDatos } from '../../modules/tesoreria/autorizaciones/models/autorizacion.model';
 
 // ─────────────────────────────────────────────────────────────
@@ -314,6 +315,8 @@ export interface SolicitudResponse {
   detalleAsientoAjuste?: AsientoAjusteResponse | null; // SRAA
   /** Taller: cuenta bancaria y movimientos del traslado entre cuentas de registros (RTCR). */
   detalleTraslado?: (TrasladoDatos & { documentoId: string }) | null; // RTCR
+  /** Taller: cuenta bancaria, periodicidad y cuentas de la asignación financiera (RAFI). */
+  detalleAsignacion?: (AsignacionDatos & { documentoId: string }) | null; // RAFI
   /** Taller: entidad financiera y saldos iniciales en libro bancos del documento RSIN. */
   detalleSaldosIniciales?: (SaldosInicialesDatos & { documentoId: string }) | null; // RSIN
   detalleAutorizacion?: (AutorizacionDatos & { documentoId: string }) | null; // RAUT

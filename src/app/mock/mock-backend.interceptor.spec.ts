@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 import type { LoginResponse } from '../core/api/auth-api.service';
 import type { SolicitudResponse } from '../core/api/solicitudes-api.service';
 import type { ErrorTraslado, LibretaSaldo, TrasladoDatos, TrasladoRegistro } from '../modules/tesoreria/traspasos-cuentas-registros/models/traslado.model';
+import { movimientosAsignacion, type AsignacionDatos, type AsignacionRegistro } from '../modules/tesoreria/asignacion-financiera/models/asignacion.model';
 import { cuentasRegistroDe, type SaldoInicialRegistro, type SaldosInicialesDatos } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
 import { sumarDias, type AutorizacionRegistro, type AutorizacionVigente } from '../modules/tesoreria/autorizaciones/models/autorizacion.model';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
@@ -136,6 +137,75 @@ describe('mockBackendInterceptor', () => {
       expect(reglas).toContain('El débito de cada origen no supera su saldo disponible.');
       expect(reglas).toContain('El total de débitos es igual al total de créditos.');
       expect(esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: ana })).valor?.estado).toBe('ELABORADO');
+    }));
+  });
+
+  describe('asignación financiera (RAFI)', () => {
+    function crearAsignacion(headers: HttpHeaders, datos: AsignacionDatos): string {
+      const tipos = esperar(http.get<{ id: string; codigo: string }[]>(`${API}/tipos-documento`, { headers })).valor!;
+      const tipo = tipos.find((t) => t.codigo === 'RAFI')!;
+      const creada = esperar(http.post<SolicitudResponse>(`${API}/solicitudes`, { tipoDocumentoId: tipo.id, tipoAccion: 'creacion', organoLinea: 'OGA', justificacion: 'Asignación de prueba' }, { headers }));
+      const id = creada.valor!.id;
+      esperar(http.post(`${API}/solicitudes/${id}/asignacion`, datos, { headers }));
+      return id;
+    }
+
+    function datos(origen: string, destinos: [string, number][], extra: Partial<AsignacionDatos> = {}): AsignacionDatos {
+      const asignaciones = destinos.map(([destino, importe]) => ({ origen, destino, importe }));
+      return {
+        cuentaBancaria: CUT,
+        periodicidad: { tipo: 'mensual', anio: 2026, mesAsignacion: 11 },
+        movimientos: movimientosAsignacion(origen, asignaciones),
+        asignaciones,
+        ...extra,
+      };
+    }
+
+    it('trae seis documentos de ejemplo y dos registros aprobados', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const bandeja = esperar(http.get<{ total: number }>(`${API}/solicitudes/bandeja-creador?tipos=RAFI&page=1&limit=25`, { headers: ana })).valor!;
+      expect(bandeja.total).toBe(6);
+      const registros = esperar(http.get<AsignacionRegistro[]>(`${API}/asignaciones`, { headers: ana })).valor!;
+      expect(registros.length).toBe(2);
+    }));
+
+    it('recorre el flujo: número AF-DAF, verificar y aprobar mueve las libretas y crea el registro', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const antes = esperar(http.get<LibretaSaldo[]>(`${API}/traslados/libretas?cuenta=${CUT}`, { headers: ana })).valor!;
+      const [origen, d1, d2] = antes;
+      const id = crearAsignacion(ana, datos(origen.idCorrelativo, [[d1.idCorrelativo, 600], [d2.idCorrelativo, 400]]));
+
+      const elaborada = esperar(http.patch<{ numero: string }>(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
+      expect(elaborada.valor?.numero).toMatch(/^AF-DAF-00007-\d{4}-MEF-OGA$/);
+      esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'VERIFICADO' }, { headers: ana }));
+
+      const luis = entrar('70318246');
+      esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'APROBADO' }, { headers: luis }));
+      expect(esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: luis })).valor?.estado).toBe('APROBADO');
+
+      const despues = esperar(http.get<LibretaSaldo[]>(`${API}/traslados/libretas?cuenta=${CUT}`, { headers: ana })).valor!;
+      expect(despues[0].saldoDisponible).toBe(origen.saldoDisponible - 1000);
+      expect(despues[1].saldoDisponible).toBe(d1.saldoDisponible + 600);
+      expect(despues[2].saldoDisponible).toBe(d2.saldoDisponible + 400);
+
+      const registro = esperar(http.get<AsignacionRegistro[]>(`${API}/asignaciones`, { headers: ana })).valor!.find((r) => r.documentoId === id);
+      expect(registro?.total).toBe(1000);
+      expect(registro?.secuencia).toBe('000003');
+    }));
+
+    it('verificar exige la periodicidad completa y que el importe no supere el saldo del origen', fakeAsync(() => {
+      const ana = entrar('45872163');
+      const [origen, destino] = esperar(http.get<LibretaSaldo[]>(`${API}/traslados/libretas?cuenta=${CUT}`, { headers: ana })).valor!;
+      const id = crearAsignacion(ana, datos(origen.idCorrelativo, [[destino.idCorrelativo, origen.saldoDisponible + 1]], {
+        periodicidad: { tipo: 'semestral', anio: 2026 },
+      }));
+      esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
+
+      const verificar = esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'VERIFICADO' }, { headers: ana }));
+      const campos = (verificar.error?.error.errores as ErrorTraslado[]).map((e) => e.campo);
+      expect(verificar.error?.status).toBe(400);
+      expect(campos).toContain('Periodicidad');
+      expect((verificar.error?.error.errores as ErrorTraslado[]).map((e) => e.regla)).toContain('El débito de cada origen no supera su saldo disponible.');
     }));
   });
 

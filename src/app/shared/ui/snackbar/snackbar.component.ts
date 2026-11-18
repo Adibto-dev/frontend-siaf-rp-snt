@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, inject, signal } from '@angular/core';
 
 import { IconComponent } from '../icon/icon.component';
 import { SidePanelAnimacion } from '../side-panel-animacion';
@@ -163,8 +163,11 @@ const SNACKBAR_PRESETS: Record<Exclude<SnackbarVariant, 'custom'>, SnackbarPrese
  *   acción se nombra con su texto visible.
  * - **2.4.7 Foco visible (AA)**: los dos botones muestran un contorno blanco de 2 px.
  * - **2.5.8 Tamaño del objetivo (AA)**: la × mide 32 × 32 px y el botón de acción, 32 px de alto.
- * - **2.2.1 Tiempo ajustable (A)**: no tiene temporizador: queda visible hasta que el usuario lo cierra o el padre
- *   cambia `open`.
+ * - **2.2.1 Tiempo ajustable (A)**: se cierra solo a los `duration` ms (5 s; `0` lo deja fijo) emitiendo `closed`;
+ *   el tiempo se detiene mientras el mouse o el foco están sobre el aviso. `warning` y `error` no se cierran solos.
+ *
+ * Un aviso nuevo con el aviso aún abierto (otro `variant`, `message` o `requestNumber`) reemplaza al anterior: vuelve
+ * a entrar con su animación y reinicia el tiempo.
  * - **2.4.3 Orden del foco (A)**: al cerrarlo con la × el botón desaparece y el foco queda en el documento.
  */
 @Component({
@@ -173,11 +176,16 @@ const SNACKBAR_PRESETS: Record<Exclude<SnackbarVariant, 'custom'>, SnackbarPrese
   imports: [IconComponent],
   template: `
     @if (anim.visible()) {
+      @for (k of [clave()]; track k) {
       <div
         class="siaf-text-body-2 siaf-snackbar-anim flex min-h-16 w-full max-w-[430px] items-center gap-siaf-xs rounded-siaf-md bg-[var(--sys-color-bg-snackbar,var(--sys-color-bg-on-surfaces-high))] p-siaf-md text-[var(--sys-color-text-brand-white)] shadow-siaf-elevation-2"
         [class.cerrando]="anim.cerrando()"
         [attr.role]="tone === 'warning' || tone === 'error' ? 'alert' : 'status'"
         [attr.data-tone]="tone"
+        (mouseenter)="pausar()"
+        (mouseleave)="reanudar()"
+        (focusin)="pausar()"
+        (focusout)="reanudar()"
       >
         <div class="flex min-w-0 flex-1 items-center gap-siaf-xs">
           @if (icono; as icono) {
@@ -237,6 +245,7 @@ const SNACKBAR_PRESETS: Record<Exclude<SnackbarVariant, 'custom'>, SnackbarPrese
           </button>
         }
       </div>
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -248,10 +257,57 @@ export class SnackbarComponent implements OnChanges, OnInit {
   /** Cubre los usos sin binding de `open` (default true, p. ej. showcase). */
   ngOnInit(): void {
     this.anim.actualizar(this.open);
+    if (this.open) this.iniciarTiempo();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if ('open' in changes) this.anim.actualizar(this.open);
+    if ('open' in changes) {
+      this.anim.actualizar(this.open);
+      if (this.open) this.iniciarTiempo();
+      else this.detenerTiempo();
+      return;
+    }
+    // Aviso nuevo con el anterior abierto: vuelve a entrar y reinicia el tiempo.
+    const cambio = ['variant', 'message', 'requestNumber'].some((k) => k in changes && !changes[k].firstChange);
+    if (this.open && cambio) {
+      this.clave.update((n) => n + 1);
+      this.iniciarTiempo();
+    }
+  }
+
+  /** Cambia con cada aviso nuevo: re-monta el aviso para repetir la animación de entrada. */
+  readonly clave = signal(0);
+  /** Milisegundos hasta cerrarse solo (emite `closed`). `0`: queda hasta que lo cierren. */
+  @Input() duration = 5000;
+  private tiempo: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.detenerTiempo());
+  }
+
+  /** Mouse o foco sobre el aviso: no se cierra mientras se lee o se usa. */
+  pausar(): void {
+    this.detenerTiempo();
+  }
+
+  reanudar(): void {
+    if (this.open) this.iniciarTiempo();
+  }
+
+  private iniciarTiempo(): void {
+    this.detenerTiempo();
+    if (!this.duration || this.tone === 'warning' || this.tone === 'error') return;
+    this.tiempo = setTimeout(() => {
+      this.tiempo = null;
+      this.closed.emit();
+    }, this.duration);
+  }
+
+  private detenerTiempo(): void {
+    if (this.tiempo) {
+      clearTimeout(this.tiempo);
+      this.tiempo = null;
+    }
   }
 
   @Input() open = true;
