@@ -5874,6 +5874,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "filterActive",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Botón Filtrar resaltado: su panel de filtros está abierto."
+      },
+      {
         "nombre": "filterLabel",
         "tipo": "string",
         "porDefecto": "'Filtrar'",
@@ -5893,6 +5900,20 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "porDefecto": "'Buscar'",
         "requerida": false,
         "descripcion": null
+      },
+      {
+        "nombre": "showFilter",
+        "tipo": "boolean",
+        "porDefecto": "true",
+        "requerida": false,
+        "descripcion": "Muestra el botón Filtrar."
+      },
+      {
+        "nombre": "showMore",
+        "tipo": "boolean",
+        "porDefecto": "true",
+        "requerida": false,
+        "descripcion": "Muestra el segundo botón (Más opciones o Columnas)."
       },
       {
         "nombre": "value",
@@ -5931,7 +5952,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       }
     ],
-    "usar": "- Sobre las tablas de las solicitudes (cuentas contables, tipos de asiento, clases de ajuste, asiento de ajuste,\n  eventos contables) y en el panel lateral de selección (`siaf-selection-side-nav`).\n- Con `variant=\"reports\"` en Consultas y reportes: Plan de cuentas, Asiento de ajuste, Tipos de asiento, Pedidos de\n  contabilización y Libros contables.\n- En el detalle de Contabilización y en los listados de Admin (usuarios, entidades, unidades y correlativos).\n- En Apertura contable: cuentas contables del detalle anual, aperturas mensuales de la configuración e historial de\n  la configuración.\n- Cuando la búsqueda debe confirmarse con Enter o la lupa y no a cada tecla (búsqueda en servidor o muchas filas).",
+    "usar": "- Sobre las tablas de las solicitudes (cuentas contables, tipos de asiento, clases de ajuste, asiento de ajuste,\n  eventos contables) y en el panel lateral de selección (`siaf-selection-side-nav`).\n- Con `showFilter` / `showMore` en `false` para quitar los botones que no tienen acción, y `filterActive` para resaltar\n  Filtrar mientras su panel está abierto (panel de selección con filtros).\n- Con `variant=\"reports\"` en Consultas y reportes: Plan de cuentas, Asiento de ajuste, Tipos de asiento, Pedidos de\n  contabilización y Libros contables.\n- En el detalle de Contabilización y en los listados de Admin (usuarios, entidades, unidades y correlativos).\n- En Apertura contable: cuentas contables del detalle anual, aperturas mensuales de la configuración e historial de\n  la configuración.\n- Cuando la búsqueda debe confirmarse con Enter o la lupa y no a cada tecla (búsqueda en servidor o muchas filas).",
     "evitar": "- En las pestañas Documentos / Registros y en la Bandeja de Documentos, con menús a la derecha:\n  `siaf-records-search-toolbar`, que los proyecta.\n- Esperar que los botones hagan algo por sí solos: emiten `filter`, `more` y `columns`, y si la pantalla no los escucha\n  se pintan y no hacen nada (hoy ninguna consulta escucha Filtrar ni Columnas).\n- Para filtrar por opciones cerradas o por condiciones: `siaf-filter-pill` o `siaf-custom-filter` junto al buscador.",
     "teclado": "- **Tab**: recorre el campo, la lupa, Filtrar y Más opciones (o Columnas); con `disabled` quedan todos fuera.\n- **Enter**: en el campo, confirma la búsqueda y emite `valueChange` con lo escrito; escribir no busca.\n- **Enter / Espacio**: en la lupa confirman igual; en Filtrar, Más opciones y Columnas emiten `filter`, `more` y\n  `columns`.",
     "accesibilidad": "- **Pendiente · 4.1.2 Nombre, función y valor (A)**: el input `ariaLabel` no se usa en la plantilla; el nombre del\n  campo sale de `placeholder` («Buscar» por defecto), así que «Buscar cuentas contables» o «Buscar en pedidos» no\n  llegan al lector. Los botones sí llevan `filterLabel` («Filtrar»), `moreLabel` («Mas opciones», sin tilde) y\n  `columnsLabel` («Ocultar o mostrar columnas»).\n- **Pendiente · 4.1.3 Mensajes de estado (AA)**: ni el buscador ni la grilla anuncian el resultado; la pantalla debe\n  anunciar el total (p. ej. con `role=\"status\"`).\n- **Pendiente · 1.4.11 Contraste no textual (AA)**: el borde del campo sin foco es `border-states-enabled` (2.44:1 /\n  2.59:1). El anillo de foco de la lupa y de los botones ya es el azul del kit (`border-states-focus`, 5.35:1 /\n  10.15:1) y los íconos cumplen (`text-neutral-high`; la lupa, `text-neutral-medium`).\n- **2.4.7 Foco visible (AA)**: el campo pasa a un borde de 2 px `border-states-focus` (5.35:1 / 10.15:1); la lupa y\n  los botones muestran un anillo de 2 px separado 2 px.\n- **2.5.8 Tamaño del objetivo (AA)**: Filtrar, Más opciones y Columnas miden 40 px; la lupa, 24 px.",
@@ -5944,12 +5965,25 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "aria": {
       "roles": [],
       "atributos": [
-        "aria-label"
+        "aria-label",
+        "aria-pressed"
       ]
     },
     "tokens": [
       {
+        "token": "--sys-color-bg-brand-primary",
+        "via": [
+          "text-brand-primary"
+        ]
+      },
+      {
         "token": "--sys-color-bg-states-dark-pressed",
+        "via": [
+          "var()"
+        ]
+      },
+      {
+        "token": "--sys-color-bg-states-light-selected",
         "via": [
           "var()"
         ]
@@ -11115,7 +11149,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": "Emite cada vez que cambia la selección temporal (radio o check)."
       }
     ],
-    "usar": "- Para elegir uno (`single`) o varios (`multiple`) registros de un catálogo desde un formulario de solicitud: cuentas\n  contables, entidades, planes de cuentas, clases y detalles de ajuste, ámbitos, periodos o eventos.\n- Con `paginated` y `showSelectAll` cuando el catálogo es largo (cuentas del plan, cuentas del tipo de asiento): el\n  padre pagina y decide qué cuenta como «todo seleccionado».\n- Con `disabledIds` para mostrar registros que no se pueden elegir, como las clases de ajuste ya usadas por un tipo de\n  asiento (RN-012).\n- Con `customTable` cuando la tabla no es plana: periodos del asiento de ajuste y de la apertura contable, eventos\n  del catálogo de eventos contables.\n- Con `group` en las columnas para agrupar la cabecera en dos filas: «Documento» sobre Tipo y Número en el panel del\n  responsable de la autorización excepcional.\n- Con `showFilters` cuando el catálogo se filtra por más campos que el buscador: el botón `filter_list` abre a la\n  derecha el panel «Filtros» con los campos proyectados (`<div filtros>…</div>`) y Cancelar / Aplicar\n  (`filtersCancelled` / `filtersApplied`). Cuentas de registros de la asignación financiera (grupo, subgrupo y\n  ubicación geográfica).",
+    "usar": "- Para elegir uno (`single`) o varios (`multiple`) registros de un catálogo desde un formulario de solicitud: cuentas\n  contables, entidades, planes de cuentas, clases y detalles de ajuste, ámbitos, periodos o eventos.\n- Con `paginated` y `showSelectAll` cuando el catálogo es largo (cuentas del plan, cuentas del tipo de asiento): el\n  padre pagina y decide qué cuenta como «todo seleccionado».\n- Con `disabledIds` para mostrar registros que no se pueden elegir, como las clases de ajuste ya usadas por un tipo de\n  asiento (RN-012).\n- Con `customTable` cuando la tabla no es plana: periodos del asiento de ajuste y de la apertura contable, eventos\n  del catálogo de eventos contables.\n- Con `group` en las columnas para agrupar la cabecera en dos filas: «Documento» sobre Tipo y Número en el panel del\n  responsable de la autorización excepcional.\n- Con `showFilters` cuando el catálogo se filtra por más campos que el buscador: el botón `filter_list` abre a la\n  derecha el panel «Filtros» con los campos proyectados (`<div filtros>…</div>`) y Cancelar / Aplicar\n  (`filtersCancelled` / `filtersApplied`); mientras está abierto, Cancelar y Aceptar del panel quedan deshabilitados. Cuentas de registros de la asignación financiera (grupo, subgrupo y\n  ubicación geográfica).",
     "evitar": "- Para elegir entre pocas opciones fijas: usar `siaf-input` tipo select, `siaf-select-options` o `siaf-radio-group`.\n- Para adjuntar archivos: usar `siaf-upload-side-nav`; para mostrar u ocultar columnas, `siaf-column-visibility-panel`.\n- Maquetar otro panel de búsqueda con overlay, tabla y botones: este reemplazó los 15 que había en los formularios.\n- Para filtrar la grilla de la página: usar `siaf-custom-filter` o `siaf-filter-pill`.",
     "teclado": "- **Tab**: al abrir, el foco entra en la X; recorre el buscador, la barra de la grilla, los controles de selección, la\n  paginación y Cancelar / Aceptar, y da la vuelta sin salir del panel. En `single` todo el grupo de radios es una sola\n  parada. Con `customTable`, la tabla proyectada trae su propio teclado.\n- **Escape**: cierra el panel (emite `closed`) y el foco vuelve al control que lo abrió.\n- **Espacio**: en `multiple` marca o desmarca la casilla enfocada; en `single` elige el radio.\n- **Flechas**: en `single` pasan al radio anterior o siguiente y lo eligen (grupo nativo por `name`); saltan los\n  deshabilitados.\n- **Enter** en el buscador: aplica la búsqueda (sigue `siaf-form-table-search`).\n- **Enter / Espacio**: activan la X y Cancelar (emiten `closed`) y Aceptar (emite `accepted` con los ids).",
     "accesibilidad": "- **4.1.2 Nombre, función y valor (A)**: `role=\"dialog\"` con `aria-modal=\"true\"` y `aria-label` igual al `title`; la\n  X se llama «Cerrar» más el título, y las casillas y los radios nativos exponen marcado y deshabilitado.\n- **2.4.3 Orden del foco (A)**: con `siafFoco`, al abrir lleva el foco a la X y al cerrar lo devuelve al campo que lo\n  abrió; Tab no sale a la página de atrás.\n- **2.1.2 Sin trampas de teclado (A)**: Tab queda dentro mientras está abierto, pero Escape siempre lo cierra.\n- **1.3.1 Información y relaciones (A)**: título `h2` y tabla real con `thead` y un `th` por columna.\n- **Pendiente · 2.4.6 Encabezados y etiquetas (AA)**: todas las casillas y radios se llaman «Seleccionar fila» (su\n  columna lleva un `th` vacío), y el buscador siempre se rotula «Buscar»: `searchPlaceholder` llega al `ariaLabel` de\n  `siaf-form-table-search`, que no lo usa.\n- **1.4.1 Uso del color (A)**: la fila elegida lleva la casilla o el radio marcado además del fondo\n  `bg-states-light-selected`; la no elegible, el control deshabilitado además de la opacidad.\n- **Pendiente · 4.1.3 Mensajes de estado (AA)**: «No se encontraron resultados.» aparece dentro de la tabla sin\n  `role=\"status\"`: el resultado de la búsqueda no se anuncia.\n- **2.4.7 Foco visible (AA)**: la X, las casillas y los radios muestran el anillo nativo del navegador (sin\n  `outline-none`); el buscador, la barra, la paginación y los botones del pie siguen su componente.",
@@ -11125,7 +11159,6 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "dialog"
       ],
       "atributos": [
-        "aria-expanded",
         "aria-label",
         "aria-modal"
       ]
@@ -11191,7 +11224,6 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "via": [
           "gap-siaf-md",
           "mt-siaf-md",
-          "pt-siaf-md",
           "px-siaf-md",
           "py-siaf-md"
         ]
@@ -11932,6 +11964,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "duration",
+        "tipo": "number",
+        "porDefecto": "5000",
+        "requerida": false,
+        "descripcion": "Milisegundos hasta cerrarse solo (emite `closed`). `0`: queda hasta que lo cierren."
+      },
+      {
         "nombre": "fileName",
         "tipo": "string",
         "porDefecto": "''",
@@ -12003,7 +12042,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "usar": "- Para confirmar una acción puntual que ya terminó: registro grabado, cambios guardados, archivo subido.\n- Para el resultado de la aprobación masiva en la bandeja (`siaf-documents-records-page`) y de la carga masiva\n  del Plan de Cuentas o del catálogo de eventos.\n- Con `tone=\"error\"` cuando la acción falló y hay que avisar enseguida, como al cambiar el estado de un usuario\n  en Admin.\n- Con `actionLabel` para ofrecer una salida rápida, como «Deshacer».",
     "evitar": "- Para los avisos de grabar, verificar, aprobar, observar o rechazar una solicitud: los emite\n  `siaf-request-approval-modals` con `[requestType]`.\n- Para mensajes que deben quedar fijos en la pantalla o explicar una restricción: usar `siaf-alert`.\n- Para pedir confirmación antes de actuar: usar `siaf-modal`.",
     "teclado": "- **Tab**: llega al botón de acción (con `actionLabel`) y a la × (con `dismissible`) según su lugar en el DOM;\n  el aviso no toma el foco al aparecer.\n- **Enter / Espacio**: el botón de acción emite `action` y la × emite `closed` (botones nativos).",
-    "accesibilidad": "- **4.1.3 Mensajes de estado (AA)**: `warning` y `error` son `role=\"alert\"` y los demás `role=\"status\"`; ojo: la\n  región nace junto con el texto (bloque if) y un `status` que aparece ya lleno no siempre se anuncia.\n- **1.1.1 Contenido no textual (A)**: el ícono del tono es decorativo (`aria-hidden`) y `neutral` no lleva: el\n  texto tiene que decir si la acción salió bien o falló.\n- **1.4.3 Contraste mínimo (AA)**: texto blanco sobre el fondo casi negro del aviso en ambos temas\n  (`bg-on-surfaces-high` en claro, `bg-snackbar` en oscuro).\n- **4.1.2 Nombre, función y valor (A)**: la × es un `<button>` con `aria-label=\"Cerrar mensaje\"` y el botón de\n  acción se nombra con su texto visible.\n- **2.4.7 Foco visible (AA)**: los dos botones muestran un contorno blanco de 2 px.\n- **2.5.8 Tamaño del objetivo (AA)**: la × mide 32 × 32 px y el botón de acción, 32 px de alto.\n- **2.2.1 Tiempo ajustable (A)**: no tiene temporizador: queda visible hasta que el usuario lo cierra o el padre\n  cambia `open`.\n- **2.4.3 Orden del foco (A)**: al cerrarlo con la × el botón desaparece y el foco queda en el documento.",
+    "accesibilidad": "- **4.1.3 Mensajes de estado (AA)**: `warning` y `error` son `role=\"alert\"` y los demás `role=\"status\"`; ojo: la\n  región nace junto con el texto (bloque if) y un `status` que aparece ya lleno no siempre se anuncia.\n- **1.1.1 Contenido no textual (A)**: el ícono del tono es decorativo (`aria-hidden`) y `neutral` no lleva: el\n  texto tiene que decir si la acción salió bien o falló.\n- **1.4.3 Contraste mínimo (AA)**: texto blanco sobre el fondo casi negro del aviso en ambos temas\n  (`bg-on-surfaces-high` en claro, `bg-snackbar` en oscuro).\n- **4.1.2 Nombre, función y valor (A)**: la × es un `<button>` con `aria-label=\"Cerrar mensaje\"` y el botón de\n  acción se nombra con su texto visible.\n- **2.4.7 Foco visible (AA)**: los dos botones muestran un contorno blanco de 2 px.\n- **2.5.8 Tamaño del objetivo (AA)**: la × mide 32 × 32 px y el botón de acción, 32 px de alto.\n- **2.2.1 Tiempo ajustable (A)**: se cierra solo a los `duration` ms (5 s; `0` lo deja fijo) emitiendo `closed`;\n  el tiempo se detiene mientras el mouse o el foco están sobre el aviso. `warning` y `error` no se cierran solos.\n\nUn aviso nuevo con el aviso aún abierto (otro `variant`, `message` o `requestNumber`) reemplaza al anterior: vuelve\na entrar con su animación y reinicia el tiempo.\n- **2.4.3 Orden del foco (A)**: al cerrarlo con la × el botón desaparece y el foco queda en el documento.",
     "figma": [],
     "aria": {
       "roles": [

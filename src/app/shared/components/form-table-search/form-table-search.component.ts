@@ -20,6 +20,8 @@ import { TextFieldComponent } from '../../ui/text-field/text-field.component';
  * @usar
  * - Sobre las tablas de las solicitudes (cuentas contables, tipos de asiento, clases de ajuste, asiento de ajuste,
  *   eventos contables) y en el panel lateral de selección (`siaf-selection-side-nav`).
+ * - Con `showFilter` / `showMore` en `false` para quitar los botones que no tienen acción, y `filterActive` para resaltar
+ *   Filtrar mientras su panel está abierto (panel de selección con filtros).
  * - Con `variant="reports"` en Consultas y reportes: Plan de cuentas, Asiento de ajuste, Tipos de asiento, Pedidos de
  *   contabilización y Libros contables.
  * - En el detalle de Contabilización y en los listados de Admin (usuarios, entidades, unidades y correlativos).
@@ -72,15 +74,21 @@ import { TextFieldComponent } from '../../ui/text-field/text-field.component';
       />
 
       <div class="flex shrink-0 items-start gap-siaf-xs">
+        @if (showFilter) {
         <button
           class="inline-flex size-10 items-center justify-center rounded-siaf-md text-text transition hover:bg-surface-muted active:bg-[var(--sys-color-bg-states-dark-pressed)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-disabled)] disabled:hover:bg-transparent focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
           type="button"
+          [class.bg-[var(--sys-color-bg-states-light-selected)]]="filterActive"
+          [class.text-brand-primary]="filterActive"
           [attr.aria-label]="filterLabel"
+          [attr.aria-pressed]="filterActive"
           [disabled]="disabled"
           (click)="filter.emit()"
         >
           <siaf-icon name="filter_list" [size]="24" />
         </button>
+        }
+        @if (showMore) {
         <!-- Segundo botón según la variante: Más opciones o, en Consultas y reportes, Columnas. -->
         <button
           class="inline-flex size-10 items-center justify-center rounded-siaf-md text-text transition hover:bg-surface-muted active:bg-[var(--sys-color-bg-states-dark-pressed)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-disabled)] disabled:hover:bg-transparent focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
@@ -92,6 +100,7 @@ import { TextFieldComponent } from '../../ui/text-field/text-field.component';
         >
           <siaf-icon [name]="variant === 'reports' ? 'view_column' : 'more_vert'" [size]="24" />
         </button>
+        }
       </div>
     </div>
   `,
@@ -117,6 +126,12 @@ export class FormTableSearchComponent implements OnChanges {
   /** Nombre accesible del botón Columnas de la variante `reports`. */
   @Input() columnsLabel = 'Ocultar o mostrar columnas';
   @Input() disabled = false;
+  /** Muestra el botón Filtrar. */
+  @Input() showFilter = true;
+  /** Botón Filtrar resaltado: su panel de filtros está abierto. */
+  @Input() filterActive = false;
+  /** Muestra el segundo botón (Más opciones o Columnas). */
+  @Input() showMore = true;
 
   @Output() valueChange = new EventEmitter<string>();
   @Output() filter = new EventEmitter<void>();

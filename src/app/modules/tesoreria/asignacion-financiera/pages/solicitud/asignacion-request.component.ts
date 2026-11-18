@@ -58,7 +58,7 @@ import {
   validarAsignacion,
 } from '../../models/asignacion.model';
 import type { DestinoCargado } from '../../utils/asignacion-carga-masiva.util';
-import { FILTROS_VACIOS, FiltrosCuenta, cumpleFiltros, opcionesDepartamento, opcionesDistrito, opcionesProvincia } from '../../utils/clasificacion-cuentas.util';
+import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
 import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 
 const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
@@ -268,9 +268,20 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   /** Filtros aplicados (Figma 789:67652) y los que se editan en el panel antes de Aplicar. */
   readonly filtrosLibreta = signal<FiltrosCuenta>(FILTROS_VACIOS);
   readonly filtrosEnEdicion = signal<FiltrosCuenta>(FILTROS_VACIOS);
-  readonly opcionesDepartamento = opcionesDepartamento();
-  readonly opcionesProvincia = computed(() => opcionesProvincia(this.filtrosEnEdicion().departamento));
-  readonly opcionesDistrito = computed(() => opcionesDistrito(this.filtrosEnEdicion().departamento, this.filtrosEnEdicion().provincia));
+  /** Opciones de cada filtro según las cuentas del panel y lo ya elegido. */
+  readonly opcionesFiltros = computed(() => {
+    const ids = this.libretas().map((l) => l.idCorrelativo);
+    const f = this.filtrosEnEdicion();
+    return {
+      fuente: opcionesFiltro(ids, f, 'fuente'),
+      subfuente: opcionesFiltro(ids, f, 'subfuente'),
+      grupo: opcionesFiltro(ids, f, 'grupo'),
+      subgrupo: opcionesFiltro(ids, f, 'subgrupo'),
+      departamento: opcionesFiltro(ids, f, 'departamento'),
+      provincia: opcionesFiltro(ids, f, 'provincia'),
+      distrito: opcionesFiltro(ids, f, 'distrito'),
+    };
+  });
   readonly libretasFiltradas = computed(() => {
     const f = this.filtrosLibreta();
     return filtrar(this.libretas(), this.busquedaLibreta()).filter((l) => cumpleFiltros(l.idCorrelativo, f));
@@ -460,14 +471,13 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
     this.paginaLibretas.set(1);
   }
 
-  /** Un campo del panel «Filtros»: Departamento y Provincia limpian lo que depende de ellos. */
+  /** Un campo del panel «Filtros»: Fuente, Grupo, Departamento y Provincia limpian lo que depende de ellos. */
   editarFiltro(campo: keyof FiltrosCuenta, evento: string | number | string[]): void {
     const valor = String(Array.isArray(evento) ? evento[0] ?? '' : evento ?? '');
     this.filtrosEnEdicion.update((f) => ({
       ...f,
       [campo]: valor,
-      ...(campo === 'departamento' ? { provincia: '', distrito: '' } : {}),
-      ...(campo === 'provincia' ? { distrito: '' } : {}),
+      ...Object.fromEntries((DEPENDIENTES[campo] ?? []).map((d) => [d, ''])),
     }));
   }
 

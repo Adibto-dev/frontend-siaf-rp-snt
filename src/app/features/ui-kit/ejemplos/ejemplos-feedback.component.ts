@@ -184,14 +184,14 @@ const ESTADOS_TAG: EstadoTag[] = [
         <p class="mb-2 text-[11px] font-bold uppercase tracking-widest text-text-muted">Tipos (tone)</p>
         <div class="flex flex-col gap-3">
           @for (tipo of tiposSnackbar; track tipo.tone) {
-            <siaf-snackbar [tone]="tipo.tone" [message]="tipo.mensaje" />
+            <siaf-snackbar [duration]="0" [tone]="tipo.tone" [message]="tipo.mensaje" />
           }
         </div>
         <p class="mb-2 mt-6 text-[11px] font-bold uppercase tracking-widest text-text-muted">Con acción, sin cerrar y textos predefinidos</p>
         <div class="flex flex-col gap-3">
-          <siaf-snackbar tone="neutral" message="Se eliminó el registro 1101.01." actionLabel="Deshacer" (action)="accionesSnackbar.set(accionesSnackbar() + 1)" />
-          <siaf-snackbar variant="changes-saved" [dismissible]="false" />
-          <siaf-snackbar variant="creation-verified" requestType="Solicitud de cuenta contable" requestNumber="0001" [dismissible]="false" />
+          <siaf-snackbar [duration]="0" tone="neutral" message="Se eliminó el registro 1101.01." actionLabel="Deshacer" (action)="accionesSnackbar.set(accionesSnackbar() + 1)" />
+          <siaf-snackbar [duration]="0" variant="changes-saved" [dismissible]="false" />
+          <siaf-snackbar [duration]="0" variant="creation-verified" requestType="Solicitud de cuenta contable" requestNumber="0001" [dismissible]="false" />
         </div>
         <p class="mt-2 text-xs text-text-muted" aria-live="polite">«Deshacer» pulsado {{ accionesSnackbar() }} {{ accionesSnackbar() === 1 ? 'vez' : 'veces' }}.</p>
       }

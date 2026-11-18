@@ -69,11 +69,7 @@
         </div>
         <div class="grid gap-siaf-md md:grid-cols-3">
           <siaf-input label="Periodicidad" type="select" [required]="true" [options]="opcionesPeriodicidad" [value]="tipoPeriodicidad()" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="elegirPeriodicidad($event)" />
-          @if (tipoPeriodicidad() === 'mensual') {
-            <siaf-input label="Año" [value]="texto(anio())" [readonly]="true" />
-          } @else {
-            <siaf-input label="Año" type="select" [required]="true" [options]="opcionesAnio" [value]="texto(anio())" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="anio.set(numero($event) ?? anio())" />
-          }
+          <siaf-input label="Año" type="select" [required]="true" [options]="opcionesAnio" [value]="texto(anio())" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="anio.set(numero($event) ?? anio())" />
           <siaf-input label="Mes de asignación" type="select" [required]="true" [options]="opcionesMes" [value]="texto(mesAsignacion())" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="mesAsignacion.set(numero($event))" />
         </div>
 
@@ -277,13 +273,20 @@
     (accepted)="aceptarLibretas($event)"
   >
     <div filtros class="grid gap-siaf-md">
-      <siaf-input label="Grupo" [value]="filtrosEnEdicion().grupo" (valueChange)="editarFiltro('grupo', $event)" />
-      <siaf-input label="Sub grupo" [value]="filtrosEnEdicion().subgrupo" (valueChange)="editarFiltro('subgrupo', $event)" />
-      <hr class="m-0 border-0 border-t border-[var(--sys-color-divider-default)]" />
-      <h4 class="m-0 text-sm font-bold uppercase text-text">Ubicación geográfica</h4>
-      <siaf-input label="Departamento" type="select" [options]="opcionesDepartamento" [value]="filtrosEnEdicion().departamento" (valueChange)="editarFiltro('departamento', $event)" />
-      <siaf-input label="Provincia" type="select" [options]="opcionesProvincia()" [value]="filtrosEnEdicion().provincia" [disabled]="!filtrosEnEdicion().departamento" (valueChange)="editarFiltro('provincia', $event)" />
-      <siaf-input label="Distrito" type="select" [options]="opcionesDistrito()" [value]="filtrosEnEdicion().distrito" [disabled]="!filtrosEnEdicion().provincia" (valueChange)="editarFiltro('distrito', $event)" />
+      @if (panelLibretas() === 'origen') {
+        <!-- Origen: solo fuente de financiamiento -->
+        <h4 class="m-0 text-sm font-bold uppercase text-text">Fuente de financiamiento</h4>
+        <siaf-input label="Fuente" type="select" [options]="opcionesFiltros().fuente" [value]="filtrosEnEdicion().fuente" (valueChange)="editarFiltro('fuente', $event)" />
+        <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
+      } @else {
+        <siaf-input label="Grupo" type="select" [options]="opcionesFiltros().grupo" [value]="filtrosEnEdicion().grupo" (valueChange)="editarFiltro('grupo', $event)" />
+        <siaf-input label="Sub grupo" type="select" [options]="opcionesFiltros().subgrupo" [value]="filtrosEnEdicion().subgrupo" [disabled]="!filtrosEnEdicion().grupo" (valueChange)="editarFiltro('subgrupo', $event)" />
+        <hr class="m-0 border-0 border-t border-[var(--sys-color-divider-default)]" />
+        <h4 class="m-0 text-sm font-bold uppercase text-text">Ubicación geográfica</h4>
+        <siaf-input label="Departamento" type="select" [options]="opcionesFiltros().departamento" [value]="filtrosEnEdicion().departamento" (valueChange)="editarFiltro('departamento', $event)" />
+        <siaf-input label="Provincia" type="select" [options]="opcionesFiltros().provincia" [value]="filtrosEnEdicion().provincia" [disabled]="!filtrosEnEdicion().departamento" (valueChange)="editarFiltro('provincia', $event)" />
+        <siaf-input label="Distrito" type="select" [options]="opcionesFiltros().distrito" [value]="filtrosEnEdicion().distrito" [disabled]="!filtrosEnEdicion().provincia" (valueChange)="editarFiltro('distrito', $event)" />
+      }
     </div>
   </siaf-selection-side-nav>
 

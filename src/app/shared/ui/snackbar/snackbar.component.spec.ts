@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 
 import { SnackbarComponent, SnackbarTone } from './snackbar.component';
 
@@ -73,5 +73,59 @@ describe('SnackbarComponent', () => {
     fixture.componentRef.setInput('dismissible', false);
     fixture.detectChanges();
     expect(aviso().querySelector('button[aria-label="Cerrar mensaje"]')).toBeNull();
+  });
+
+  describe('tiempo y reemplazo', () => {
+    let cerrado: number;
+    beforeEach(() => {
+      cerrado = 0;
+      fixture.componentInstance.closed.subscribe(() => cerrado++);
+    });
+
+    function abrir(): void {
+      fixture.componentRef.setInput('open', false);
+      fixture.detectChanges();
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+    }
+
+    it('se cierra solo a los 5 segundos', fakeAsync(() => {
+      abrir();
+      tick(4999);
+      expect(cerrado).toBe(0);
+      tick(1);
+      expect(cerrado).toBe(1);
+    }));
+
+    it('con el mouse encima no se cierra', fakeAsync(() => {
+      abrir();
+      aviso().dispatchEvent(new Event('mouseenter'));
+      tick(6000);
+      expect(cerrado).toBe(0);
+      aviso().dispatchEvent(new Event('mouseleave'));
+      tick(5000);
+      expect(cerrado).toBe(1);
+    }));
+
+    it('los de error no se cierran solos', fakeAsync(() => {
+      fixture.componentRef.setInput('tone', 'error');
+      abrir();
+      tick(10000);
+      expect(cerrado).toBe(0);
+    }));
+
+    it('un aviso nuevo reemplaza al abierto, vuelve a entrar y reinicia el tiempo', fakeAsync(() => {
+      abrir();
+      const anterior = aviso();
+      tick(4000);
+      fixture.componentRef.setInput('message', 'El registro se ha eliminado.');
+      fixture.detectChanges();
+      expect(aviso()).not.toBe(anterior);
+      expect(aviso().textContent).toContain('El registro se ha eliminado.');
+      tick(4000);
+      expect(cerrado).toBe(0);
+      tick(1000);
+      expect(cerrado).toBe(1);
+    }));
   });
 });

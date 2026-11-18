@@ -82,7 +82,7 @@ export type SelectionMode = 'single' | 'multiple';
  *   responsable de la autorización excepcional.
  * - Con `showFilters` cuando el catálogo se filtra por más campos que el buscador: el botón `filter_list` abre a la
  *   derecha el panel «Filtros» con los campos proyectados (`<div filtros>…</div>`) y Cancelar / Aplicar
- *   (`filtersCancelled` / `filtersApplied`). Cuentas de registros de la asignación financiera (grupo, subgrupo y
+ *   (`filtersCancelled` / `filtersApplied`); mientras está abierto, Cancelar y Aceptar del panel quedan deshabilitados. Cuentas de registros de la asignación financiera (grupo, subgrupo y
  *   ubicación geográfica).
  * @evitar
  * - Para elegir entre pocas opciones fijas: usar `siaf-input` tipo select, `siaf-select-options` o `siaf-radio-group`.
@@ -131,15 +131,17 @@ export type SelectionMode = 'single' | 'multiple';
         (click)="onCloseRequested()"
       >
         <aside
-          class="flex h-screen w-full flex-col overflow-hidden bg-surface shadow-siaf-lg lg:rounded-l-siaf-md"
+          class="flex h-screen w-full overflow-hidden bg-surface shadow-siaf-lg lg:rounded-l-siaf-md"
           [siafFoco]="open"
           (siafFocoEscape)="onCloseRequested()"
           (click)="$event.stopPropagation()"
         >
+          <div class="flex min-w-0 flex-1 flex-col">
           <header class="flex h-14 shrink-0 items-center gap-siaf-xs px-siaf-md">
             <h2 class="siaf-text-heading-6-bold-caps m-0 flex-1 text-text">
               {{ title }}
             </h2>
+            @if (!filtrosVisibles()) {
             <button
               class="inline-flex size-10 items-center justify-center rounded-siaf-md text-text transition hover:bg-surface-muted"
               type="button"
@@ -148,30 +150,19 @@ export type SelectionMode = 'single' | 'multiple';
             >
               <siaf-icon name="close" [size]="24" />
             </button>
+            }
           </header>
 
-          <div class="flex min-h-0 flex-1">
-          <div class="min-h-0 min-w-0 flex-1 overflow-y-auto px-siaf-md py-siaf-md">
-            <div class="flex items-center gap-siaf-xs">
-              <div class="min-w-0 flex-1">
-                <siaf-form-table-search
-                  [value]="searchValue"
-                  [ariaLabel]="searchPlaceholder"
-                  (valueChange)="searchChange.emit($event)"
-                />
-              </div>
-              @if (showFilters) {
-                <siaf-button
-                  variant="outline"
-                  size="md"
-                  icon="filter_list"
-                  [iconOnly]="true"
-                  ariaLabel="Filtros"
-                  [attr.aria-expanded]="filtrosAbiertos()"
-                  (click)="filtrosAbiertos.set(!filtrosAbiertos())"
-                />
-              }
-            </div>
+          <div class="min-h-0 flex-1 overflow-y-auto px-siaf-md py-siaf-md">
+            <siaf-form-table-search
+              [value]="searchValue"
+              [ariaLabel]="searchPlaceholder"
+              [showFilter]="showFilters"
+              [filterActive]="filtrosVisibles()"
+              [showMore]="false"
+              (valueChange)="searchChange.emit($event)"
+              (filter)="filtrosAbiertos.set(!filtrosAbiertos())"
+            />
 
             @if (mode === 'multiple' && showSelectAll) {
               <div class="mt-siaf-md">
@@ -309,30 +300,40 @@ export type SelectionMode = 'single' | 'multiple';
             }
           </div>
 
-          @if (showFilters && filtrosAbiertos()) {
-            <section class="flex w-[320px] shrink-0 flex-col border-l border-[var(--sys-color-divider-default)]" aria-label="Filtros">
-              <h3 class="siaf-text-heading-6-bold-caps m-0 px-siaf-md pt-siaf-md text-text">Filtros</h3>
-              <div class="grid min-h-0 flex-1 content-start gap-siaf-md overflow-y-auto px-siaf-md py-siaf-md">
-                <ng-content select="[filtros]" />
-              </div>
-              <div class="flex justify-end gap-siaf-xs px-siaf-md py-siaf-sm">
-                <siaf-button variant="secondary" (click)="cancelarFiltros()">Cancelar</siaf-button>
-                <siaf-button variant="primary" (click)="aplicarFiltros()">Aplicar</siaf-button>
-              </div>
-            </section>
-          }
-          </div>
-
           <footer class="flex shrink-0 items-center justify-end gap-siaf-xs px-siaf-md py-siaf-sm">
-            <siaf-button variant="secondary" (click)="onCancel()">{{ cancelLabel }}</siaf-button>
+            <siaf-button variant="secondary" [disabled]="filtrosVisibles()" (click)="onCancel()">{{ cancelLabel }}</siaf-button>
             <siaf-button
               variant="primary"
-              [disabled]="acceptDisabled()"
+              [disabled]="acceptDisabled() || filtrosVisibles()"
               (click)="onAccept()"
             >
               {{ acceptLabel }}
             </siaf-button>
           </footer>
+          </div>
+
+          @if (filtrosVisibles()) {
+            <section class="flex w-[400px] max-w-[50%] shrink-0 flex-col border-l border-[var(--sys-color-divider-default)]" aria-label="Filtros">
+              <header class="flex h-14 shrink-0 items-center gap-siaf-xs px-siaf-md">
+                <h3 class="siaf-text-heading-6-bold-caps m-0 flex-1 text-text">Filtros</h3>
+                <button
+                  class="inline-flex size-10 items-center justify-center rounded-siaf-md text-text transition hover:bg-surface-muted"
+                  type="button"
+                  [attr.aria-label]="'Cerrar ' + title"
+                  (click)="onCloseRequested()"
+                >
+                  <siaf-icon name="close" [size]="24" />
+                </button>
+              </header>
+              <div class="grid min-h-0 flex-1 content-start gap-siaf-md overflow-y-auto px-siaf-md py-siaf-md">
+                <ng-content select="[filtros]" />
+              </div>
+              <footer class="flex shrink-0 items-center justify-end gap-siaf-xs px-siaf-md py-siaf-sm">
+                <siaf-button variant="outline" (click)="cancelarFiltros()">Cancelar</siaf-button>
+                <siaf-button variant="filled" (click)="aplicarFiltros()">Aplicar</siaf-button>
+              </footer>
+            </section>
+          }
         </aside>
       </section>
     }
@@ -352,6 +353,10 @@ export class SelectionSideNavComponent<T = Record<string, unknown>> implements O
 
   /** Panel lateral de filtros abierto (botón junto al buscador). */
   readonly filtrosAbiertos = signal(false);
+  /** El panel de filtros solo existe con `showFilters`. */
+  filtrosVisibles(): boolean {
+    return this.showFilters && this.filtrosAbiertos();
+  }
 
   /** Muestra el botón de filtros y su panel; los campos se proyectan con el atributo `filtros`. */
   @Input() showFilters = false;
