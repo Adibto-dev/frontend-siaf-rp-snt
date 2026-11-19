@@ -119,7 +119,7 @@ const MODAL_PRESETS: Record<Exclude<ModalVariant, "custom">, ModalPreset> = {
     title: "¿Cancelar documento?",
     description: "Se perderán los registros del documento.",
     icon: "cancel",
-    illustration: "assets/figma/modals/cancel.svg",
+    illustration: "assets/figma/modals/cancel-document.svg",
     confirmLabel: "Aceptar",
   },
   settings: {

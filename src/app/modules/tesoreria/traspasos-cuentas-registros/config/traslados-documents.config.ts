@@ -87,7 +87,7 @@ export const TRASLADOS_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   recordTrackKey: 'recordId',
   recordHistoryDocumentLabel: NOMBRE_DOCUMENTO,
   // El historial de un registro es el del documento que lo creó.
-  recordHistoryKind: 'documento',
+  recordHistoryKind: 'propio',
   statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.OBSERVADO, ESTADO.APROBADO, ESTADO.RECHAZADO],
   actionTypeFilterOptions: ['Creación'],
   filterCampoOptions,
@@ -98,7 +98,7 @@ export const TRASLADOS_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   recordFilter1Options: ['1 a 1', '1 a N', 'N a 1', 'N a N'],
   recordFilter2Label: 'Moneda',
   recordFilter2Key: 'moneda',
-  recordFilter2Options: ['Soles', 'Dólares'],
+  recordFilter2Options: ['PEN', 'USD'],
   recordFilterCampoOptions: [
     { label: 'Cuenta bancaria', value: 'cuentaBancaria' },
     { label: 'Modalidad', value: 'modalidad' },
@@ -109,7 +109,7 @@ export const TRASLADOS_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
     { label: '1 a N', value: '1 a N' },
     { label: 'N a 1', value: 'N a 1' },
     { label: 'N a N', value: 'N a N' },
-    { label: 'Soles', value: 'Soles' },
-    { label: 'Dólares', value: 'Dólares' },
+    { label: 'PEN', value: 'PEN' },
+    { label: 'USD', value: 'USD' },
   ],
 };

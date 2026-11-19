@@ -4,6 +4,7 @@ import { PermissionService } from '../../../../../core/auth/permission.service';
 import { ESTADO } from '../../../../../core/models/documento.model';
 import { SolicitudesFacadeService } from '../../../../../core/state/solicitudes-facade.service';
 import { SolicitudesStateService } from '../../../../../core/state/solicitudes-state.service';
+import { ACCION_HISTORIAL_REGISTRO, type DocumentsRecordsRowActionEvent } from '../../../../../shared/types/documents-records.types';
 import { DocumentsRecordsPageComponent } from '../../../../../shared/components/documents-records-page/documents-records-page.component';
 import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 import type { DocumentsQuery, DocumentsRecordsConfig, DocumentsRecordsRow } from '../../../../../shared/types/documents-records.types';
@@ -14,8 +15,9 @@ import { ASIGNACION_DOCUMENTS_CONFIG } from '../../config/asignacion-documents.c
 import { REQUEST_ROUTE } from '../../config/asignacion.rutas';
 import { CODIGO_DOCUMENTO, NOMBRE_DOCUMENTO, AsignacionRegistro, NOMBRE_PERIODICIDAD, textoPeriodo } from '../../models/asignacion.model';
 
-const MONEDA: Record<string, string> = { PEN: 'Soles', USD: 'Dólares' };
 
+
+import { RegistroHistorial, RegistroHistorialPanelComponent } from '../../../traspasos-cuentas-registros/components/registro-historial-panel.component';
 
 /** «000032, 000033» para las columnas Origen y Destino. */
 const cuentas = (r: AsignacionRegistro, naturaleza: 'Débito' | 'Crédito'): string =>
@@ -29,13 +31,17 @@ const cuentas = (r: AsignacionRegistro, naturaleza: 'Débito' | 'Crédito'): str
 @Component({
   selector: 'siaf-asignacion-documents',
   standalone: true,
-  imports: [DocumentsRecordsPageComponent],
+  imports: [DocumentsRecordsPageComponent, RegistroHistorialPanelComponent],
   template: `
     <siaf-documents-records-page
       [config]="pageConfig()"
       [loading]="cargando()"
       (documentsQueryChange)="onDocumentsQuery($event)"
+      (recordActionTriggered)="onRecordAction($event)"
     />
+
+    <!-- Historial del registro (como en saldos iniciales): el documento que lo creó y sus movimientos. -->
+    <siaf-registro-historial-panel [registro]="registroHistorial()" (closed)="registroHistorial.set(null)" />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -49,6 +55,30 @@ export class AsignacionDocumentsComponent implements OnInit {
 
   private readonly registros = signal<AsignacionRegistro[]>([]);
   readonly cargando = signal(true);
+  /** Registro cuyo historial se ve a pantalla completa. */
+  readonly registroHistorial = signal<RegistroHistorial | null>(null);
+
+  onRecordAction({ actionId, row }: DocumentsRecordsRowActionEvent): void {
+    if (actionId !== ACCION_HISTORIAL_REGISTRO) return;
+    const r = this.registros().find((x) => x.id === row['recordId']);
+    if (!r) return;
+    this.registroHistorial.set({
+      documentoId: r.documentoId,
+      numeroDocumento: r.numeroDocumento,
+      nombreDocumento: NOMBRE_DOCUMENTO,
+      estado: r.estado,
+      cuentaBancaria: r.cuentaBancaria,
+      movimientos: r.movimientos,
+      campos: [
+        { caption: 'Cuenta bancaria', value: r.cuentaBancaria },
+        { caption: 'Denominación', value: cuentaPorNumero(r.cuentaBancaria)?.denominacion ?? '—' },
+        { caption: 'Moneda', value: r.moneda },
+        { caption: 'Periodicidad', value: textoPeriodo(r.periodicidad) },
+        { caption: 'Total', value: formatoImporte(r.total) },
+        { caption: 'Secuencia', value: r.secuencia },
+      ],
+    });
+  }
 
   ngOnInit(): void {
     // Bandeja según el rol (el aprobador además refresca cada 30 s). La primera página la resuelve el backend.
@@ -106,7 +136,7 @@ export class AsignacionDocumentsComponent implements OnInit {
       periodo: textoPeriodo(r.periodicidad),
       origenes: cuentas(r, 'Débito'),
       destinos: cuentas(r, 'Crédito'),
-      moneda: MONEDA[r.moneda] ?? r.moneda,
+      moneda: r.moneda,
       total: formatoImporte(r.total),
       fechaRegistro: new Date(r.fechaRegistro).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       // Para el historial del registro: el documento que lo creó.

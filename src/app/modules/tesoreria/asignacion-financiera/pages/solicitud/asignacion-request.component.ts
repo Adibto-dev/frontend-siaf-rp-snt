@@ -213,9 +213,10 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   readonly cuentaTemporal = signal<string | null>(null);
   readonly columnasCuenta: SelectionColumn<FilaCuentaBancaria>[] = [
     { key: 'numero', label: 'Número de cuenta', widthClass: 'w-[220px]' },
-    { key: 'denominacion', label: 'Denominación' },
+    // Denominación y entidad financiera, los datos largos, con el mismo ancho (como en Autorizaciones).
+    { key: 'denominacion', label: 'Denominación', widthClass: 'w-[35%]' },
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[100px]' },
-    { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[280px]' },
+    { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[35%]' },
   ];
   /**
    * Primero la «MEF - Cuenta Única del Tesoro», la que tiene todas las cuentas de registros de demostración; el resto
@@ -290,6 +291,7 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
     return {
       fuente: opcionesFiltro(ids, f, 'fuente'),
       subfuente: opcionesFiltro(ids, f, 'subfuente'),
+      concepto: opcionesFiltro(ids, f, 'concepto'),
       grupo: opcionesFiltro(ids, f, 'grupo'),
       subgrupo: opcionesFiltro(ids, f, 'subgrupo'),
       departamento: opcionesFiltro(ids, f, 'departamento'),

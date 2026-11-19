@@ -6,7 +6,10 @@ import type { TextFieldOption } from '../../../../shared/ui/text-field/text-fiel
  */
 export interface ClasificacionCuenta {
   fuente: string;
+  /** Vacía en las fuentes 1 a 4. */
   subfuente: string;
+  /** Solo bajo la subfuente 18. */
+  concepto: string;
   grupo: string;
   subgrupo: string;
   departamento: string;
@@ -54,18 +57,32 @@ const GRUPOS: { grupo: string; subgrupos: string[] }[] = [
 ];
 
 /**
- * Fuente de financiamiento y subfuente (rubro del Anexo 4 del MEF, 2026), según `02-analisis/fuentes-financiamiento.md`.
+ * Fuente → subfuente → concepto, según `02-analisis/fuentes-financiamiento.md` (v1.5, `Fuentes_y_Subfuentes.xlsx`): las
+ * fuentes 1 a 4 no tienen subfuente, y el concepto solo existe bajo la subfuente 18.
  */
-const FUENTES: { fuente: string; subfuente: string }[] = [
-  { fuente: '1 - Recursos Ordinarios', subfuente: '00 - Recursos Ordinarios' },
-  { fuente: '2 - Recursos Directamente Recaudados', subfuente: '09 - Recursos Directamente Recaudados' },
-  { fuente: '3 - Recursos por Operaciones Oficiales de Crédito', subfuente: '19 - Recursos por Operaciones Oficiales de Crédito' },
-  { fuente: '4 - Donaciones y Transferencias', subfuente: '13 - Donaciones y Transferencias' },
-  { fuente: '5 - Recursos Determinados', subfuente: '04 - Contribuciones a Fondos' },
-  { fuente: '5 - Recursos Determinados', subfuente: '07 - Fondo de Compensación Municipal' },
-  { fuente: '5 - Recursos Determinados', subfuente: '08 - Impuestos Municipales' },
-  { fuente: '5 - Recursos Determinados', subfuente: '15 - Fondo de Compensación Regional (FONCOR)' },
-  { fuente: '5 - Recursos Determinados', subfuente: '18 - Canon y Sobrecanon, Regalías, Renta de Aduanas y Participaciones' },
+const RD = '5 - Recursos Determinados';
+const CANON = '18 - Canon y Sobrecanon, Regalías, Renta de Aduanas y Participaciones';
+const FUENTES: { fuente: string; subfuente: string; concepto: string }[] = [
+  { fuente: '1 - Recursos Ordinarios', subfuente: '', concepto: '' },
+  { fuente: '2 - Recursos Directamente Recaudados', subfuente: '', concepto: '' },
+  { fuente: '3 - Recursos por Operaciones Oficiales de Crédito', subfuente: '', concepto: '' },
+  { fuente: '4 - Donaciones y Transferencias', subfuente: '', concepto: '' },
+  { fuente: RD, subfuente: '04 - Contribuciones a Fondos', concepto: '' },
+  { fuente: RD, subfuente: '07 - Fondo de Compensación Municipal', concepto: '' },
+  { fuente: RD, subfuente: '08 - Impuestos Municipales', concepto: '' },
+  { fuente: RD, subfuente: '15 - Fondo de Compensación Regional – FONCOR', concepto: '' },
+  ...[
+    'Canon Minero',
+    'Canon Hidroenergético',
+    'Canon Gasífero',
+    'Canon Pesquero',
+    'Canon Gasífero – Regalías',
+    'Canon y Sobrecanon Petrolero',
+    'Canon Pesquero – Derechos',
+    'Regalía Minera',
+    'Renta de Aduanas',
+    'Renta de Aduanas – Ley del Chimbote',
+  ].map((nombre, i) => ({ fuente: RD, subfuente: CANON, concepto: `${i + 1} - ${nombre}` })),
 ];
 
 /** Cada par grupo / subgrupo del clasificador, para repartirlos entre las cuentas. */
@@ -108,6 +125,7 @@ export function codigo(valor: string): string {
 export interface FiltrosCuenta {
   fuente: string;
   subfuente: string;
+  concepto: string;
   grupo: string;
   subgrupo: string;
   departamento: string;
@@ -115,7 +133,7 @@ export interface FiltrosCuenta {
   distrito: string;
 }
 
-export const FILTROS_VACIOS: FiltrosCuenta = { fuente: '', subfuente: '', grupo: '', subgrupo: '', departamento: '', provincia: '', distrito: '' };
+export const FILTROS_VACIOS: FiltrosCuenta = { fuente: '', subfuente: '', concepto: '', grupo: '', subgrupo: '', departamento: '', provincia: '', distrito: '' };
 
 /** Cumple los filtros elegidos (vacío = sin filtrar). */
 export function cumpleFiltros(idCorrelativo: string, f: FiltrosCuenta): boolean {
@@ -125,7 +143,8 @@ export function cumpleFiltros(idCorrelativo: string, f: FiltrosCuenta): boolean 
 
 /** Campo que, al cambiar, limpia los que dependen de él. */
 export const DEPENDIENTES: Partial<Record<keyof FiltrosCuenta, (keyof FiltrosCuenta)[]>> = {
-  fuente: ['subfuente'],
+  fuente: ['subfuente', 'concepto'],
+  subfuente: ['concepto'],
   grupo: ['subgrupo'],
   departamento: ['provincia', 'distrito'],
   provincia: ['distrito'],
@@ -135,6 +154,7 @@ export const DEPENDIENTES: Partial<Record<keyof FiltrosCuenta, (keyof FiltrosCue
 const PADRES: Record<keyof FiltrosCuenta, (keyof FiltrosCuenta)[]> = {
   fuente: [],
   subfuente: ['fuente'],
+  concepto: ['fuente', 'subfuente'],
   grupo: [],
   subgrupo: ['grupo'],
   departamento: [],
@@ -143,7 +163,7 @@ const PADRES: Record<keyof FiltrosCuenta, (keyof FiltrosCuenta)[]> = {
 };
 
 /**
- * Opciones de un filtro: los valores de las cuentas del panel que cumplen sus campos padre (Sub fuente según Fuente, Sub grupo según Grupo;
+ * Opciones de un filtro: los valores de las cuentas del panel que cumplen sus campos padre (Sub fuente según Fuente, Concepto según Sub fuente, Sub grupo según Grupo;
  * Provincia y Distrito según la ubicación). Fuente, Grupo y Departamento muestran siempre todas sus opciones, aunque haya
  * otros filtros elegidos.
  */
@@ -152,6 +172,6 @@ export function opcionesFiltro(ids: string[], f: FiltrosCuenta, campo: keyof Fil
     const c = clasificacionDe(id);
     return PADRES[campo].every((padre) => !f[padre] || c[padre] === f[padre]);
   };
-  const valores = new Set(ids.filter(cumplePadres).map((id) => clasificacionDe(id)[campo]));
-  return [...valores].sort((a, b) => a.localeCompare(b, 'es')).map((v) => ({ label: v, value: v }));
+  const valores = new Set(ids.filter(cumplePadres).map((id) => clasificacionDe(id)[campo]).filter(Boolean));
+  return [...valores].sort((a, b) => a.localeCompare(b, 'es', { numeric: true })).map((v) => ({ label: v, value: v }));
 }

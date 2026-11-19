@@ -85,7 +85,7 @@ export const ASIGNACION_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   recordTableMinWidthClass: 'min-w-[1900px]',
   recordTrackKey: 'recordId',
   recordHistoryDocumentLabel: 'Solicitud de Asignación Financiera',
-  recordHistoryKind: 'documento',
+  recordHistoryKind: 'propio',
   statusFilterOptions: [ESTADO.ELABORADO, ESTADO.VERIFICADO, ESTADO.OBSERVADO, ESTADO.APROBADO, ESTADO.RECHAZADO],
   actionTypeFilterOptions: ['Creación'],
   filterCampoOptions,
@@ -96,7 +96,7 @@ export const ASIGNACION_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
   recordFilter1Options: ['Mensual', 'Semestral', 'Anual'],
   recordFilter2Label: 'Moneda',
   recordFilter2Key: 'moneda',
-  recordFilter2Options: ['Soles', 'Dólares'],
+  recordFilter2Options: ['PEN', 'USD'],
   recordFilterCampoOptions: [
     { label: 'Cuenta bancaria', value: 'cuentaBancaria' },
     { label: 'Periodicidad', value: 'tipoPeriodicidad' },
@@ -106,7 +106,7 @@ export const ASIGNACION_DOCUMENTS_CONFIG: DocumentsRecordsConfig = {
     { label: 'Mensual', value: 'Mensual' },
     { label: 'Semestral', value: 'Semestral' },
     { label: 'Anual', value: 'Anual' },
-    { label: 'Soles', value: 'Soles' },
-    { label: 'Dólares', value: 'Dólares' },
+    { label: 'PEN', value: 'PEN' },
+    { label: 'USD', value: 'USD' },
   ],
 };

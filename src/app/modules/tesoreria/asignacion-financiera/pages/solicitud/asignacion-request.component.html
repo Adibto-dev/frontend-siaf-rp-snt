@@ -288,7 +288,10 @@
         <!-- Origen: solo fuente de financiamiento -->
         <h4 class="m-0 text-sm font-bold uppercase text-text">Fuente de financiamiento</h4>
         <siaf-input label="Fuente" type="select" [options]="opcionesFiltros().fuente" [value]="filtrosEnEdicion().fuente" (valueChange)="editarFiltro('fuente', $event)" />
-        <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
+        <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!opcionesFiltros().subfuente.length || !filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
+        @if (opcionesFiltros().concepto.length && filtrosEnEdicion().subfuente) {
+          <siaf-input label="Concepto" type="select" [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
+        }
       } @else {
         <siaf-input label="Grupo" type="select" [options]="opcionesFiltros().grupo" [value]="filtrosEnEdicion().grupo" (valueChange)="editarFiltro('grupo', $event)" />
         <siaf-input label="Sub grupo" type="select" [options]="opcionesFiltros().subgrupo" [value]="filtrosEnEdicion().subgrupo" [disabled]="!filtrosEnEdicion().grupo" (valueChange)="editarFiltro('subgrupo', $event)" />

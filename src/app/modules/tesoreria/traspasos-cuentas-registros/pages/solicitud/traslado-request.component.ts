@@ -253,9 +253,10 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
   readonly cuentaTemporal = signal<string | null>(null);
   readonly columnasCuenta: SelectionColumn<FilaCuentaBancaria>[] = [
     { key: 'numero', label: 'Número de cuenta', widthClass: 'w-[220px]' },
-    { key: 'denominacion', label: 'Denominación' },
+    // Denominación y entidad financiera, los datos largos, con el mismo ancho (como en Autorizaciones).
+    { key: 'denominacion', label: 'Denominación', widthClass: 'w-[35%]' },
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[100px]' },
-    { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[280px]' },
+    { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[35%]' },
   ];
   private readonly filasCuenta: FilaCuentaBancaria[] = CUENTAS_BANCARIAS.map((c) => ({
     numero: c.numero,

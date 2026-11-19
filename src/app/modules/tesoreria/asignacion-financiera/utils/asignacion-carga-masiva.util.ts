@@ -2,15 +2,20 @@ import { ABREVIATURAS } from '../../../../shared/utils/abreviaturas.util';
 import { redondear } from '../../saldos-iniciales/models/saldo-inicial.model';
 import { libroExcel } from '../../saldos-iniciales/utils/saldos-carga-masiva.util';
 import type { LibretaSaldo } from '../../traspasos-cuentas-registros/models/traslado.model';
+import { clasificacionDe, codigo } from './clasificacion-cuentas.util';
 
 /**
  * Carga masiva de la asignación financiera: un Excel con una fila por cuenta de destino (ID correlativo e importe a
- * asignar). La plantilla precargada trae las cuentas de registro de la cuenta bancaria, sin la de origen.
+ * asignar). La plantilla precargada trae las cuentas de registro elegidas, en el mismo orden que la tabla de destinos:
+ * primero el Clasificador Institucional del titular y luego la cuenta de registro.
  */
 
-/** Columnas: A ID correlativo · B Número · C Descripción · D Importe a asignar. */
-const COLUMNAS = { idCorrelativo: 1, importe: 4 } as const;
-const PRIMERA_FILA = 2;
+/**
+ * Cabecera en dos filas. Columnas: A Grupo · B Sub grupo · C Descripción (Clasificador institucional) · D ID
+ * correlativo · E Número · F Descripción (Cuenta de registro) · G Importe a asignar.
+ */
+const COLUMNAS = { idCorrelativo: 4, importe: 7 } as const;
+const PRIMERA_FILA = 3;
 const MAX_ERRORES = 10;
 export const MAX_FILAS_ASIGNACION = 500;
 
@@ -18,11 +23,11 @@ export const MAX_FILAS_ASIGNACION = 500;
 const INSTRUCCIONES = [
   'Carga masiva de cuentas de destino · Solicitud de Asignación Financiera',
   '',
-  '1. Complete la hoja «Plantilla»: una fila por cuenta de registro de destino (crédito).',
+  '1. Complete la hoja «Plantilla» desde la fila 3: una fila por cuenta de registro de destino (crédito).',
   '2. ID correlativo: el de la cuenta de registro (6 dígitos, ej. 000033). Debe pertenecer a la cuenta bancaria elegida.',
   '3. No incluya la cuenta de origen ni repita un ID correlativo.',
   '4. Importe a asignar: número mayor o igual a 0 con hasta 2 decimales. Las filas con 0 o vacías se ignoran.',
-  '5. Número y Descripción son informativos: el sistema toma el ID correlativo y el importe.',
+  '5. Son informativos y el sistema no los lee: Clasificador institucional (Grupo, Sub grupo y Descripción de la entidad) y el Número y la Descripción de la cuenta. El sistema toma el ID correlativo y el importe.',
   `6. Máximo ${MAX_FILAS_ASIGNACION} filas. Guarde en formato XLSX y súbalo desde «Carga masiva».`,
   '7. Las cuentas cargadas reemplazan a los destinos que ya tenga el documento.',
   '8. La suma de importes no debe superar el saldo disponible de la cuenta de origen.',
@@ -44,14 +49,26 @@ export async function descargarPlantillaAsignacion(destinos: LibretaSaldo[]): Pr
   const Workbook = await libroExcel();
   const libro = new Workbook();
   const hoja = libro.addWorksheet('Plantilla');
-  hoja.addRow([ABREVIATURAS.idCorrelativo.termino, 'Número', 'Descripción', ABREVIATURAS.importeAsignar.termino]);
-  hoja.getRow(1).font = { bold: true };
-  [16, 32, 44, 22].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
-  for (const l of destinos) hoja.addRow([l.idCorrelativo, l.numero, l.descripcion, 0]);
+  const importeTitulo = ABREVIATURAS.importeAsignar.termino;
+  hoja.addRow(['Clasificador institucional', '', '', 'Cuenta de registro', '', '', importeTitulo]);
+  hoja.addRow(['Grupo', 'Sub grupo', 'Descripción', ABREVIATURAS.idCorrelativo.termino, 'Número', 'Descripción', '']);
+  hoja.mergeCells('A1:C1');
+  hoja.mergeCells('D1:F1');
+  hoja.mergeCells('G1:G2');
+  for (const n of [1, 2]) {
+    const fila = hoja.getRow(n);
+    fila.font = { bold: true };
+    fila.alignment = { horizontal: 'center', vertical: 'middle' };
+  }
+  [10, 12, 40, 16, 32, 40, 22].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
+  for (const l of destinos) {
+    const c = clasificacionDe(l.idCorrelativo);
+    hoja.addRow([codigo(c.grupo), codigo(c.subgrupo), c.entidad, l.idCorrelativo, l.numero, l.descripcion, 0]);
+  }
   // El ID como texto: Excel no le quita los ceros a la izquierda.
   hoja.getColumn(COLUMNAS.idCorrelativo).numFmt = '@';
   hoja.getColumn(COLUMNAS.importe).numFmt = '#,##0.00';
-  hoja.views = [{ state: 'frozen', ySplit: 1 }];
+  hoja.views = [{ state: 'frozen', ySplit: 2 }];
 
   // La carga lee solo la primera hoja: las instrucciones van en la segunda.
   const instrucciones = libro.addWorksheet('Instrucciones');
@@ -104,7 +121,7 @@ export async function leerPlantillaAsignacion(archivo: File, libretas: LibretaSa
     await libro.xlsx.load(await archivo.arrayBuffer());
     const hoja = libro.worksheets[0];
     if (!hoja) return { destinos, errores: ['El archivo no tiene hojas.'] };
-    if (hoja.rowCount - 1 > MAX_FILAS_ASIGNACION) return { destinos, errores: [`El archivo supera las ${MAX_FILAS_ASIGNACION} filas.`] };
+    if (hoja.rowCount - (PRIMERA_FILA - 1) > MAX_FILAS_ASIGNACION) return { destinos, errores: [`El archivo supera las ${MAX_FILAS_ASIGNACION} filas.`] };
     const ids = new Set(libretas.map((l) => l.idCorrelativo));
     const vistos = new Set<string>();
     for (let n = PRIMERA_FILA; n <= hoja.rowCount; n++) {

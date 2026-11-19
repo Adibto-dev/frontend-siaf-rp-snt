@@ -11,7 +11,6 @@ import { CONSULTAS_PROCESS_ID, CONSULTAS_ROUTE, REQUEST_ROUTE } from '../../conf
 import { TrasladoRegistro } from '../../models/traslado.model';
 import { exportarTraslados } from '../../utils/traslados-export.util';
 
-const MONEDA: Record<string, string> = { PEN: 'Soles', USD: 'Dólares' };
 const MODALIDADES = ['1 a 1', '1 a N', 'N a 1', 'N a N'].map((m) => ({ value: m, label: m }));
 
 /** ISO → dd/mm/aaaa (el formato que agrupa por mes la vista de gráficas). */
@@ -73,7 +72,7 @@ export class TrasladosConsultasComponent {
     tableLabel: 'Traslados consultados',
     presetFilters: [
       { key: 'modalidad', label: 'Modalidad', options: MODALIDADES },
-      { key: 'moneda', label: 'Moneda', options: [{ label: 'Soles', value: 'Soles' }, { label: 'Dólares', value: 'Dólares' }] },
+      { key: 'moneda', label: 'Moneda', options: [{ label: 'PEN', value: 'PEN' }, { label: 'USD', value: 'USD' }] },
     ],
     charts: {
       kpis: [
@@ -143,7 +142,7 @@ export class TrasladosConsultasComponent {
       modalidad: r.modalidad,
       origenes: cuentas('Débito'),
       destinos: cuentas('Crédito'),
-      moneda: MONEDA[r.moneda] ?? r.moneda,
+      moneda: r.moneda,
       importe: formatoImporte(r.total),
       fecha: aFechaPe(r.fechaRegistro),
       documento: r.numeroDocumento,
