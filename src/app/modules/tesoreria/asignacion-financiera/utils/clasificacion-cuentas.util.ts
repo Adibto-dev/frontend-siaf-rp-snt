@@ -12,6 +12,8 @@ export interface ClasificacionCuenta {
   departamento: string;
   provincia: string;
   distrito: string;
+  /** Nombre de la entidad (pliego) del Clasificador Institucional: «Gobierno Regional de Cusco». */
+  entidad: string;
 }
 
 /** Departamento → provincia → distritos. */
@@ -76,7 +78,30 @@ const UBICACIONES = Object.entries(UBIGEO).flatMap(([departamento, provincias]) 
 /** Clasificación de prueba de una cuenta de registros, fija para su ID correlativo. */
 export function clasificacionDe(idCorrelativo: string): ClasificacionCuenta {
   const n = Number(idCorrelativo) || 0;
-  return { ...FUENTES[(n * 5) % FUENTES.length], ...PARES[n % PARES.length], ...UBICACIONES[(n * 7) % UBICACIONES.length] };
+  const par = PARES[n % PARES.length];
+  const lugar = UBICACIONES[(n * 7) % UBICACIONES.length];
+  return { ...FUENTES[(n * 5) % FUENTES.length], ...par, ...lugar, entidad: nombreEntidad(par.subgrupo, lugar, n) };
+}
+
+const MINISTERIOS = ['Ministerio de Economía y Finanzas', 'Ministerio de Educación', 'Ministerio de Salud', 'Ministerio de Transportes y Comunicaciones'];
+
+/** Nombre de prueba de la entidad, coherente con su subgrupo y su ubicación. */
+function nombreEntidad(subgrupo: string, l: { departamento: string; provincia: string; distrito: string }, n: number): string {
+  switch (codigo(subgrupo) + '|' + subgrupo) {
+    case '1|1 - Gobierno Nacional': return MINISTERIOS[n % MINISTERIOS.length];
+    case '2|2 - Fondo de Seguridad Social': return 'Seguro Social de Salud - EsSalud';
+    case '3|3 - Extrapresupuestario': return `Sociedad de Beneficencia de ${l.provincia}`;
+    case '1|1 - Gobierno Regional': return `Gobierno Regional de ${l.departamento}`;
+    case '2|2 - Gobierno Local':
+      return l.distrito === l.provincia ? `Municipalidad Provincial de ${l.provincia}` : `Municipalidad Distrital de ${l.distrito}`;
+    case '3|3 - Organismos públicos de los gob. regionales y locales': return `Instituto Vial Provincial de ${l.provincia}`;
+    default: return `Empresa Municipal de Agua Potable de ${l.provincia}`;
+  }
+}
+
+/** Código de un valor «2 - Instancias Descentralizadas» → «2». */
+export function codigo(valor: string): string {
+  return valor.split(' - ')[0];
 }
 
 /** Valores del panel «Filtros»: vacío = sin filtrar. */

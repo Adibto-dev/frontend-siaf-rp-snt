@@ -72,6 +72,8 @@ export type SelectionMode = 'single' | 'multiple';
  * @usar
  * - Para elegir uno (`single`) o varios (`multiple`) registros de un catálogo desde un formulario de solicitud: cuentas
  *   contables, entidades, planes de cuentas, clases y detalles de ajuste, ámbitos, periodos o eventos.
+ * - En `multiple` la casilla «Seleccionar filas» sale sola sobre la tabla (Figma 792:68152): marca o desmarca las filas
+ *   visibles que se pueden elegir. Con `showSelectAll` el padre decide su estado y qué es «todo».
  * - Con `paginated` y `showSelectAll` cuando el catálogo es largo (cuentas del plan, cuentas del tipo de asiento): el
  *   padre pagina y decide qué cuenta como «todo seleccionado».
  * - Con `disabledIds` para mostrar registros que no se pueden elegir, como las clases de ajuste ya usadas por un tipo de
@@ -81,8 +83,8 @@ export type SelectionMode = 'single' | 'multiple';
  * - Con `group` en las columnas para agrupar la cabecera en dos filas: «Documento» sobre Tipo y Número en el panel del
  *   responsable de la autorización excepcional.
  * - Con `showFilters` cuando el catálogo se filtra por más campos que el buscador: el botón `filter_list` abre a la
- *   derecha el panel «Filtros» con los campos proyectados (`<div filtros>…</div>`) y Cancelar / Aplicar
- *   (`filtersCancelled` / `filtersApplied`); mientras está abierto, Cancelar y Aceptar del panel quedan deshabilitados. Cuentas de registros de la asignación financiera (grupo, subgrupo y
+ *   derecha el panel «Filtros» con los campos proyectados (`<div filtros>…</div>`) y Limpiar / Aplicar
+ *   (`filtersCleared` vacía los campos sin cerrar el panel / `filtersApplied`); mientras está abierto, Cancelar y Aceptar del panel quedan deshabilitados. Cuentas de registros de la asignación financiera (grupo, subgrupo y
  *   ubicación geográfica).
  * @evitar
  * - Para elegir entre pocas opciones fijas: usar `siaf-input` tipo select, `siaf-select-options` o `siaf-radio-group`.
@@ -164,17 +166,17 @@ export type SelectionMode = 'single' | 'multiple';
               (filter)="filtrosAbiertos.set(!filtrosAbiertos())"
             />
 
-            @if (mode === 'multiple' && showSelectAll) {
+            @if (mode === 'multiple' && (showSelectAll || !customTable)) {
               <div class="mt-siaf-md">
                 <siaf-table-controls
                   [selectAllLabel]="selectAllLabel"
-                  [checked]="selectAllChecked"
-                  [indeterminate]="selectAllIndeterminate"
+                  [checked]="showSelectAll ? selectAllChecked : todasMarcadas()"
+                  [indeterminate]="showSelectAll ? selectAllIndeterminate : algunasMarcadas()"
                   [selectedCount]="selectedIds.length"
                   [showEditAction]="false"
                   [showDeleteAction]="false"
                   [showMenuAction]="false"
-                  (selectionChange)="selectAllChange.emit($event)"
+                  (selectionChange)="onSelectAll($event)"
                 />
               </div>
             }
@@ -329,7 +331,7 @@ export type SelectionMode = 'single' | 'multiple';
                 <ng-content select="[filtros]" />
               </div>
               <footer class="flex shrink-0 items-center justify-end gap-siaf-xs px-siaf-md py-siaf-sm">
-                <siaf-button variant="outline" (click)="cancelarFiltros()">Cancelar</siaf-button>
+                <siaf-button variant="outline" (click)="limpiarFiltros()">Limpiar</siaf-button>
                 <siaf-button variant="filled" (click)="aplicarFiltros()">Aplicar</siaf-button>
               </footer>
             </section>
@@ -362,17 +364,16 @@ export class SelectionSideNavComponent<T = Record<string, unknown>> implements O
   @Input() showFilters = false;
   /** Aplicar del panel de filtros: el padre filtra las filas con los valores proyectados. */
   @Output() filtersApplied = new EventEmitter<void>();
-  /** Cancelar del panel de filtros: el padre descarta los valores sin aplicar. */
-  @Output() filtersCancelled = new EventEmitter<void>();
+  /** Limpiar del panel de filtros: el padre vacía todos los campos; el panel sigue abierto para aplicar. */
+  @Output() filtersCleared = new EventEmitter<void>();
 
   aplicarFiltros(): void {
     this.filtersApplied.emit();
     this.filtrosAbiertos.set(false);
   }
 
-  cancelarFiltros(): void {
-    this.filtersCancelled.emit();
-    this.filtrosAbiertos.set(false);
+  limpiarFiltros(): void {
+    this.filtersCleared.emit();
   }
 
   /** Si está abierto. Cuando se pasa a false el componente no renderiza nada. */
@@ -467,6 +468,31 @@ export class SelectionSideNavComponent<T = Record<string, unknown>> implements O
 
   /** Toggle del checkbox "seleccionar todo" (true = marcar, false = desmarcar). */
   @Output() selectAllChange = new EventEmitter<boolean>();
+
+  /** Filas visibles que se pueden elegir (para «Seleccionar filas» sin `showSelectAll`). */
+  private elegibles(): string[] {
+    return this.rows.map((r) => this.rowId(r)).filter((id) => !this.isDisabled(id));
+  }
+
+  todasMarcadas(): boolean {
+    const ids = this.elegibles();
+    return ids.length > 0 && ids.every((id) => this.isSelected(id));
+  }
+
+  algunasMarcadas(): boolean {
+    return !this.todasMarcadas() && this.elegibles().some((id) => this.isSelected(id));
+  }
+
+  /** Con `showSelectAll` decide el padre; si no, marca o desmarca las filas visibles elegibles. */
+  onSelectAll(marcar: boolean): void {
+    if (this.showSelectAll) {
+      this.selectAllChange.emit(marcar);
+      return;
+    }
+    const visibles = new Set(this.elegibles());
+    const resto = this.selectedIds.filter((id) => !visibles.has(id));
+    this.selectionChange.emit(marcar ? [...resto, ...visibles] : resto);
+  }
 
   isSelected(id: string): boolean {
     return this.selectedIds.includes(id);

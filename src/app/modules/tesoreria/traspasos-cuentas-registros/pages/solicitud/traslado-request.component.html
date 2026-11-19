@@ -304,6 +304,21 @@
   />
 </div>
 
+<!-- Quitar una cuenta con cuentas asociadas o una fila con importe (Figma 23997:111454). -->
+<siaf-modal
+  variant="delete-record"
+  title="¿Borrar item(s)?"
+  [description]="descripcionQuitar()"
+  [open]="!!quitarPendiente()"
+  confirmVariant="primary"
+  confirmLabel="Aceptar"
+  cancelLabel="Cancelar"
+  [showIllustration]="true"
+  (canceled)="quitarPendiente.set(null)"
+  (closed)="quitarPendiente.set(null)"
+  (confirmed)="confirmarQuitar()"
+/>
+
 <!-- Cancelar con datos o cambios sin grabar (también la flecha atrás del navegador): salidaProtegidaGuard. -->
 <siaf-modal
   variant="cancel"

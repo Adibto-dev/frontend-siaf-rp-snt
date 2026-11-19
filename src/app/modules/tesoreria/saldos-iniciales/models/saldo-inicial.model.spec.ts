@@ -1,4 +1,4 @@
-import { CUENTAS_BANCARIAS, calcularSaldo, cuentasRegistroDe, formatoImporte, tipoCambio } from './saldo-inicial.model';
+import { CUENTAS_BANCARIAS, CUENTAS_REGISTRO, calcularSaldo, cuentasRegistroDe, esCuentaDeDemostracion, formatoImporte, tipoCambio } from './saldo-inicial.model';
 
 describe('saldo-inicial.model', () => {
   it('el tipo de cambio de dólares cambia con la fecha dentro de 3.39 – 3.45 y en soles es 1', () => {
@@ -10,12 +10,19 @@ describe('saldo-inicial.model', () => {
     expect(tipoCambio('PEN', '2026-07-13')).toBe(1);
   });
 
-  it('cada cuenta bancaria tiene entre 2 y 6 cuentas de registro vinculadas', () => {
+  it('cada cuenta bancaria tiene entre 2 y 6 cuentas de registro vinculadas, sin contar las de demostración', () => {
     for (const cuenta of CUENTAS_BANCARIAS) {
-      const cantidad = cuentasRegistroDe(cuenta.numero).length;
+      const cantidad = cuentasRegistroDe(cuenta.numero).filter((c) => !esCuentaDeDemostracion(c.idCorrelativo)).length;
       expect(cantidad).toBeGreaterThanOrEqual(2);
       expect(cantidad).toBeLessThanOrEqual(6);
     }
+  });
+
+  it('la Cuenta Única del Tesoro suma 30 cuentas de demostración con IDs propios', () => {
+    const demo = cuentasRegistroDe('00000281794000000005').filter((c) => esCuentaDeDemostracion(c.idCorrelativo));
+    expect(demo.length).toBe(30);
+    expect(demo[0].idCorrelativo).toBe('000100');
+    expect(new Set(CUENTAS_REGISTRO.map((c) => c.idCorrelativo)).size).toBe(CUENTAS_REGISTRO.length);
   });
 
   it('el saldo suma las libretas, ignora las vacías y calcula el nacional', () => {

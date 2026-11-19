@@ -505,12 +505,44 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
     });
   }
 
+  /**
+   * Quitar con confirmación (Figma 23997:111454, «¿Borrar item(s)?»): una cuenta de la tarjeta cuando ya tiene cuentas
+   * asociadas, que se van con ella, y una fila cuando ya tiene importe. Sin nada que perder, se quita directo.
+   */
+  readonly quitarPendiente = signal<{ principal: string; secundaria?: string } | null>(null);
+  readonly descripcionQuitar = computed(() => {
+    const q = this.quitarPendiente();
+    if (q && !q.secundaria) {
+      const n = this.asignaciones().filter((x) => this.principalDe(x) === q.principal).length;
+      return `Se quitará la cuenta ${q.principal} y con ella ${n} ${n === 1 ? 'cuenta asociada' : 'cuentas asociadas'} con sus importes.`;
+    }
+    return 'Perderá todos los datos ingresados en los ítem(s) seleccionados.';
+  });
+
   quitarPrincipal(id: string): void {
-    this.principales.update((p) => p.filter((x) => x !== id));
-    this.asignaciones.update((a) => a.filter((x) => this.principalDe(x) !== id));
+    if (this.asignaciones().some((x) => this.principalDe(x) === id)) this.quitarPendiente.set({ principal: id });
+    else this.principales.update((p) => p.filter((x) => x !== id));
   }
 
   quitarSecundaria(principal: string, secundaria: string): void {
+    const conImporte = this.asignaciones().some((x) => this.principalDe(x) === principal && this.secundariaDe(x) === secundaria && x.importe > 0);
+    if (conImporte) this.quitarPendiente.set({ principal, secundaria });
+    else this.borrarSecundaria(principal, secundaria);
+  }
+
+  confirmarQuitar(): void {
+    const q = this.quitarPendiente();
+    this.quitarPendiente.set(null);
+    if (!q) return;
+    if (q.secundaria) {
+      this.borrarSecundaria(q.principal, q.secundaria);
+      return;
+    }
+    this.principales.update((p) => p.filter((x) => x !== q.principal));
+    this.asignaciones.update((a) => a.filter((x) => this.principalDe(x) !== q.principal));
+  }
+
+  private borrarSecundaria(principal: string, secundaria: string): void {
     this.asignaciones.update((a) => a.filter((x) => !(this.principalDe(x) === principal && this.secundariaDe(x) === secundaria)));
   }
 

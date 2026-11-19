@@ -41,7 +41,7 @@ import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs
 import { fechaElaboracion } from '../../../../../shared/utils/fecha.util';
 import { crearSnapshotFormulario, hayCambiosRespectoAlSnapshot } from '../../../../../shared/utils/form-snapshot.util';
 import { MIN_CARACTERES_TEXTO_LIBRE, cumpleMinimoTextoLibre } from '../../../../../shared/utils/texto-libre.util';
-import { CUENTAS_BANCARIAS, cuentaPorNumero, entidadPorCodigo, formatoImporte, redondear } from '../../../saldos-iniciales/models/saldo-inicial.model';
+import { CUENTAS_BANCARIAS, CUENTA_DEMOSTRACION, cuentaPorNumero, entidadPorCodigo, formatoImporte, redondear } from '../../../saldos-iniciales/models/saldo-inicial.model';
 import { TrasladosApiService } from '../../../traspasos-cuentas-registros/api/traslados-api.service';
 import { AsignacionTraslado, ErrorTraslado, LibretaSaldo } from '../../../traspasos-cuentas-registros/models/traslado.model';
 import { AsignacionesApiService } from '../../api/asignaciones-api.service';
@@ -58,7 +58,7 @@ import {
   validarAsignacion,
 } from '../../models/asignacion.model';
 import type { DestinoCargado } from '../../utils/asignacion-carga-masiva.util';
-import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
+import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, clasificacionDe, codigo, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
 import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 
 const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
@@ -217,7 +217,11 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[100px]' },
     { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[280px]' },
   ];
-  private readonly filasCuenta: FilaCuentaBancaria[] = CUENTAS_BANCARIAS.map((c) => ({
+  /**
+   * Primero la «MEF - Cuenta Única del Tesoro», la que tiene todas las cuentas de registros de demostración; el resto
+   * sigue el orden del catálogo. Se ordena aquí y no en `CUENTAS_BANCARIAS`, porque su posición arma los IDs.
+   */
+  private readonly filasCuenta: FilaCuentaBancaria[] = [...CUENTAS_BANCARIAS].sort((a, b) => Number(b.numero === CUENTA_DEMOSTRACION) - Number(a.numero === CUENTA_DEMOSTRACION)).map((c) => ({
     numero: c.numero,
     denominacion: c.denominacion,
     moneda: c.moneda,
@@ -255,11 +259,22 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   readonly tarjetaAbierta = signal(true);
 
   readonly columnasLibreta: SelectionColumn<LibretaSaldo>[] = [
-    { key: 'idCorrelativo', label: ABREVIATURAS.idCorrelativo.abreviatura, widthClass: 'w-[100px]', group: 'Número de cuenta' },
-    { key: 'numero', label: 'Número', widthClass: 'w-[300px]', group: 'Número de cuenta' },
-    { key: 'descripcion', label: 'Descripción', group: 'Número de cuenta' },
+    { key: 'idCorrelativo', label: ABREVIATURAS.idCorrelativo.abreviatura, widthClass: 'w-[100px]', group: 'Cuenta de registro' },
+    { key: 'numero', label: 'Número', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
+    { key: 'descripcion', label: 'Descripción', group: 'Cuenta de registro' },
     { key: 'saldoDisponible', label: ABREVIATURAS.importeCuenta.abreviatura, widthClass: 'w-[170px]', cellClass: 'text-right', group: 'Saldo', render: (l) => formatoImporte(l.saldoDisponible) },
   ];
+
+  /** Destino: primero el Clasificador Institucional del titular (grupo y subgrupo por código, y la entidad). */
+  readonly columnasLibretaDestino: SelectionColumn<LibretaSaldo>[] = [
+    { key: 'grupo', label: 'Grupo', widthClass: 'w-[80px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).grupo) },
+    { key: 'subgrupo', label: 'Sub grupo', widthClass: 'w-[100px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).subgrupo) },
+    { key: 'entidad', label: 'Descripción', widthClass: 'w-[280px]', group: 'Clasificador institucional', render: (l) => clasificacionDe(l.idCorrelativo).entidad },
+    ...this.columnasLibreta,
+  ];
+  /** Clasificador Institucional de una cuenta, para la tabla de destinos. */
+  readonly clasificacion = clasificacionDe;
+  readonly codigo = codigo;
 
   readonly panelLibretas = signal<'origen' | 'destino' | null>(null);
   readonly busquedaLibreta = signal('');
@@ -486,8 +501,9 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
     this.paginaLibretas.set(1);
   }
 
-  cancelarFiltrosLibreta(): void {
-    this.filtrosEnEdicion.set(this.filtrosLibreta());
+  /** Limpiar del panel de filtros: vacía todos los campos; se aplican con «Aplicar». */
+  limpiarFiltrosLibreta(): void {
+    this.filtrosEnEdicion.set(FILTROS_VACIOS);
   }
 
   abrirPanelOrigen(): void {
@@ -534,13 +550,39 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
     this.avisoAbierto.set(true);
   }
 
+  /**
+   * Quitar con confirmación (Figma 23997:111454, «¿Borrar item(s)?»): el origen cuando ya hay destinos, que se van con
+   * él, y un destino cuando ya tiene importe. Sin nada que perder, se quita directo.
+   */
+  readonly quitarPendiente = signal<{ tipo: 'origen' } | { tipo: 'destino'; id: string } | null>(null);
+  readonly descripcionQuitar = computed(() => {
+    const q = this.quitarPendiente();
+    if (q?.tipo === 'origen') {
+      return `Se quitará la cuenta de origen y con ella ${this.cantidadDestinos(this.asignaciones().length)} con sus importes.`;
+    }
+    return 'Perderá todos los datos ingresados en los ítem(s) seleccionados.';
+  });
+
   quitarOrigen(): void {
-    this.origen.set('');
-    this.asignaciones.set([]);
+    if (this.asignaciones().length) this.quitarPendiente.set({ tipo: 'origen' });
+    else this.origen.set('');
   }
 
   quitarDestino(destino: string): void {
-    this.asignaciones.update((a) => a.filter((x) => x.destino !== destino));
+    const conImporte = this.asignaciones().some((x) => x.destino === destino && x.importe > 0);
+    if (conImporte) this.quitarPendiente.set({ tipo: 'destino', id: destino });
+    else this.asignaciones.update((a) => a.filter((x) => x.destino !== destino));
+  }
+
+  confirmarQuitar(): void {
+    const q = this.quitarPendiente();
+    this.quitarPendiente.set(null);
+    if (q?.tipo === 'origen') {
+      this.origen.set('');
+      this.asignaciones.set([]);
+    } else if (q?.tipo === 'destino') {
+      this.asignaciones.update((a) => a.filter((x) => x.destino !== q.id));
+    }
   }
 
   cambiarImporte(destino: string, valor: string | number | string[]): void {

@@ -26,6 +26,7 @@ import {
   calcularSaldo,
   cuentaPorNumero,
   cuentasRegistroDe,
+  esCuentaDeDemostracion,
   importeFirmado,
   redondear,
 } from '../modules/tesoreria/saldos-iniciales/models/saldo-inicial.model';
@@ -54,7 +55,7 @@ import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo'
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 25;
+const VERSION = 26;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -376,14 +377,17 @@ const SEMILLAS_SALDOS: SemillaSaldos[] = [
     { cuenta: '12073303572000000003', fecha: '2026-01-02', total: 100000 },
     { cuenta: '11040103570200000000', fecha: '2026-01-02', total: 100000 },
   ] },
-  { creada: '2026-02-11', estado: 'APROBADO', entidad: '0018', saldos: [{ cuenta: '00000281794000000005', fecha: '2026-02-02', total: 2500000 }] },
+  { creada: '2026-02-11', estado: 'APROBADO', entidad: '0001', saldos: [{ cuenta: '00000281794000000005', fecha: '2026-02-02', total: 2500000 }] },
   { creada: '2026-07-14', estado: 'VERIFICADO', entidad: '0002', saldos: [{ cuenta: '19300456712000000002', fecha: '2026-07-13', total: 380000 }] },
   { creada: '2026-09-10', estado: 'ELABORADO', entidad: '0011', saldos: [{ cuenta: '01100586230200000007', fecha: '2026-09-09', total: 75000 }] },
 ];
 
-/** Reparte el total entre las libretas de la cuenta (la última se lleva el resto). */
+/**
+ * Reparte el total entre las libretas de la cuenta (la última se lleva el resto). Las cuentas de demostración empiezan
+ * sin saldo: así los saldos de ejemplo y los traslados semilla no cambian.
+ */
 function saldoSemilla(datos: DatosTaller, cuenta: string, fecha: string, total: number): SaldoInicial {
-  const libretas = cuentasRegistroDe(cuenta);
+  const libretas = cuentasRegistroDe(cuenta).filter((l) => !esCuentaDeDemostracion(l.idCorrelativo));
   const parte = Math.floor(total / libretas.length);
   const importes = Object.fromEntries(libretas.map((l, i) => [l.idCorrelativo, i === libretas.length - 1 ? total - parte * (libretas.length - 1) : parte]));
   return calcularSaldo(nuevoId(datos, 'sal'), fecha, cuenta, importes);
@@ -599,7 +603,7 @@ interface SemillaApertura {
 
 const SEMILLAS_APERTURA: SemillaApertura[] = [
   { dia: '2026-01-01', estado: 'PROCESADO', entidad: '0001', saldos: [{ cuenta: '11040103570200000000', total: 100000 }] },
-  { dia: '2026-01-01', estado: 'PROCESADO', entidad: '0018', saldos: [{ cuenta: '00000281794000000005', total: 1250000 }] },
+  { dia: '2026-01-01', estado: 'PROCESADO', entidad: '0001', saldos: [{ cuenta: '00000281794000000005', total: 1250000 }] },
   { dia: '2026-10-27', estado: 'REGISTRADO', entidad: '0002', saldos: [{ cuenta: '19300456712000000002', total: 420000 }] },
   // Rechazado: se agotaron los reintentos de recuperación del saldo de cierre; sin secuencia ni registro consolidado.
   { dia: '2026-01-01', estado: 'RECHAZADO', entidad: '0011', saldos: [{ cuenta: '01100586230200000007', total: 75000 }],

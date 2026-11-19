@@ -92,7 +92,7 @@ export const CUENTAS_BANCARIAS: CuentaBancaria[] = [
   { numero: '12073303572000000003', denominacion: 'MEF - DGTP', moneda: 'USD', entidadCodigo: '0001' },
   { numero: '11040103570200000000', denominacion: 'MEF - DGTP Recursos Ordinarios', moneda: 'PEN', entidadCodigo: '0001' },
   { numero: '12073303572000000011', denominacion: 'MEF - DGTP Endeudamiento externo', moneda: 'USD', entidadCodigo: '0001' },
-  { numero: '00000281794000000005', denominacion: 'MEF - Cuenta Única del Tesoro', moneda: 'PEN', entidadCodigo: '0018' },
+  { numero: '00000281794000000005', denominacion: 'MEF - Cuenta Única del Tesoro', moneda: 'PEN', entidadCodigo: '0001' },
   { numero: '00000281794000000013', denominacion: 'MEF - Fondos en dólares', moneda: 'USD', entidadCodigo: '0018' },
   { numero: '19300456712000000002', denominacion: 'MEF - Recaudación', moneda: 'PEN', entidadCodigo: '0002' },
   { numero: '01100586230200000007', denominacion: 'MEF - Garantías', moneda: 'USD', entidadCodigo: '0011' },
@@ -102,6 +102,9 @@ export const CUENTAS_BANCARIAS: CuentaBancaria[] = [
 const DESCRIPCION_MONEDA: Record<MonedaSaldo, string> = { PEN: 'Soles', USD: 'Dólares' };
 
 /** Cuentas de registro (libretas) vinculadas: entre 2 y 6 por cuenta bancaria, derivadas de su número. */
+/** «MEF - Cuenta Única del Tesoro»: la cuenta bancaria con las cuentas de registros de demostración. */
+export const CUENTA_DEMOSTRACION = '00000281794000000005';
+
 export const CUENTAS_REGISTRO: CuentaRegistro[] = CUENTAS_BANCARIAS.flatMap((cuenta, i) => {
   const cantidad = 2 + ((i * 3) % 5);
   return Array.from({ length: cantidad }, (_, j) => ({
@@ -110,7 +113,28 @@ export const CUENTAS_REGISTRO: CuentaRegistro[] = CUENTAS_BANCARIAS.flatMap((cue
     descripcion: `Cuenta Fondo Tesoro Público ${DESCRIPCION_MONEDA[cuenta.moneda]} ${j + 1}`,
     cuentaBancaria: cuenta.numero,
   }));
-});
+}).concat(cuentasDeDemostracion());
+
+/**
+ * La «MEF - Cuenta Única del Tesoro» lleva 30 cuentas de registros más (IDs desde 000100, aparte de los del resto) para
+ * la demostración: con ellas tiene todas las fuentes y subfuentes, grupos y subgrupos y ubicaciones de los filtros de la
+ * asignación financiera, y pasa de 25 filas (se ve la paginación). Empiezan sin saldo.
+ */
+/** Cuentas de registros agregadas para la demostración (IDs desde 000100). */
+export function esCuentaDeDemostracion(idCorrelativo: string): boolean {
+  return Number(idCorrelativo) >= 100;
+}
+
+function cuentasDeDemostracion(): CuentaRegistro[] {
+  const i = CUENTAS_BANCARIAS.findIndex((c) => c.numero === CUENTA_DEMOSTRACION);
+  const cuenta = CUENTAS_BANCARIAS[i];
+  return Array.from({ length: 30 }, (_, k) => ({
+    idCorrelativo: String(100 + k).padStart(6, '0'),
+    numero: `11111000${9000 + i} 1.00 000000 0001${String(k + 1).padStart(2, '0')}`,
+    descripcion: `Cuenta Fondo Tesoro Público ${DESCRIPCION_MONEDA[cuenta.moneda]} ${k + 7}`,
+    cuentaBancaria: cuenta.numero,
+  }));
+}
 
 export function entidadPorCodigo(codigo: string | null | undefined): EntidadFinanciera | undefined {
   return ENTIDADES_FINANCIERAS.find((e) => e.codigo === codigo);
