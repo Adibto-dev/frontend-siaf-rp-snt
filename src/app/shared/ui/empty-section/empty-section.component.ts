@@ -40,6 +40,8 @@ import { MessageBoxComponent } from '../message-box/message-box.component';
  */
 @Component({
   selector: 'empty-section',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [ButtonComponent, MessageBoxComponent],
   template: `

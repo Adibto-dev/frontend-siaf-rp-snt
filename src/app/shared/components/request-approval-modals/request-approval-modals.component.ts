@@ -150,6 +150,7 @@ import { SnackbarComponent, SnackbarVariant } from '../../ui/snackbar/snackbar.c
         [variant]="snackbarVariant"
         [tone]="snackbarTone"
         [message]="snackbarMessage"
+        [fileName]="snackbarFileName"
         [open]="snackbarOpen"
         [requestType]="requestType"
         [requestNumber]="requestNumber"
@@ -186,6 +187,8 @@ export class RequestApprovalModalsComponent {
   /** Tono del snackbar (success/error) y mensaje libre (pisa a variant). */
   @Input() snackbarTone: 'success' | 'error' = 'success';
   @Input() snackbarMessage = '';
+  /** Nombre del archivo de los avisos de archivo (`file-uploaded`, `file-downloaded`), en negrita. */
+  @Input() snackbarFileName = '';
   @Input() snackbarOpen = false;
   /** Tipo de acción real ('modificación', 'reversión', …) — pisa la palabra
    *  del preset para que el snackbar no diga siempre "creación". */

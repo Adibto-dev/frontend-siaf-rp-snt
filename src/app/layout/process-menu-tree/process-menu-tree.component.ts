@@ -62,6 +62,8 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
  */
 @Component({
   selector: 'siaf-process-menu-tree',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [IconComponent, TextFieldComponent, TreeViewComponent],
   template: `

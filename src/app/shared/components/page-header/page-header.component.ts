@@ -43,6 +43,8 @@ import { TooltipDirective } from '../../ui/tooltip/tooltip.directive';
  */
 @Component({
   selector: 'siaf-page-header',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [TooltipDirective],
   template: `

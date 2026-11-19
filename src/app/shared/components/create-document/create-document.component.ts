@@ -97,6 +97,8 @@ const CREATE_DOCUMENT_PROCESSES: CreateDocumentProcessOption[] = collectProcessO
  */
 @Component({
   selector: 'siaf-create-document',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [ButtonComponent, NgClass, TextFieldComponent, TooltipDirective],
   template: `

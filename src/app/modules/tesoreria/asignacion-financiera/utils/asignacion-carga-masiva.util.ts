@@ -1,6 +1,7 @@
 import { ABREVIATURAS } from '../../../../shared/utils/abreviaturas.util';
 import { redondear } from '../../saldos-iniciales/models/saldo-inicial.model';
 import { libroExcel } from '../../saldos-iniciales/utils/saldos-carga-masiva.util';
+import { estilarCabecera, estilarCuerpo } from '../../../../shared/utils/excel-siaf.util';
 import type { LibretaSaldo } from '../../traspasos-cuentas-registros/models/traslado.model';
 import { clasificacionDe, codigo } from './clasificacion-cuentas.util';
 
@@ -45,7 +46,7 @@ function descargar(blob: Blob, nombre: string): void {
 }
 
 /** Plantilla vacía (solo cabecera) o precargada con las cuentas de destino posibles e importe 0. */
-export async function descargarPlantillaAsignacion(destinos: LibretaSaldo[]): Promise<void> {
+export async function descargarPlantillaAsignacion(destinos: LibretaSaldo[]): Promise<string> {
   const Workbook = await libroExcel();
   const libro = new Workbook();
   const hoja = libro.addWorksheet('Plantilla');
@@ -55,11 +56,8 @@ export async function descargarPlantillaAsignacion(destinos: LibretaSaldo[]): Pr
   hoja.mergeCells('A1:C1');
   hoja.mergeCells('D1:F1');
   hoja.mergeCells('G1:G2');
-  for (const n of [1, 2]) {
-    const fila = hoja.getRow(n);
-    fila.font = { bold: true };
-    fila.alignment = { horizontal: 'center', vertical: 'middle' };
-  }
+  // Formato SIAF (excel-siaf.util): cabecera azul de un solo color y cuerpo con bordes grises.
+  estilarCabecera(hoja, [1, 2], 7);
   [10, 12, 40, 16, 32, 40, 22].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
   for (const l of destinos) {
     const c = clasificacionDe(l.idCorrelativo);
@@ -68,6 +66,7 @@ export async function descargarPlantillaAsignacion(destinos: LibretaSaldo[]): Pr
   // El ID como texto: Excel no le quita los ceros a la izquierda.
   hoja.getColumn(COLUMNAS.idCorrelativo).numFmt = '@';
   hoja.getColumn(COLUMNAS.importe).numFmt = '#,##0.00';
+  estilarCuerpo(hoja, 3, hoja.rowCount, 7);
   hoja.views = [{ state: 'frozen', ySplit: 2 }];
 
   // La carga lee solo la primera hoja: las instrucciones van en la segunda.
@@ -76,7 +75,9 @@ export async function descargarPlantillaAsignacion(destinos: LibretaSaldo[]): Pr
   INSTRUCCIONES.forEach((t) => instrucciones.addRow([t]));
   instrucciones.getRow(1).font = { bold: true, size: 12 };
   const buffer = await libro.xlsx.writeBuffer();
-  descargar(new Blob([buffer], { type: TIPO_XLSX }), destinos.length ? 'Plantilla_asignacion_financiera_precargada.xlsx' : 'Plantilla_asignacion_financiera.xlsx');
+  const nombre = destinos.length ? 'Plantilla_asignacion_financiera_precargada.xlsx' : 'Plantilla_asignacion_financiera.xlsx';
+  descargar(new Blob([buffer], { type: TIPO_XLSX }), nombre);
+  return nombre;
 }
 
 export interface DestinoCargado {

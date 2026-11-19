@@ -70,7 +70,7 @@
         <div class="grid gap-siaf-md md:grid-cols-3">
           <siaf-input label="Periodicidad" type="select" [required]="true" [options]="opcionesPeriodicidad" [value]="tipoPeriodicidad()" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="elegirPeriodicidad($event)" />
           <siaf-input label="Año" type="select" [required]="true" [options]="opcionesAnio" [value]="texto(anio())" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="anio.set(numero($event) ?? anio())" />
-          <siaf-input label="Mes de asignación" type="select" [required]="true" [options]="opcionesMes" [value]="texto(mesAsignacion())" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="mesAsignacion.set(numero($event))" />
+          <siaf-input [label]="etiquetaMes()" type="select" [required]="true" [options]="opcionesMes" [value]="texto(mesAsignacion())" [readonly]="soloLectura()" [disabled]="periodicidadDeshabilitada()" (valueChange)="mesAsignacion.set(numero($event))" />
         </div>
 
         @if (cuentaElegida()) {
@@ -310,6 +310,7 @@
     [origen]="origen()"
     (closed)="cargaMasivaAbierta.set(false)"
     (loaded)="cargarDestinos($event)"
+    (templateDownloaded)="avisarPlantilla($event)"
   />
 
   <siaf-request-approval-modals
@@ -325,6 +326,7 @@
     [rejectReasonTypeOptions]="motivosRechazo"
     [snackbarVariant]="aviso()"
     [snackbarMessage]="avisoMensaje()"
+    [snackbarFileName]="avisoArchivo()"
     [snackbarOpen]="avisoAbierto()"
     requestType="creación"
     [requestNumber]="numeroDocumento()"

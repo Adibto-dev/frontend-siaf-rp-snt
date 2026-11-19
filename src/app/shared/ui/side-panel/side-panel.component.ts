@@ -54,6 +54,8 @@ let siguienteId = 0;
  */
 @Component({
   selector: 'siaf-side-panel',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [ButtonComponent, FocoDirective, IconComponent, SideNavComponent],
   template: `

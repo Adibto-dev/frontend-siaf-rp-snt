@@ -26,6 +26,8 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
  */
 @Component({
   selector: 'siaf-card',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   template: `
     <section class="rounded-siaf-lg border border-border bg-surface shadow-siaf-sm">

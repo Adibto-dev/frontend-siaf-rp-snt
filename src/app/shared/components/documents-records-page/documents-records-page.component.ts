@@ -28,7 +28,8 @@ import { ModalComponent } from '../../ui/modal/modal.component';
 import { SnackbarComponent } from '../../ui/snackbar/snackbar.component';
 import { TableSkeletonComponent } from '../../ui/table-skeleton/table-skeleton.component';
 import { ESTADO } from '../../../core/models/documento.model';
-import { exportarRegistrosExcel } from '../../utils/exportar-registros.util';
+import { exportarBandejaExcel } from '../../utils/exportar-registros.util';
+import type { DatoConsulta } from '../../utils/excel-siaf.util';
 import { FocoDirective } from '../../ui/foco/foco.directive';
 import { FILAS_POR_PAGINA, FILAS_POR_PAGINA_OPCIONES } from '../pagination/pagination.component';
 
@@ -557,9 +558,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
 
   /** Items del menú "Más opciones" (more_vert). */
   get moreOptionsMenuItems(): IconDropdownMenuItem[] {
-    return this.activeTab === 'records'
-      ? [...this.opcionesDeColumnas, { label: 'Exportar a Excel', value: 'export-records' }]
-      : this.opcionesDeColumnas;
+    return [...this.opcionesDeColumnas, { label: 'Exportar a Excel', value: this.activeTab === 'records' ? 'export-records' : 'export-documents' }];
   }
 
   private readonly opcionesDeColumnas: IconDropdownMenuItem[] = [{ label: 'Ocultar o mostrar columnas', value: 'open-columns' }];
@@ -866,11 +865,41 @@ export class DocumentsRecordsPageComponent implements OnChanges {
     this.paginatedRows.forEach((row) => (row.selected = selected));
   }
 
-  /** «Exportar a Excel» de Registros: los registros marcados o, si no hay ninguno, todos los filtrados. */
+  /**
+   * «Exportar a Excel» de la pestaña activa (formato SIAF: libros Resumen y Resultado): las filas marcadas o, si no hay
+   * ninguna, todas las filtradas, con las columnas visibles.
+   */
   exportarRegistros(): void {
     const marcados = this.visibleRows.filter((row) => row.selected);
     const filas = marcados.length ? marcados : this.visibleRows;
-    void exportarRegistrosExcel(this.effectiveConfig.title, this.visibleColumns, filas);
+    const documentos = this.activeTab === 'documents';
+    const titulo = documentos ? this.effectiveConfig.title : this.tituloDeRegistros();
+    void exportarBandejaExcel(titulo, this.datosDeLaConsulta(marcados.length), this.visibleColumns, filas, documentos ? 'documentos' : 'registros');
+  }
+
+  /** «Documentos de saldos iniciales» → «Registros de saldos iniciales». */
+  private tituloDeRegistros(): string {
+    const titulo = this.effectiveConfig.title;
+    return /^documentos de /i.test(titulo) ? titulo.replace(/^documentos de /i, 'Registros de ') : `Registros · ${titulo}`;
+  }
+
+  /** Filtros con que se armó la lista, para «Datos de la consulta» del Resumen. Sin filtro: «Todos». */
+  private datosDeLaConsulta(marcados: number): DatoConsulta[] {
+    const datos: DatoConsulta[] = [];
+    if (this.activeTab === 'documents') {
+      const tipos = [...new Set(this.documentRows.map((row) => String(row['document'] ?? '')).filter(Boolean))];
+      datos.push({ etiqueta: 'Documento', valor: tipos.length === 1 ? tipos[0] : 'Todos' });
+      datos.push({ etiqueta: 'Estado', valor: this.selectedStatusFilter || 'Todos' });
+      datos.push({ etiqueta: 'Tipo de acción', valor: this.selectedActionTypeFilter || 'Todos' });
+    } else {
+      const cfg = this.effectiveConfig;
+      if (cfg.recordFilter1Label) datos.push({ etiqueta: cfg.recordFilter1Label, valor: this.selectedRecordFilter1 || 'Todos' });
+      if (cfg.recordFilter2Label && cfg.recordFilter2Options?.length) datos.push({ etiqueta: cfg.recordFilter2Label, valor: this.selectedRecordFilter2 || 'Todos' });
+    }
+    if (this.searchTerm.trim()) datos.push({ etiqueta: 'Búsqueda', valor: this.searchTerm.trim() });
+    this.appliedCustomFilters.forEach((filtro) => datos.push({ etiqueta: filtro.campoLabel, valor: filtro.valor }));
+    if (marcados) datos.push({ etiqueta: 'Selección', valor: `${marcados} ${marcados === 1 ? 'fila marcada' : 'filas marcadas'}` });
+    return datos;
   }
 
   toggleVisibleElaboradoDocuments(selected: boolean): void {
@@ -1133,7 +1162,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   onMoreOptionsAction(action: string): void {
     if (action === 'open-columns') {
       this.openColumnPanel();
-    } else if (action === 'export-records') {
+    } else if (action === 'export-records' || action === 'export-documents') {
       this.exportarRegistros();
     }
   }

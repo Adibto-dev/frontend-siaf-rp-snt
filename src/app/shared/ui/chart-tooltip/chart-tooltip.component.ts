@@ -34,7 +34,9 @@ export interface ChartTooltipItem {
 @Component({
   selector: 'siaf-chart-tooltip',
   standalone: true,
-  host: { class: 'block' },
+  host: {
+    // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+    '[attr.title]': 'null', class: 'block' },
   template: `
     <div
       class="siaf-text-caption-1 flex w-max max-w-80 flex-col justify-center gap-siaf-xxs rounded-siaf-sm bg-[var(--sys-color-bg-snackbar,var(--sys-color-bg-on-surfaces-high))] px-siaf-md py-siaf-xs text-[var(--sys-color-text-brand-white)] shadow-siaf-elevation-6"

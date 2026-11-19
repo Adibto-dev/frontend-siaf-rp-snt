@@ -49,6 +49,8 @@ export type AlertTone = 'neutral' | 'info' | 'success' | 'warning' | 'error';
  */
 @Component({
   selector: 'siaf-alert',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [IconComponent],
   template: `

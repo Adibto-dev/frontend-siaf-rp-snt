@@ -12,6 +12,7 @@ export type SnackbarVariant =
   | 'changes-undone'
   | 'request-uploaded'
   | 'file-uploaded'
+  | 'file-downloaded'
   | 'creation-elaborated'
   | 'creation-verified'
   | 'modification-verified'
@@ -71,6 +72,11 @@ const SNACKBAR_PRESETS: Record<Exclude<SnackbarVariant, 'custom'>, SnackbarPrese
     beforeStrong: 'El archivo ',
     strong: 'DocEntregado001.xls',
     afterStrong: ' se ha subido con éxito.'
+  },
+  'file-downloaded': {
+    beforeStrong: 'El archivo ',
+    strong: 'Plantilla.xlsx',
+    afterStrong: ' se ha descargado con éxito.'
   },
   'creation-elaborated': {
     requestType: 'creación',
@@ -268,7 +274,7 @@ export class SnackbarComponent implements OnChanges, OnInit {
       return;
     }
     // Aviso nuevo con el anterior abierto: vuelve a entrar y reinicia el tiempo.
-    const cambio = ['variant', 'message', 'requestNumber'].some((k) => k in changes && !changes[k].firstChange);
+    const cambio = ['variant', 'message', 'requestNumber', 'fileName'].some((k) => k in changes && !changes[k].firstChange);
     if (this.open && cambio) {
       this.clave.update((n) => n + 1);
       this.iniciarTiempo();

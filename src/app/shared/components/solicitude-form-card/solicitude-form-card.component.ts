@@ -39,6 +39,8 @@ import { IconComponent } from '../../ui/icon/icon.component';
  */
 @Component({
   selector: 'siaf-solicitude-form-card',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [IconComponent],
   template: `

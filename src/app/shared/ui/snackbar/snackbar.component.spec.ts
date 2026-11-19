@@ -75,6 +75,15 @@ describe('SnackbarComponent', () => {
     expect(aviso().querySelector('button[aria-label="Cerrar mensaje"]')).toBeNull();
   });
 
+  it('file-downloaded muestra el nombre del archivo en negrita', () => {
+    fixture.componentRef.setInput('message', '');
+    fixture.componentRef.setInput('variant', 'file-downloaded');
+    fixture.componentRef.setInput('fileName', 'Plantilla_saldos_iniciales.xlsx');
+    fixture.detectChanges();
+    expect(aviso().textContent).toContain('El archivo Plantilla_saldos_iniciales.xlsx se ha descargado con éxito.');
+    expect(aviso().querySelector('strong')?.textContent).toBe('Plantilla_saldos_iniciales.xlsx');
+  });
+
   describe('tiempo y reemplazo', () => {
     let cerrado: number;
     beforeEach(() => {

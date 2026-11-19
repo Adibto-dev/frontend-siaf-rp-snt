@@ -1,4 +1,5 @@
 import { ABREVIATURAS } from '../../../../shared/utils/abreviaturas.util';
+import { estilarCabecera, estilarCuerpo } from '../../../../shared/utils/excel-siaf.util';
 
 import { SaldoInicial, calcularSaldo, cuentaPorNumero, cuentasRegistroDe } from '../models/saldo-inicial.model';
 /** Columnas de la plantilla (fila 2): A fecha · B-D cuenta bancaria · E-G cuenta de registro · H importe. */
@@ -33,7 +34,7 @@ function importeDemo(cuenta: number, libreta: number): number {
  * cabecera; precargada, trae las libretas de las cuentas elegidas con la fecha de hoy e importes de ejemplo, lista
  * para subirla en la demo.
  */
-export async function descargarPlantillaSaldos(cuentas: string[]): Promise<void> {
+export async function descargarPlantillaSaldos(cuentas: string[]): Promise<string> {
   const Workbook = await libroExcel();
   const libro = new Workbook();
   const hoja = libro.addWorksheet('Plantilla');
@@ -44,12 +45,8 @@ export async function descargarPlantillaSaldos(cuentas: string[]): Promise<void>
   hoja.mergeCells('E1:G1');
   hoja.mergeCells('H1:H2');
   [18, 24, 10, 34, 12, 30, 34, 18].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
-  for (const n of [1, 2]) {
-    const fila = hoja.getRow(n);
-    fila.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    fila.alignment = { horizontal: 'center', vertical: 'middle' };
-    fila.eachCell((celda) => (celda.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3A86C8' } }));
-  }
+  // Formato SIAF (excel-siaf.util): cabecera azul de un solo color y cuerpo con bordes grises.
+  estilarCabecera(hoja, [1, 2], 8);
 
   // Precargada para la demo: fecha de hoy e importes de ejemplo, lista para subirla tal cual (se pueden editar).
   const hoy = new Date();
@@ -62,10 +59,14 @@ export async function descargarPlantillaSaldos(cuentas: string[]): Promise<void>
     });
   });
   hoja.getColumn(COLUMNAS.importe).numFmt = '#,##0.00';
+  estilarCuerpo(hoja, PRIMERA_FILA, hoja.rowCount, 8);
+  hoja.views = [{ state: 'frozen', ySplit: 2 }];
 
   const buffer = await libro.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  descargar(blob, cuentas.length ? 'Plantilla_saldos_iniciales_precargada.xlsx' : 'Plantilla_saldos_iniciales.xlsx');
+  const nombre = cuentas.length ? 'Plantilla_saldos_iniciales_precargada.xlsx' : 'Plantilla_saldos_iniciales.xlsx';
+  descargar(blob, nombre);
+  return nombre;
 }
 
 /** Una observación de la carga: fila del Excel (null si es del archivo), campo y motivo (RN-1054). */
@@ -92,9 +93,12 @@ export async function descargarObservacionesCarga(observaciones: ObservacionCarg
   const libro = new Workbook();
   const hoja = libro.addWorksheet('Observaciones');
   hoja.addRow(['Fila', 'Campo', 'Motivo']);
-  hoja.getRow(1).font = { bold: true };
   [10, 26, 90].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
   for (const o of observaciones) hoja.addRow([o.fila ?? '—', o.campo, o.motivo]);
+  estilarCabecera(hoja, [1], 3);
+  estilarCuerpo(hoja, 2, hoja.rowCount, 3);
+  // El motivo es texto largo: alineado a la izquierda se lee mejor.
+  hoja.getColumn(3).eachCell((celda, n) => { if (n > 1) celda.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true }; });
   const buffer = await libro.xlsx.writeBuffer();
   descargar(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Observaciones_carga_saldos_iniciales.xlsx');
 }

@@ -120,6 +120,8 @@ export type SelectionMode = 'single' | 'multiple';
  */
 @Component({
   selector: 'siaf-selection-side-nav',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [FocoDirective, ButtonComponent, FormTableSearchComponent, IconComponent, NgClass, PaginationComponent, TableControlsComponent],
   template: `

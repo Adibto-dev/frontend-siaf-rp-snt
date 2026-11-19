@@ -10580,6 +10580,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": "Acción en curso — deshabilita confirmar y muestra el loader."
       },
       {
+        "nombre": "snackbarFileName",
+        "tipo": "string",
+        "porDefecto": "''",
+        "requerida": false,
+        "descripcion": "Nombre del archivo de los avisos de archivo (`file-uploaded`, `file-downloaded`), en negrita."
+      },
+      {
         "nombre": "snackbarMessage",
         "tipo": "string",
         "porDefecto": "''",

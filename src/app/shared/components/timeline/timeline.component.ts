@@ -66,6 +66,8 @@ const ETIQUETA_ESTADO: Record<TimelineItemState, string> = {
  */
 @Component({
   selector: 'siaf-timeline',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [ButtonComponent, TimelineDetailPanelComponent, TooltipDirective],
   template: `

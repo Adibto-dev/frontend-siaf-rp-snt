@@ -45,6 +45,8 @@ export type TextAreaControlState = 'enabled' | 'error' | 'success';
  */
 @Component({
   selector: 'text-area-control',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   imports: [ReadonlyFieldComponent],
   standalone: true,
   template: `

@@ -659,6 +659,7 @@
     [nuevoId]="nuevoIdSaldo"
     (closed)="cargaMasivaAbierta.set(false)"
     (loaded)="onCargaMasiva($event)"
+    (templateDownloaded)="avisarPlantilla($event)"
   />
 
   <siaf-request-approval-modals
@@ -674,6 +675,7 @@
     [rejectReasonTypeOptions]="motivosRechazo"
     [snackbarVariant]="aviso()"
     [snackbarMessage]="avisoMensaje()"
+    [snackbarFileName]="avisoArchivo()"
     [snackbarOpen]="avisoAbierto()"
     requestType="creación"
     [requestNumber]="numeroDocumento()"

@@ -89,6 +89,8 @@ export class SaldosCargaMasivaComponent {
 
   @Output() closed = new EventEmitter<void>();
   @Output() loaded = new EventEmitter<SaldoInicial[]>();
+  /** Plantilla descargada (nombre del archivo): el panel se cierra y el padre avisa con un snackbar. */
+  @Output() templateDownloaded = new EventEmitter<string>();
 
   readonly modos: RadioOption[] = [{ label: 'Vacío', value: 'vacio' }, { label: 'Precargado', value: 'precargado' }];
   private readonly disponibles = signal<CuentaBancaria[]>([]);
@@ -113,8 +115,11 @@ export class SaldosCargaMasivaComponent {
     void descargarObservacionesCarga(this.observaciones);
   }
 
-  descargar(): void {
-    void descargarPlantillaSaldos(this.modo() === 'precargado' ? this.cuentas() : []);
+  /** Descarga la plantilla y cierra el panel: el archivo se sube al volver a abrir «Carga masiva». */
+  async descargar(): Promise<void> {
+    const nombre = await descargarPlantillaSaldos(this.modo() === 'precargado' ? this.cuentas() : []);
+    this.cerrar();
+    this.templateDownloaded.emit(nombre);
   }
 
   elegirArchivo(archivo: File): void {

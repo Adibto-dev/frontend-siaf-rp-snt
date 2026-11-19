@@ -26,7 +26,9 @@ let siguienteId = 0;
 @Component({
   selector: 'siaf-chart-section',
   standalone: true,
-  host: { class: 'block' },
+  host: {
+    // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+    '[attr.title]': 'null', class: 'block' },
   template: `
     <!-- h-full: en una grilla, las secciones de una misma fila quedan de la misma altura aunque un título ocupe dos líneas. -->
     <section

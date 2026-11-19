@@ -51,6 +51,8 @@ import { EMPTY_STATE_ILLUSTRATIONS, EmptyStateIllustration } from './empty-state
  */
 @Component({
   selector: 'siaf-empty-state',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [ButtonComponent],
   template: `

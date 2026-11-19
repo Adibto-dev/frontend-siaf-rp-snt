@@ -51,7 +51,9 @@ const CLASES_TONO: Record<KpiCardTone, string> = {
   selector: 'siaf-kpi-card',
   standalone: true,
   imports: [IconComponent, LoadingProgressComponent, NgClass, TooltipDirective],
-  host: { class: 'block' },
+  host: {
+    // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+    '[attr.title]': 'null', class: 'block' },
   template: `
     <article
       class="flex flex-col gap-siaf-sm rounded-siaf-md border border-[var(--sys-color-border-states-enabled)] bg-surface p-siaf-lg"

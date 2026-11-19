@@ -38,7 +38,9 @@ export interface ReportSummaryField {
   selector: 'siaf-report-summary-card',
   standalone: true,
   imports: [IconComponent, TooltipDirective],
-  host: { class: 'block' },
+  host: {
+    // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+    '[attr.title]': 'null', class: 'block' },
   template: `
     <section
       class="flex flex-col gap-siaf-xxs rounded-siaf-md border border-[var(--sys-color-border-states-enabled)] bg-[var(--sys-color-bg-surfaces-surface-low)] pb-siaf-xs pt-siaf-md"

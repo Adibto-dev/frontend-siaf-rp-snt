@@ -57,7 +57,9 @@ export function formatearContador(valor: number | null): string {
   selector: 'siaf-desk-card',
   standalone: true,
   imports: [IconComponent, NgClass, NgTemplateOutlet],
-  host: { class: 'block' },
+  host: {
+    // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+    '[attr.title]': 'null', class: 'block' },
   template: `
     @if (interactive) {
       <button

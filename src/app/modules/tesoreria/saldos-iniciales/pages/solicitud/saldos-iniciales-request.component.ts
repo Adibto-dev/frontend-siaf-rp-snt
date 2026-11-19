@@ -571,6 +571,16 @@ export class SaldosInicialesRequestComponent implements OnInit, ConSalidaProtegi
   readonly nuevoIdSaldo = (): string => `nuevo-${this.siguienteSaldo++}`;
   /** Texto del snackbar cuando no es uno de los avisos de flujo. */
   readonly avisoMensaje = signal('');
+  /** Nombre del archivo del aviso «se ha descargado» (en negrita). */
+  readonly avisoArchivo = signal('');
+
+  /** Carga masiva: la plantilla se descargó y el panel se cerró; el archivo se sube al volver a abrirlo. */
+  avisarPlantilla(nombre: string): void {
+    this.avisoMensaje.set('');
+    this.avisoArchivo.set(nombre);
+    this.aviso.set('file-downloaded');
+    this.avisoAbierto.set(true);
+  }
 
   /** Los saldos del Excel se suman a la tabla del documento. */
   onCargaMasiva(saldos: SaldoInicial[]): void {

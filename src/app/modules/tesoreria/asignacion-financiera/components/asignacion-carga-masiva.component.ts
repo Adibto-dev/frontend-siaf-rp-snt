@@ -8,10 +8,13 @@ import { TooltipDirective } from '../../../../shared/ui/tooltip/tooltip.directiv
 import { UploaderComponent } from '../../../../shared/ui/uploader/uploader.component';
 import type { LibretaSaldo } from '../../traspasos-cuentas-registros/models/traslado.model';
 import { DestinoCargado, descargarPlantillaAsignacion, leerPlantillaAsignacion } from '../utils/asignacion-carga-masiva.util';
+import { FILTROS_VACIOS, cumpleFiltros, opcionesFiltro } from '../utils/clasificacion-cuentas.util';
 
 /**
  * «Carga masiva» de las cuentas de destino de la asignación financiera: descarga la plantilla precargada con las
  * cuentas de registros elegidas (de la cuenta bancaria, sin la de origen) y sube el Excel con el importe de cada una.
+ * Grupo y Sub grupo del Clasificador Institucional acotan las cuentas y las marcan todas, para armar la plantilla de un
+ * tipo de beneficiario en dos pasos; se puede desmarcar alguna antes de descargar.
  */
 @Component({
   selector: 'siaf-asignacion-carga-masiva',
@@ -31,6 +34,10 @@ import { DestinoCargado, descargarPlantillaAsignacion, leerPlantillaAsignacion }
         <div class="grid gap-siaf-lg">
           <section class="grid gap-siaf-sm">
             <h3 class="m-0 text-sm font-medium uppercase text-text">Descargar plantilla</h3>
+            <div class="grid gap-siaf-sm sm:grid-cols-2">
+              <siaf-input label="Grupo" type="select" placeholder="Todos" [options]="opcionesGrupo()" [value]="grupo()" (valueChange)="elegirGrupo($event)" />
+              <siaf-input label="Sub grupo" type="select" placeholder="Todos" [options]="opcionesSubgrupo()" [value]="subgrupo()" [disabled]="!grupo()" (valueChange)="elegirSubgrupo($event)" />
+            </div>
             <div class="flex items-start gap-siaf-sm">
               <div class="min-w-0 flex-1">
                 <siaf-input
@@ -80,21 +87,48 @@ export class AsignacionCargaMasivaComponent {
 
   @Output() closed = new EventEmitter<void>();
   @Output() loaded = new EventEmitter<DestinoCargado[]>();
+  /** Plantilla descargada (nombre del archivo): el panel se cierra y el padre avisa con un snackbar. */
+  @Output() templateDownloaded = new EventEmitter<string>();
 
   private readonly todas = signal<LibretaSaldo[]>([]);
   private readonly idOrigen = signal('');
   /** Cuentas de registros que pueden ser destino: «000033 - Descripción». */
   private readonly destinosPosibles = computed(() => this.todas().filter((l) => l.idCorrelativo !== this.idOrigen()));
-  readonly opcionesCuentas = computed(() => this.destinosPosibles().map((l) => ({ label: `${l.idCorrelativo} - ${l.descripcion}`, value: l.idCorrelativo })));
+  /** Grupo y Sub grupo del Clasificador Institucional (vacío = todos). */
+  readonly grupo = signal('');
+  readonly subgrupo = signal('');
+  private readonly filtros = computed(() => ({ ...FILTROS_VACIOS, grupo: this.grupo(), subgrupo: this.subgrupo() }));
+  private readonly idsPosibles = computed(() => this.destinosPosibles().map((l) => l.idCorrelativo));
+  readonly opcionesGrupo = computed(() => opcionesFiltro(this.idsPosibles(), this.filtros(), 'grupo'));
+  readonly opcionesSubgrupo = computed(() => opcionesFiltro(this.idsPosibles(), this.filtros(), 'subgrupo'));
+  /** Cuentas que cumplen Grupo y Sub grupo. */
+  private readonly filtradas = computed(() => this.destinosPosibles().filter((l) => cumpleFiltros(l.idCorrelativo, this.filtros())));
+  readonly opcionesCuentas = computed(() => this.filtradas().map((l) => ({ label: `${l.idCorrelativo} - ${l.descripcion}`, value: l.idCorrelativo })));
   readonly cuentas = signal<string[]>([]);
   readonly asLista = (v: string | number | string[]): string[] => (Array.isArray(v) ? v : v ? [String(v)] : []);
   readonly archivo = signal<File | null>(null);
   readonly errores = signal<string[]>([]);
   readonly procesando = signal(false);
 
-  descargar(): void {
+  /** Al elegir un grupo se marcan todas sus cuentas; sin grupo, ninguna. */
+  elegirGrupo(valor: string | number | string[]): void {
+    this.grupo.set(this.asLista(valor)[0] ?? '');
+    this.subgrupo.set('');
+    this.cuentas.set(this.grupo() ? this.filtradas().map((l) => l.idCorrelativo) : []);
+  }
+
+  /** Al elegir un subgrupo quedan marcadas todas sus cuentas. */
+  elegirSubgrupo(valor: string | number | string[]): void {
+    this.subgrupo.set(this.asLista(valor)[0] ?? '');
+    this.cuentas.set(this.filtradas().map((l) => l.idCorrelativo));
+  }
+
+  /** Descarga la plantilla y cierra el panel: el archivo se sube al volver a abrir «Carga masiva». */
+  async descargar(): Promise<void> {
     const elegidas = new Set(this.cuentas());
-    void descargarPlantillaAsignacion(this.destinosPosibles().filter((l) => elegidas.has(l.idCorrelativo)));
+    const nombre = await descargarPlantillaAsignacion(this.destinosPosibles().filter((l) => elegidas.has(l.idCorrelativo)));
+    this.cerrar();
+    this.templateDownloaded.emit(nombre);
   }
 
   elegirArchivo(archivo: File): void {
@@ -124,6 +158,8 @@ export class AsignacionCargaMasivaComponent {
   }
 
   private reiniciar(): void {
+    this.grupo.set('');
+    this.subgrupo.set('');
     this.cuentas.set([]);
     this.archivo.set(null);
     this.errores.set([]);

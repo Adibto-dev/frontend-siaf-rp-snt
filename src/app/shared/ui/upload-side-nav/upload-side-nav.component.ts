@@ -63,6 +63,8 @@ export type UploadSideNavVariant = 'default' | 'bulk-chart-accounts';
  */
 @Component({
   selector: 'siaf-upload-side-nav',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [FocoDirective, ButtonComponent, IconComponent, TextFieldComponent, UploaderComponent, TooltipDirective],
   template: `

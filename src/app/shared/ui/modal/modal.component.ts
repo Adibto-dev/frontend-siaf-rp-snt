@@ -198,6 +198,8 @@ const MODAL_PRESETS: Record<Exclude<ModalVariant, "custom">, ModalPreset> = {
  */
 @Component({
   selector: "siaf-modal",
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [ButtonComponent, FocoDirective, IconComponent, TextAreaControlComponent, TextFieldComponent],
   template: `

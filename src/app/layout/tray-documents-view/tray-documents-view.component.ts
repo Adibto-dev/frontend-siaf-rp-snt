@@ -85,6 +85,8 @@ type AppliedCustomFilter = {
  */
 @Component({
   selector: 'siaf-tray-documents-view',
+  // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [CustomFilterComponent, FilterPillComponent, FlowStatusTagComponent, IconComponent, IconDropdownMenuComponent, PaginationComponent, RecordsSearchToolbarComponent, TableControlsComponent, TooltipDirective],
   template: `

@@ -84,6 +84,9 @@ interface FilaCuentaBancaria {
  *
  * Flujo manual: Elaborado → Verificado → Aprobado (u Observado / Rechazado). Al aprobar, el saldo se mueve.
  */
+/** Mes en curso (1-12), marcado al crear el documento. */
+const MES_ACTUAL = new Date().getMonth() + 1;
+
 @Component({
   selector: 'siaf-asignacion-request',
   standalone: true,
@@ -236,7 +239,10 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   /** La periodicidad se elige después de la cuenta bancaria (Figma 814:27120). */
   readonly periodicidadDeshabilitada = computed(() => this.soloLectura() || !this.cuentaElegida());
   readonly anio = signal<number>(ANIO_ACTUAL);
-  readonly mesAsignacion = signal<number | null>(null);
+  /** Viene marcado con el mes actual; se puede cambiar. */
+  readonly mesAsignacion = signal<number | null>(MES_ACTUAL);
+  /** Mensual asigna un mes; Semestral y Anual agrupan varios y se entregan en un mes. */
+  readonly etiquetaMes = computed(() => (this.tipoPeriodicidad() === 'mensual' ? 'Mes de asignación' : 'Mes de entrega'));
   readonly periodicidad = computed((): Periodicidad | null => {
     const tipo = this.tipoPeriodicidad();
     if (!tipo) return null;
@@ -249,6 +255,16 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
 
   // ── Cuentas de registro ───────────────────────────────────────────
   readonly avisoMensaje = signal('');
+  /** Nombre del archivo del aviso «se ha descargado» (en negrita). */
+  readonly avisoArchivo = signal('');
+
+  /** Carga masiva: la plantilla se descargó y el panel se cerró; el archivo se sube al volver a abrirlo. */
+  avisarPlantilla(nombre: string): void {
+    this.avisoMensaje.set('');
+    this.avisoArchivo.set(nombre);
+    this.aviso.set('file-downloaded');
+    this.avisoAbierto.set(true);
+  }
   readonly libretas = signal<LibretaSaldo[]>([]);
   readonly cargandoLibretas = signal(false);
   private readonly libretaPorId = computed(() => new Map(this.libretas().map((l) => [l.idCorrelativo, l])));
@@ -454,8 +470,8 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   elegirPeriodicidad(evento: string | number | string[]): void {
     const valor = String(Array.isArray(evento) ? evento[0] ?? '' : evento);
     if (valor === this.tipoPeriodicidad()) return;
+    // El mes elegido se conserva: solo cambia la etiqueta del campo.
     this.tipoPeriodicidad.set(valor as TipoPeriodicidad);
-    this.mesAsignacion.set(null);
     // Mensual: el año es el de trabajo (fijo).
     if (valor === 'mensual') this.anio.set(ANIO_ACTUAL);
   }
@@ -781,7 +797,8 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
     const p = d?.periodicidad;
     this.tipoPeriodicidad.set(p?.tipo ?? 'mensual');
     this.anio.set(p?.anio ?? ANIO_ACTUAL);
-    this.mesAsignacion.set(p?.mesAsignacion ?? null);
+    // Documento nuevo: el mes actual; uno grabado conserva el suyo.
+    this.mesAsignacion.set(p ? (p.mesAsignacion ?? null) : MES_ACTUAL);
     const pares = d?.asignaciones ?? [];
     this.origen.set(pares[0]?.origen ?? d?.movimientos.find((m) => m.naturaleza === 'Débito')?.idCorrelativo ?? '');
     this.asignaciones.set(pares.map((a) => ({ ...a })));
