@@ -8613,10 +8613,17 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     "capa": "components",
     "importacion": "@siaf/shared/components/pagination/pagination.component",
     "archivo": "src/app/shared/components/pagination/pagination.component.ts",
-    "descripcion": "Paginación de las grillas: contador «1-25 de 800» y flechas Página anterior / Página siguiente, que se deshabilitan\nsolas en la primera y la última página.\n\nRegla de tablas: filas por página de 25 a 100 (`FILAS_POR_PAGINA_OPCIONES`, inicial `FILAS_POR_PAGINA`) y, si el\ntotal no pasa del menor tamaño (25 filas), el paginador no se muestra: todo cabe en una página.\n\nCon `position=\"Bottom\"` y `rowPage` suma a la izquierda el select nativo de filas por página; en `Top` es la versión\ncompacta que pinta `siaf-table-controls`. Solo emite eventos (`previous`, `next`, `rowsPerPageChange`): el padre\ncambia `page` y las filas.",
+    "descripcion": "Paginación de las grillas: contador «1-25 de 800» y flechas Página anterior / Página siguiente, que se deshabilitan\nsolas en la primera y la última página.\n\nRegla de tablas: filas por página de 25 a 100 (`FILAS_POR_PAGINA_OPCIONES`, inicial `FILAS_POR_PAGINA`) y, si el\ntotal no pasa del menor tamaño (25 filas), el paginador no se muestra: todo cabe en una página. Las bandejas usan\n`FILAS_POR_PAGINA_BANDEJA_OPCIONES` (5 a 100, inicial `FILAS_POR_PAGINA_BANDEJA` = 10) con `[alwaysVisible]=\"true\"`.\n\nCon `position=\"Bottom\"` y `rowPage` suma a la izquierda el select nativo de filas por página; en `Top` es la versión\ncompacta que pinta `siaf-table-controls`. Solo emite eventos (`previous`, `next`, `rowsPerPageChange`): el padre\ncambia `page` y las filas.",
     "usaSesion": false,
     "proyectaContenido": false,
     "entradas": [
+      {
+        "nombre": "alwaysVisible",
+        "tipo": "boolean",
+        "porDefecto": "false",
+        "requerida": false,
+        "descripcion": "Siempre visible con al menos una fila (bandejas): deja elegir las filas por página aunque quepan en una."
+      },
       {
         "nombre": "counterPage",
         "tipo": "string",

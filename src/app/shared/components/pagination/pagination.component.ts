@@ -9,13 +9,18 @@ export type PaginationPosition = 'Top' | 'Bottom';
 export const FILAS_POR_PAGINA_OPCIONES = [25, 50, 100];
 /** Tamaño inicial de toda tabla. */
 export const FILAS_POR_PAGINA = 25;
+/** Bandejas (pestañas Documentos / Registros de cada proceso y Bandeja de documentos): tamaños desde 5. */
+export const FILAS_POR_PAGINA_BANDEJA_OPCIONES = [5, 10, 25, 50, 100];
+/** Tamaño inicial de las bandejas. */
+export const FILAS_POR_PAGINA_BANDEJA = 10;
 
 /**
  * Paginación de las grillas: contador «1-25 de 800» y flechas Página anterior / Página siguiente, que se deshabilitan
  * solas en la primera y la última página.
  *
  * Regla de tablas: filas por página de 25 a 100 (`FILAS_POR_PAGINA_OPCIONES`, inicial `FILAS_POR_PAGINA`) y, si el
- * total no pasa del menor tamaño (25 filas), el paginador no se muestra: todo cabe en una página.
+ * total no pasa del menor tamaño (25 filas), el paginador no se muestra: todo cabe en una página. Las bandejas usan
+ * `FILAS_POR_PAGINA_BANDEJA_OPCIONES` (5 a 100, inicial `FILAS_POR_PAGINA_BANDEJA` = 10) con `[alwaysVisible]="true"`.
  *
  * Con `position="Bottom"` y `rowPage` suma a la izquierda el select nativo de filas por página; en `Top` es la versión
  * compacta que pinta `siaf-table-controls`. Solo emite eventos (`previous`, `next`, `rowsPerPageChange`): el padre
@@ -136,8 +141,12 @@ export class PaginationComponent {
   @Input() rowsPerPage = FILAS_POR_PAGINA;
   @Input() rowsPerPageOptions: number[] = FILAS_POR_PAGINA_OPCIONES;
 
-  /** Sin más filas que el menor tamaño de página no hay nada que paginar: se oculta. */
+  /** Siempre visible con al menos una fila (bandejas): deja elegir las filas por página aunque quepan en una. */
+  @Input() alwaysVisible = false;
+
+  /** Sin más filas que el menor tamaño de página no hay nada que paginar: se oculta (salvo `alwaysVisible`). */
   get visible(): boolean {
+    if (this.alwaysVisible) return this.totalItems > 0;
     return this.totalItems > Math.min(...(this.rowsPerPageOptions.length ? this.rowsPerPageOptions : [FILAS_POR_PAGINA]));
   }
 

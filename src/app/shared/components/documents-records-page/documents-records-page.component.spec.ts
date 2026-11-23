@@ -70,17 +70,23 @@ describe('DocumentsRecordsPageComponent', () => {
       // La bandeja trae la primera página (25 filas) de 30 documentos.
       configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: filas(25), serverQuery: { total: 30 } });
 
-      expect(contadores()).toEqual(['1-25 de 30']);
+      expect(contadores()).toEqual(['1-10 de 30']);
     });
 
     it('sin serverQuery, cuenta las filas cargadas', () => {
       configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: filas(30) });
 
-      expect(contadores()).toEqual(['1-25 de 30']);
+      expect(contadores()).toEqual(['1-10 de 30']);
     });
 
-    it('con 25 filas o menos no se muestra: todo cabe en una página', () => {
-      configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: filas(12) });
+    it('se ve siempre, aunque todas las filas quepan en una página (bandeja: 10 filas al inicio)', () => {
+      configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: filas(4) });
+
+      expect(contadores()).toEqual(['1-4 de 4']);
+    });
+
+    it('sin filas no se muestra', () => {
+      configurar({ ...BANDEJA_CONFIG_DE_MUESTRA, documentRows: [] });
 
       expect(contadores()).toEqual([]);
     });

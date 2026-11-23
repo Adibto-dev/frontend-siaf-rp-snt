@@ -79,7 +79,9 @@ usuarios de demostración, el recorrido de la clase y cómo sumar un proceso.
   `filled` con modal de confirmación.
 - **Tablas**: paginación con `siaf-pagination`; filas por página de 25 a 100 (`FILAS_POR_PAGINA_OPCIONES`, inicial
   `FILAS_POR_PAGINA`, en `pagination.component.ts`). Con 25 filas o menos el paginador se oculta solo. No pasar
-  `rowsPerPageOptions` propias ni tamaños de 10.
+  `rowsPerPageOptions` propias ni tamaños de 10. **Excepción, las bandejas** (pestañas Documentos / Registros de cada
+  proceso y Bandeja de documentos): `FILAS_POR_PAGINA_BANDEJA_OPCIONES` (5, 10, 25, 50, 100), inicial
+  `FILAS_POR_PAGINA_BANDEJA` (10) y `[alwaysVisible]="true"` (el paginador se ve con al menos una fila).
 - **Abreviaturas en cabeceras**: salen del glosario `ABREVIATURAS` (`shared/utils/abreviaturas.util.ts`), nunca a mano.
   La cabecera muestra la abreviatura y el tooltip el término completo (`[siafTooltip]="abrev.x.termino"` en un `th`;
   `tooltip` en `DocumentsRecordsColumn`); el Excel exportado usa el término completo. Hoy: Sec., F. Operación,

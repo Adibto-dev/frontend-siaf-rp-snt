@@ -31,7 +31,7 @@ import { ESTADO } from '../../../core/models/documento.model';
 import { exportarBandejaExcel } from '../../utils/exportar-registros.util';
 import type { DatoConsulta } from '../../utils/excel-siaf.util';
 import { FocoDirective } from '../../ui/foco/foco.directive';
-import { FILAS_POR_PAGINA, FILAS_POR_PAGINA_OPCIONES } from '../pagination/pagination.component';
+import { FILAS_POR_PAGINA_BANDEJA, FILAS_POR_PAGINA_BANDEJA_OPCIONES } from '../pagination/pagination.component';
 
 type AppliedCustomFilter = {
   id: string;
@@ -369,6 +369,7 @@ type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
                 [totalPages]="totalPages"
                 [rowsPerPage]="rowsPerPage"
                 [rowsPerPageOptions]="rowsPerPageOptions"
+                [alwaysVisible]="true"
                 (previous)="onPreviousPage()"
                 (next)="onNextPage()"
                 (rowsPerPageChange)="onRowsPerPageChange($event)"
@@ -521,7 +522,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   draftHiddenColumns = new Set<string>();
   selectedAccountHistoryRecord: DocumentsRecordsRow | null = null;
   selectedHistorySummary: DocumentHistorySummary = { solicitudId: '', document: '', number: '', actionType: '' };
-  readonly rowsPerPageOptions = FILAS_POR_PAGINA_OPCIONES;
+  readonly rowsPerPageOptions = FILAS_POR_PAGINA_BANDEJA_OPCIONES;
   readonly filterCondicionOptions = [
     { label: 'Es igual a', value: 'eq' },
     { label: 'No es igual a', value: 'neq' },
@@ -531,7 +532,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
     { label: 'Termina con', value: 'ends_with' }
   ];
   private customFilterSequence = 0;
-  rowsPerPage = FILAS_POR_PAGINA;
+  rowsPerPage = FILAS_POR_PAGINA_BANDEJA;
   page = 1;
 
   // ── Items derivados para los nuevos componentes composables ──
