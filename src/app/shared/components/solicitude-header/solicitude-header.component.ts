@@ -104,9 +104,8 @@ const CREATOR_HEADER_CONFIG: Partial<Record<SolicitudeHeaderState, SolicitudeHea
     showEdit: false,
     showVerify: false
   },
-  // Cuando el aprobador OBSERVA, el creador solo puede EDITAR para subsanar
-  // (RN-019/031: la subsanación es obligatoria — Eliminar queda visible pero
-  // deshabilitado para preservar la trazabilidad de auditoría).
+  // Cuando el aprobador OBSERVA, el creador edita para subsanar o elimina el
+  // documento (con el modal de eliminación de siempre).
   observed: {
     type: 'readonly',
     showTag: false,
@@ -115,7 +114,6 @@ const CREATOR_HEADER_CONFIG: Partial<Record<SolicitudeHeaderState, SolicitudeHea
     saveVariant: 'secondary',
     editVariant: 'primary',
     showDelete: true,
-    deleteDisabled: true,
     showEdit: true,
     showVerify: false
   },

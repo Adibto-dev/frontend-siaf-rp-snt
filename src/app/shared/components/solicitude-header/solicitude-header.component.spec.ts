@@ -51,13 +51,13 @@ describe('SolicitudeHeaderComponent', () => {
     }
   });
 
-  it('conserva variantes y deshabilitados: Grabar sin cambios, Eliminar en observado y Editar relleno', () => {
+  it('conserva variantes y deshabilitados: Grabar sin cambios, Eliminar habilitado en observado y Editar relleno', () => {
     configurar({ role: 'creator', state: 'edit', saveDisabled: true });
     expect(acciones()[1]).toEqual({ texto: 'Grabar', icono: '', variante: 'secondary', deshabilitado: true });
 
     configurar({ role: 'creator', state: 'observed', saveDisabled: false });
     expect(acciones()).toEqual([
-      { texto: 'Eliminar', icono: '', variante: 'secondary', deshabilitado: true },
+      { texto: 'Eliminar', icono: '', variante: 'secondary', deshabilitado: false },
       { texto: 'Editar', icono: 'edit', variante: 'primary', deshabilitado: false },
     ]);
   });

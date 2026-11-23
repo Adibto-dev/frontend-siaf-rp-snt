@@ -25,7 +25,7 @@ const INSTRUCCIONES = [
   'Carga masiva de cuentas de destino · Solicitud de Asignación Financiera',
   '',
   '1. Complete la hoja «Plantilla» desde la fila 3: una fila por cuenta de registro de destino (crédito).',
-  '2. ID correlativo: el de la cuenta de registro (6 dígitos, ej. 000033). Debe pertenecer a la cuenta bancaria elegida.',
+  '2. ID correlativo: el de la cuenta de registro (10 dígitos, ej. 0000000033). Debe pertenecer a la cuenta bancaria elegida.',
   '3. No incluya la cuenta de origen ni repita un ID correlativo.',
   '4. Importe a asignar: número mayor o igual a 0 con hasta 2 decimales. Las filas con 0 o vacías se ignoran.',
   '5. Son informativos y el sistema no los lee: Clasificador institucional (Grupo, Sub grupo y Descripción de la entidad) y el Número y la Descripción de la cuenta. El sistema toma el ID correlativo y el importe.',

@@ -108,7 +108,7 @@ export const CUENTA_DEMOSTRACION = '00000281794000000005';
 export const CUENTAS_REGISTRO: CuentaRegistro[] = CUENTAS_BANCARIAS.flatMap((cuenta, i) => {
   const cantidad = 2 + ((i * 3) % 5);
   return Array.from({ length: cantidad }, (_, j) => ({
-    idCorrelativo: String(i * 10 + j + 2).padStart(6, '0'),
+    idCorrelativo: String(i * 10 + j + 2).padStart(10, '0'),
     numero: `11111000${9000 + i} 1.00 000000 0000${String(99 - j).padStart(2, '0')}`,
     descripcion: `Cuenta Fondo Tesoro Público ${DESCRIPCION_MONEDA[cuenta.moneda]} ${j + 1}`,
     cuentaBancaria: cuenta.numero,
@@ -129,7 +129,7 @@ function cuentasDeDemostracion(): CuentaRegistro[] {
   const i = CUENTAS_BANCARIAS.findIndex((c) => c.numero === CUENTA_DEMOSTRACION);
   const cuenta = CUENTAS_BANCARIAS[i];
   return Array.from({ length: 30 }, (_, k) => ({
-    idCorrelativo: String(100 + k).padStart(6, '0'),
+    idCorrelativo: String(100 + k).padStart(10, '0'),
     numero: `11111000${9000 + i} 1.00 000000 0001${String(k + 1).padStart(2, '0')}`,
     descripcion: `Cuenta Fondo Tesoro Público ${DESCRIPCION_MONEDA[cuenta.moneda]} ${k + 7}`,
     cuentaBancaria: cuenta.numero,

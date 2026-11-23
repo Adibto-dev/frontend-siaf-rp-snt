@@ -209,7 +209,7 @@ describe('mockBackendInterceptor', () => {
     }));
   });
 
-  it('observar pide comentario y una solicitud observada ya no se puede eliminar', fakeAsync(() => {
+  it('observar pide comentario y el creador puede eliminar la solicitud observada, también después de corregirla', fakeAsync(() => {
     const luis = entrar('70318246');
     const bandeja = esperar(http.get<SolicitudResponse[]>(`${API}/solicitudes/bandeja-aprobador?tipos=RTCR`, { headers: luis }));
     const verificada = bandeja.valor!.find((s) => s.estado === 'VERIFICADO')!;
@@ -221,8 +221,7 @@ describe('mockBackendInterceptor', () => {
     esperar(http.patch(`${API}/solicitudes/${verificada.id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
     const eliminar = esperar(http.patch(`${API}/solicitudes/${verificada.id}/estado`, { estadoNuevo: 'ELIMINADO' }, { headers: ana }));
 
-    expect(eliminar.error?.status).toBe(409);
-    expect(eliminar.error?.error.message).toContain('observada');
+    expect(eliminar.error).toBeUndefined();
   }));
 
   describe('registro automático de saldos de apertura (RASA)', () => {
@@ -406,7 +405,7 @@ describe('mockBackendInterceptor', () => {
         // Totales inventados: el backend los recalcula desde las libretas.
         importeCuenta: 1,
         importeNacional: 1,
-        libretas: [{ idCorrelativo: '000022', importe: 50000 }, { idCorrelativo: '000023', importe: 50000 }],
+        libretas: [{ idCorrelativo: '0000000022', importe: 50000 }, { idCorrelativo: '0000000023', importe: 50000 }],
       }],
     };
 
@@ -434,7 +433,7 @@ describe('mockBackendInterceptor', () => {
     it('RN-1022: no admite un segundo saldo inicial para una cuenta con saldo aprobado en el periodo', fakeAsync(() => {
       const ana = entrar('45872163');
       const id = crearRsin(ana);
-      const conSaldo = { ...SALDOS, saldos: [{ ...SALDOS.saldos[0], cuentaBancaria: '12073303572000000003', libretas: [{ idCorrelativo: '000002', importe: 10 }] }] };
+      const conSaldo = { ...SALDOS, saldos: [{ ...SALDOS.saldos[0], cuentaBancaria: '12073303572000000003', libretas: [{ idCorrelativo: '0000000002', importe: 10 }] }] };
       const r = esperar(http.post(`${API}/solicitudes/${id}/saldos-iniciales`, conSaldo, { headers: ana }));
       expect(r.error?.error.message).toContain('ya tiene un saldo inicial aprobado');
     }));

@@ -55,7 +55,7 @@ import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo'
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 26;
+const VERSION = 27;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -711,17 +711,17 @@ const RO = '11040103570200000000';
 
 const SEMILLAS_TRASLADO: SemillaTraslado[] = [
   { creada: '2026-09-14', estado: 'APROBADO', cuenta: CUT, justificacion: 'Consolidar lo recaudado por IPM e Impuesto al Rodaje en FONCOMUN.',
-    movimientos: [['000032', 'Débito', 100000], ['000033', 'Débito', 50000], ['000034', 'Crédito', 150000]] },
+    movimientos: [['0000000032', 'Débito', 100000], ['0000000033', 'Débito', 50000], ['0000000034', 'Crédito', 150000]] },
   { creada: '2026-09-22', estado: 'APROBADO', cuenta: RO, justificacion: 'Distribuir recursos ordinarios entre dos cuentas de registro.',
-    movimientos: [['000012', 'Débito', 10000], ['000013', 'Crédito', 6000], ['000014', 'Crédito', 4000]] },
+    movimientos: [['0000000012', 'Débito', 10000], ['0000000013', 'Crédito', 6000], ['0000000014', 'Crédito', 4000]] },
   { creada: '2026-10-06', estado: 'RECHAZADO', cuenta: CUT, justificacion: 'Trasladar el saldo de la cuenta de registro 5 a la 6.',
-    movimientos: [['000036', 'Débito', 30000], ['000037', 'Crédito', 30000]], comentario: '[Información incorrecta] La cuenta de destino no corresponde al recurso.' },
+    movimientos: [['0000000036', 'Débito', 30000], ['0000000037', 'Crédito', 30000]], comentario: '[Información incorrecta] La cuenta de destino no corresponde al recurso.' },
   { creada: '2026-10-20', estado: 'OBSERVADO', cuenta: RO, justificacion: 'Reasignar recursos ordinarios a la cuenta de registro 5.',
-    movimientos: [['000015', 'Débito', 3000], ['000016', 'Crédito', 3000]], comentario: 'Indique en la justificación el recurso de destino.' },
+    movimientos: [['0000000015', 'Débito', 3000], ['0000000016', 'Crédito', 3000]], comentario: 'Indique en la justificación el recurso de destino.' },
   { creada: '2026-10-28', estado: 'VERIFICADO', cuenta: CUT, justificacion: 'Trasladar recursos de la cuenta de registro 4 a la 5.',
-    movimientos: [['000035', 'Débito', 80000], ['000036', 'Crédito', 80000]] },
+    movimientos: [['0000000035', 'Débito', 80000], ['0000000036', 'Crédito', 80000]] },
   { creada: '2026-11-03', estado: 'ELABORADO', cuenta: CUT, justificacion: 'Repartir el saldo de la cuenta de registro 6 entre las cuentas 1 y 2.',
-    movimientos: [['000037', 'Débito', 20000], ['000032', 'Crédito', 12000], ['000033', 'Crédito', 8000]] },
+    movimientos: [['0000000037', 'Débito', 20000], ['0000000032', 'Crédito', 12000], ['0000000033', 'Crédito', 8000]] },
 ];
 
 function crearTraslados(datos: DatosTaller): void {
@@ -806,19 +806,19 @@ interface SemillaAsignacion {
 /** Seis documentos de ejemplo: dos aprobados (mueven saldo) y uno en cada estado del flujo. */
 const SEMILLAS_ASIGNACION: SemillaAsignacion[] = [
   { creada: '2026-08-04', estado: 'APROBADO', cuenta: CUT, periodicidad: { tipo: 'mensual', anio: 2026, mesAsignacion: 8 },
-    origen: '000032', destinos: [['000035', 20000], ['000036', 15000]], justificacion: 'Asignar lo recaudado en julio a las cuentas de registro 4 y 5.' },
+    origen: '0000000032', destinos: [['0000000035', 20000], ['0000000036', 15000]], justificacion: 'Asignar lo recaudado en julio a las cuentas de registro 4 y 5.' },
   { creada: '2026-07-10', estado: 'APROBADO', cuenta: RO, periodicidad: { tipo: 'semestral', anio: 2026, mesAsignacion: 7 },
-    origen: '000013', destinos: [['000015', 1500], ['000016', 1000]], justificacion: 'Asignación del primer semestre de recursos directamente recaudados.' },
+    origen: '0000000013', destinos: [['0000000015', 1500], ['0000000016', 1000]], justificacion: 'Asignación del primer semestre de recursos directamente recaudados.' },
   { creada: '2026-10-08', estado: 'RECHAZADO', cuenta: CUT, periodicidad: { tipo: 'anual', anio: 2025, mesAsignacion: 10 },
-    origen: '000034', destinos: [['000037', 40000]], justificacion: 'Asignar lo recaudado en 2025 por recursos determinados.',
+    origen: '0000000034', destinos: [['0000000037', 40000]], justificacion: 'Asignar lo recaudado en 2025 por recursos determinados.',
     comentario: '[Información incorrecta] El mes de asignación no corresponde a la periodicidad anual.' },
   { creada: '2026-10-21', estado: 'OBSERVADO', cuenta: RO, periodicidad: { tipo: 'mensual', anio: 2026, mesAsignacion: 10 },
-    origen: '000012', destinos: [['000014', 2000], ['000015', 1000]], justificacion: 'Asignar lo recaudado en septiembre a dos cuentas de registro.',
+    origen: '0000000012', destinos: [['0000000014', 2000], ['0000000015', 1000]], justificacion: 'Asignar lo recaudado en septiembre a dos cuentas de registro.',
     comentario: 'Detalle en el motivo el destino de los recursos asignados.' },
   { creada: '2026-11-02', estado: 'VERIFICADO', cuenta: CUT, periodicidad: { tipo: 'mensual', anio: 2026, mesAsignacion: 11 },
-    origen: '000033', destinos: [['000035', 10000], ['000036', 5000], ['000037', 5000]], justificacion: 'Asignar lo recaudado en octubre a tres cuentas de registro.' },
+    origen: '0000000033', destinos: [['0000000035', 10000], ['0000000036', 5000], ['0000000037', 5000]], justificacion: 'Asignar lo recaudado en octubre a tres cuentas de registro.' },
   { creada: '2026-11-12', estado: 'ELABORADO', cuenta: CUT, periodicidad: { tipo: 'semestral', anio: 2026, mesAsignacion: 12 },
-    origen: '000034', destinos: [['000032', 12000]], justificacion: 'Asignación del segundo semestre de donaciones y transferencias.' },
+    origen: '0000000034', destinos: [['0000000032', 12000]], justificacion: 'Asignación del segundo semestre de donaciones y transferencias.' },
 ];
 
 function crearAsignaciones(datos: DatosTaller): void {

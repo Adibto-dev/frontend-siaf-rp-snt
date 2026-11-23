@@ -57,8 +57,9 @@ const GRUPOS: { grupo: string; subgrupos: string[] }[] = [
 ];
 
 /**
- * Fuente → subfuente → concepto, según `02-analisis/fuentes-financiamiento.md` (v1.5, `Fuentes_y_Subfuentes.xlsx`): las
- * fuentes 1 a 4 no tienen subfuente, y el concepto solo existe bajo la subfuente 18.
+ * Fuente → subfuente → concepto, según `02-analisis/fuentes-financiamiento.md` (v1.6, `Fuentes_y_Subfuentes.xlsx`): las
+ * fuentes 1 a 4 no tienen subfuente, y solo las subfuentes 08 y 18 tienen conceptos. El número de concepto se repite
+ * entre subfuentes (1 es Impuesto Predial en la 08 y Canon Minero en la 18).
  */
 const RD = '5 - Recursos Determinados';
 const CANON = '18 - Canon y Sobrecanon, Regalías, Renta de Aduanas y Participaciones';
@@ -69,7 +70,16 @@ const FUENTES: { fuente: string; subfuente: string; concepto: string }[] = [
   { fuente: '4 - Donaciones y Transferencias', subfuente: '', concepto: '' },
   { fuente: RD, subfuente: '04 - Contribuciones a Fondos', concepto: '' },
   { fuente: RD, subfuente: '07 - Fondo de Compensación Municipal', concepto: '' },
-  { fuente: RD, subfuente: '08 - Impuestos Municipales', concepto: '' },
+  ...[
+    'Impuesto Predial',
+    'Impuesto de Alcabala',
+    'Impuesto al Patrimonio Vehicular',
+    'Impuesto a las Apuestas',
+    'Impuesto a los Juegos',
+    'Impuesto a los Espectáculos Públicos no Deportivos',
+    'Impuesto a los Juegos de Casino',
+    'Impuesto a los Juegos de Máquinas Tragamonedas',
+  ].map((nombre, i) => ({ fuente: RD, subfuente: '08 - Impuestos Municipales', concepto: `${i + 1} - ${nombre}` })),
   { fuente: RD, subfuente: '15 - Fondo de Compensación Regional – FONCOR', concepto: '' },
   ...[
     'Canon Minero',
@@ -97,7 +107,7 @@ export function clasificacionDe(idCorrelativo: string): ClasificacionCuenta {
   const n = Number(idCorrelativo) || 0;
   const par = PARES[n % PARES.length];
   const lugar = UBICACIONES[(n * 7) % UBICACIONES.length];
-  return { ...FUENTES[(n * 5) % FUENTES.length], ...par, ...lugar, entidad: nombreEntidad(par.subgrupo, lugar, n) };
+  return { ...FUENTES[(n * 7) % FUENTES.length], ...par, ...lugar, entidad: nombreEntidad(par.subgrupo, lugar, n) };
 }
 
 const MINISTERIOS = ['Ministerio de Economía y Finanzas', 'Ministerio de Educación', 'Ministerio de Salud', 'Ministerio de Transportes y Comunicaciones'];

@@ -190,7 +190,7 @@ export async function leerPlantillaSaldos(
     if (cuentasUsadas.includes(numero)) { observar(n, 'Cuenta bancaria', `la cuenta ${numero} ya está en el documento o tiene un saldo inicial aprobado.`); return; }
     const iso = fecha(valor(COLUMNAS.fecha));
     if (!iso) { observar(n, 'Fecha de operación', 'ingrese la fecha de operación (dd/mm/aaaa).'); return; }
-    const libreta = cuentasRegistroDe(numero).find((l) => l.idCorrelativo === id.padStart(6, '0'));
+    const libreta = cuentasRegistroDe(numero).find((l) => l.idCorrelativo === id.padStart(10, '0'));
     if (!libreta) { observar(n, ABREVIATURAS.idCorrelativo.termino, `el ${ABREVIATURAS.idCorrelativo.termino} ${id || '(vacío)'} no pertenece a la cuenta ${numero}.`); return; }
     // RN-1030: el saldo inicial admite importes mayores o iguales a cero.
     if (monto === null || monto < 0) { observar(n, ABREVIATURAS.importeCuenta.termino, 'el importe debe ser un número mayor o igual a cero.'); return; }

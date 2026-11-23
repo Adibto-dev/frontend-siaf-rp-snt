@@ -97,7 +97,7 @@ No corregir nada sin aprobación del usuario.
 - [ ] Editar solo en `ELABORADO`/`OBSERVADO` y con foto del formulario; Cancelar restaura lo grabado.
 - [ ] `SalidaProtegida` + `salidaProtegidaGuard` en las rutas: navegación bloqueada al crear/editar y modal «¿Cancelar documento?» con datos o cambios sin grabar (también con la flecha atrás); `permitirSalida()` tras grabar.
 - [ ] Verificar en `ELABORADO`/`OBSERVADO`; desde edición con cambios graba antes.
-- [ ] Eliminar solo en `ELABORADO` y oculto si fue observada.
+- [ ] Eliminar en `ELABORADO` y `OBSERVADO` (también si fue observada y volvió a elaborado), con el modal de eliminación de siempre.
 - [ ] Modales de confirmación y snackbars en Grabar, Verificar y Eliminar.
 - [ ] Modo lectura después de elaborar; historial y trazabilidad visibles.
 - [ ] Convenciones: standalone, `OnPush`, signals, sin hex crudo, íconos válidos, componentes del kit.

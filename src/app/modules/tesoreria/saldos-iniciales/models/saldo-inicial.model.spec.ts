@@ -21,7 +21,7 @@ describe('saldo-inicial.model', () => {
   it('la Cuenta Única del Tesoro suma 30 cuentas de demostración con IDs propios', () => {
     const demo = cuentasRegistroDe('00000281794000000005').filter((c) => esCuentaDeDemostracion(c.idCorrelativo));
     expect(demo.length).toBe(30);
-    expect(demo[0].idCorrelativo).toBe('000100');
+    expect(demo[0].idCorrelativo).toBe('0000000100');
     expect(new Set(CUENTAS_REGISTRO.map((c) => c.idCorrelativo)).size).toBe(CUENTAS_REGISTRO.length);
   });
 

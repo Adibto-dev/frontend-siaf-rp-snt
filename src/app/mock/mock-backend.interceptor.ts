@@ -546,7 +546,7 @@ const TRANSICIONES: Record<'CREADOR' | 'APROBADOR', Partial<Record<EstadoDocumen
   CREADOR: {
     NUEVO: ['ELABORADO'],
     ELABORADO: ['ELABORADO', 'VERIFICADO', 'ELIMINADO'],
-    OBSERVADO: ['ELABORADO', 'VERIFICADO'],
+    OBSERVADO: ['ELABORADO', 'VERIFICADO', 'ELIMINADO'],
   },
   APROBADOR: {
     VERIFICADO: ['APROBADO', 'OBSERVADO', 'RECHAZADO'],
@@ -591,9 +591,6 @@ const cambiarEstado: Manejador = ({ req, datos, params, sesion }) => {
   }
   const comentario = dto.comentario?.trim() ?? '';
   if ((nuevo === 'OBSERVADO' || nuevo === 'RECHAZADO') && !comentario) return error(400, 'Escriba el comentario.');
-  if (!esSaldos && nuevo === 'ELIMINADO' && (s.historialEstados ?? []).some((h) => h.estadoNuevo === 'OBSERVADO')) {
-    return error(409, 'No se puede eliminar una solicitud que fue observada.');
-  }
   if (esAutorizacion && (nuevo === 'ELABORADO' || nuevo === 'APROBADO')) {
     // Sin sustento: basta con los datos de la autorización.
     if (!s.detalleAutorizacion) return error(400, 'Registre los datos de la autorización.');
