@@ -103,10 +103,14 @@
               (expandedChange)="tarjetaAbierta.set($event)"
               (closed)="quitarOrigen()"
             >
-              <div card-info class="grid items-center gap-siaf-md md:grid-cols-[minmax(0,1fr)_150px_150px_150px]">
+              <div card-info class="grid items-center gap-siaf-md md:grid-cols-[minmax(0,1fr)_150px_130px_150px_150px]">
                 <div class="min-w-0">
                   <p class="siaf-text-body-2-bold m-0 truncate text-text">{{ origen() }} - {{ libretaOrigen()?.descripcion }}</p>
                   <p class="siaf-text-caption-1 m-0 truncate">{{ libretaOrigen()?.numero }}</p>
+                </div>
+                <div class="flex min-w-0 flex-col gap-0.5">
+                  <span class="siaf-text-caption-1 w-fit text-[var(--sys-color-text-neutral-low)]" [siafTooltip]="abrev.fuenteFinanciamiento.termino">{{ abrev.fuenteFinanciamiento.abreviatura }}</span>
+                  <span class="siaf-text-body-2-bold w-fit text-[var(--sys-color-text-neutral-high)]" [siafTooltip]="textoFuenteSubfuente(origen())">{{ codigoFuente(origen()) }}</span>
                 </div>
                 <span class="siaf-text-body-2 inline-flex items-center gap-siaf-xs">
                   <siaf-icon name="account_tree" [size]="20" />{{ cantidadDestinos(filasDestino().length) }}
@@ -135,24 +139,26 @@
                   <message-box text="No se agregaron cuentas de destino. Haga clic en el botón para agregarlas o use la carga masiva." />
                 } @else {
                   <div class="siaf-table-shell">
-                    <table class="siaf-table min-w-[1170px]">
+                    <table class="siaf-table min-w-[1700px]">
                       <caption class="sr-only">Cuentas de destino de {{ origen() }}</caption>
                       <thead>
                         <tr class="siaf-table-head-row">
                           <th class="siaf-table-th w-[48px]" rowspan="2"><span class="sr-only">Asignada</span></th>
                           <th class="siaf-table-th siaf-table-th--grupo" colspan="3">Clasificador institucional</th>
-                          <th class="siaf-table-th siaf-table-th--grupo" colspan="2">Cuenta de registro</th>
-                          <th class="siaf-table-th w-[200px]" rowspan="2" [siafTooltip]="abrev.importeAcreditar.termino">{{ abrev.importeAcreditar.abreviatura }}</th>
+                          <th class="siaf-table-th siaf-table-th--grupo" colspan="4">Cuenta de registro</th>
+                          <th class="siaf-table-th siaf-table-sticky-cell siaf-table-sticky-cell--borde w-[200px]" [style.right.px]="soloLectura() ? 0 : 64" rowspan="2" [siafTooltip]="abrev.importeAcreditar.termino">{{ abrev.importeAcreditar.abreviatura }}</th>
                           @if (!soloLectura()) {
-                            <th class="siaf-table-th w-[56px]" rowspan="2"><span class="sr-only">Quitar</span></th>
+                            <th class="siaf-table-th w-[64px] siaf-table-sticky-cell" rowspan="2"><span class="sr-only">Quitar</span></th>
                           }
                         </tr>
                         <tr class="siaf-table-head-row">
                           <th class="siaf-table-th siaf-table-th--grupo-inicio w-[80px]">Grupo</th>
                           <th class="siaf-table-th w-[100px]">Sub grupo</th>
                           <th class="siaf-table-th siaf-table-th--grupo-fin w-[260px]">Descripción</th>
-                          <th class="siaf-table-th siaf-table-th--grupo-inicio">Descripción</th>
-                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[300px]">Número</th>
+                          <th class="siaf-table-th siaf-table-th--grupo-inicio w-[320px]">Descripción</th>
+                          <th class="siaf-table-th w-[300px]">Número</th>
+                          <th class="siaf-table-th w-[220px]">Concepto</th>
+                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[90px]"><span [siafTooltip]="abrev.fuenteFinanciamiento.termino">{{ abrev.fuenteFinanciamiento.abreviatura }}</span></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -165,10 +171,12 @@
                             <td class="siaf-table-td">{{ c.entidad }}</td>
                             <td class="siaf-table-td">{{ f.id }} - {{ f.libreta?.descripcion }}</td>
                             <td class="siaf-table-td">{{ f.libreta?.numero }}</td>
+                            <td class="siaf-table-td">{{ nombreConcepto(f.id) }}</td>
+                            <td class="siaf-table-td"><span [siafTooltip]="textoFuenteSubfuente(f.id)">{{ codigoFuente(f.id) }}</span></td>
                             @if (soloLectura()) {
-                              <td class="siaf-table-td text-right">{{ formatoImporte(f.importe) }}</td>
+                              <td class="siaf-table-td siaf-table-sticky-cell siaf-table-sticky-cell--borde text-right">{{ formatoImporte(f.importe) }}</td>
                             } @else {
-                              <td class="siaf-table-td py-siaf-xs">
+                              <td class="siaf-table-td siaf-table-sticky-cell siaf-table-sticky-cell--borde py-siaf-xs" [style.right.px]="64">
                                 <siaf-input
                                   [ariaLabel]="abrev.importeAsignar.termino + ' ' + f.id"
                                   type="decimal"
@@ -179,7 +187,7 @@
                                   (valueChange)="cambiarImporte(f.id, $event)"
                                 />
                               </td>
-                              <td class="siaf-table-td">
+                              <td class="siaf-table-td siaf-table-sticky-cell">
                                 <siaf-button variant="text" size="sm" icon="delete" [iconOnly]="true" [ariaLabel]="'Quitar ' + f.id" (click)="quitarDestino(f.id)" />
                               </td>
                             }
@@ -264,8 +272,8 @@
     [selectedIds]="libretasTemporales()"
     [disabledIds]="libretasBloqueadas()"
     [requireSelection]="false"
-    emptyMessage="La cuenta bancaria no tiene cuentas de registro."
-    [tableMinWidthClass]="panelLibretas() === 'destino' ? 'min-w-[1240px]' : 'min-w-[760px]'"
+    [emptyMessage]="panelLibretas() === 'destino' ? 'No hay cuentas de registro con la misma fuente y sub fuente que la cuenta de origen.' : 'La cuenta bancaria no tiene cuentas de registro.'"
+    [tableMinWidthClass]="panelLibretas() === 'destino' ? 'min-w-[1750px]' : 'min-w-[1250px]'"
     [paginated]="true"
     [page]="paginaLibretas()"
     [totalPages]="totalPaginasLibretas()"
@@ -286,10 +294,10 @@
     <div filtros class="grid gap-siaf-md">
       @if (panelLibretas() === 'origen') {
         <!-- Origen: solo fuente de financiamiento -->
-        <h4 class="m-0 text-sm font-bold uppercase text-text">Fuente de financiamiento</h4>
         <siaf-input label="Fuente" type="select" [options]="opcionesFiltros().fuente" [value]="filtrosEnEdicion().fuente" (valueChange)="editarFiltro('fuente', $event)" />
         <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!opcionesFiltros().subfuente.length || !filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
-        @if (opcionesFiltros().concepto.length && filtrosEnEdicion().subfuente) {
+        <!-- Concepto: solo cuando la Sub fuente elegida tiene conceptos (08 y 18). -->
+        @if (filtrosEnEdicion().subfuente && opcionesFiltros().concepto.length) {
           <siaf-input label="Concepto" type="select" [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
         }
       } @else {

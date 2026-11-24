@@ -3,19 +3,20 @@ import { redondear } from '../../saldos-iniciales/models/saldo-inicial.model';
 import { libroExcel } from '../../saldos-iniciales/utils/saldos-carga-masiva.util';
 import { estilarCabecera, estilarCuerpo } from '../../../../shared/utils/excel-siaf.util';
 import type { LibretaSaldo } from '../../traspasos-cuentas-registros/models/traslado.model';
-import { clasificacionDe, codigo } from './clasificacion-cuentas.util';
+import { clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, textoFuenteSubfuente } from './clasificacion-cuentas.util';
 
 /**
  * Carga masiva de la asignación financiera: un Excel con una fila por cuenta de destino (ID correlativo e importe a
  * asignar). La plantilla precargada trae las cuentas de registro elegidas, en el mismo orden que la tabla de destinos:
- * primero el Clasificador Institucional del titular y luego la cuenta de registro.
+ * el Clasificador Institucional del titular, la fuente de financiamiento y la cuenta de registro.
  */
 
 /**
  * Cabecera en dos filas. Columnas: A Grupo · B Sub grupo · C Descripción (Clasificador institucional) · D ID
- * correlativo · E Número · F Descripción (Cuenta de registro) · G Importe a asignar.
+ * correlativo · E Número · F Descripción · G Concepto · H Fuente de financiamiento (fuente.subfuente, p. ej. 5.18)
+ * (Cuenta de registro) · I Importe a asignar.
  */
-const COLUMNAS = { idCorrelativo: 4, importe: 7 } as const;
+const COLUMNAS = { idCorrelativo: 4, importe: 9 } as const;
 const PRIMERA_FILA = 3;
 const MAX_ERRORES = 10;
 export const MAX_FILAS_ASIGNACION = 500;
@@ -26,9 +27,9 @@ const INSTRUCCIONES = [
   '',
   '1. Complete la hoja «Plantilla» desde la fila 3: una fila por cuenta de registro de destino (crédito).',
   '2. ID correlativo: el de la cuenta de registro (10 dígitos, ej. 0000000033). Debe pertenecer a la cuenta bancaria elegida.',
-  '3. No incluya la cuenta de origen ni repita un ID correlativo.',
+  '3. No incluya la cuenta de origen ni repita un ID correlativo. Cada cuenta debe tener la misma Fuente y Sub fuente que la cuenta de origen.',
   '4. Importe a asignar: número mayor o igual a 0 con hasta 2 decimales. Las filas con 0 o vacías se ignoran.',
-  '5. Son informativos y el sistema no los lee: Clasificador institucional (Grupo, Sub grupo y Descripción de la entidad) y el Número y la Descripción de la cuenta. El sistema toma el ID correlativo y el importe.',
+  '5. Son informativos y el sistema no los lee: Clasificador institucional (Grupo, Sub grupo y Descripción de la entidad) y, de la cuenta de registro, el Número, la Descripción, el Concepto y la Fuente de financiamiento (fuente.subfuente). El sistema toma el ID correlativo y el importe.',
   `6. Máximo ${MAX_FILAS_ASIGNACION} filas. Guarde en formato XLSX y súbalo desde «Carga masiva».`,
   '7. Las cuentas cargadas reemplazan a los destinos que ya tenga el documento.',
   '8. La suma de importes no debe superar el saldo disponible de la cuenta de origen.',
@@ -51,17 +52,17 @@ export async function descargarPlantillaAsignacion(destinos: LibretaSaldo[]): Pr
   const libro = new Workbook();
   const hoja = libro.addWorksheet('Plantilla');
   const importeTitulo = ABREVIATURAS.importeAsignar.termino;
-  hoja.addRow(['Clasificador institucional', '', '', 'Cuenta de registro', '', '', importeTitulo]);
-  hoja.addRow(['Grupo', 'Sub grupo', 'Descripción', ABREVIATURAS.idCorrelativo.termino, 'Número', 'Descripción', '']);
+  hoja.addRow(['Clasificador institucional', '', '', 'Cuenta de registro', '', '', '', '', importeTitulo]);
+  hoja.addRow(['Grupo', 'Sub grupo', 'Descripción', ABREVIATURAS.idCorrelativo.termino, 'Número', 'Descripción', 'Concepto', ABREVIATURAS.fuenteFinanciamiento.termino, '']);
   hoja.mergeCells('A1:C1');
-  hoja.mergeCells('D1:F1');
-  hoja.mergeCells('G1:G2');
+  hoja.mergeCells('D1:H1');
+  hoja.mergeCells('I1:I2');
   // Formato SIAF (excel-siaf.util): cabecera azul de un solo color y cuerpo con bordes grises.
   estilarCabecera(hoja, [1, 2], 7);
-  [10, 12, 40, 16, 32, 40, 22].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
+  [10, 12, 40, 16, 32, 40, 36, 26, 22].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
   for (const l of destinos) {
     const c = clasificacionDe(l.idCorrelativo);
-    hoja.addRow([codigo(c.grupo), codigo(c.subgrupo), c.entidad, l.idCorrelativo, l.numero, l.descripcion, 0]);
+    hoja.addRow([codigo(c.grupo), codigo(c.subgrupo), c.entidad, l.idCorrelativo, l.numero, l.descripcion, nombreConcepto(l.idCorrelativo), codigoFuente(l.idCorrelativo), 0]);
   }
   // El ID como texto: Excel no le quita los ceros a la izquierda.
   hoja.getColumn(COLUMNAS.idCorrelativo).numFmt = '@';
@@ -132,6 +133,7 @@ export async function leerPlantillaAsignacion(archivo: File, libretas: LibretaSa
       if (!id && !valor) continue;
       if (!ids.has(id)) errores.push(`Fila ${n}: la cuenta de registro «${id || '--'}» no pertenece a la cuenta bancaria.`);
       else if (id === origen) errores.push(`Fila ${n}: la cuenta ${id} es la de origen.`);
+      else if (!mismaFuente(origen, id)) errores.push(`Fila ${n}: la cuenta ${id} no es de ${textoFuenteSubfuente(origen)}, como la cuenta de origen.`);
       else if (vistos.has(id)) errores.push(`Fila ${n}: la cuenta ${id} está repetida.`);
       else if (valor === null || valor < 0) errores.push(`Fila ${n}: el importe a asignar no es válido.`);
       else if (valor > 0) destinos.push({ destino: id, importe: redondear(valor) });

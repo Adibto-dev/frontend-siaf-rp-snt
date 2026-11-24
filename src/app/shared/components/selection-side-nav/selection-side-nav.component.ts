@@ -8,6 +8,7 @@ import { FormTableSearchComponent } from '../form-table-search/form-table-search
 import { PaginationComponent, FILAS_POR_PAGINA_OPCIONES } from '../pagination/pagination.component';
 import { TableControlsComponent } from '../table-controls/table-controls.component';
 import { FocoDirective } from '../../ui/foco/foco.directive';
+import { TooltipDirective } from '../../ui/tooltip/tooltip.directive';
 
 export interface SelectionColumn<T = Record<string, unknown>> {
   /** Llave de la propiedad en la fila (también se usa para el track). */
@@ -20,6 +21,10 @@ export interface SelectionColumn<T = Record<string, unknown>> {
   cellClass?: string;
   /** Renderer opcional. Si no se da, se usa `row[key]` como string. */
   render?: (row: T) => string;
+  /** Tooltip de la cabecera: el término completo cuando `label` es una abreviatura del glosario. */
+  headerTooltip?: string;
+  /** Tooltip opcional de la celda, p. ej. el nombre completo cuando la celda muestra solo el código. */
+  tooltip?: (row: T) => string;
   /**
    * Título de grupo: las columnas seguidas con el mismo `group` comparten una cabecera encima (p. ej. «Documento» sobre
    * Tipo y Número). Las columnas sin grupo ocupan las dos filas de la cabecera.
@@ -52,6 +57,8 @@ export type SelectionMode = 'single' | 'multiple';
  * - Cancelar cierra sin emitir.
  * - Aceptar emite y cierra (el padre cierra explícitamente via
  *   `(accepted)`).
+ * - Una columna con `tooltip` muestra en la celda un tooltip por fila (p. ej. el nombre completo de un código), y con
+ *   `headerTooltip`, uno en la cabecera (el término completo de una abreviatura).
  *
  * Ejemplo single:
  *
@@ -123,7 +130,7 @@ export type SelectionMode = 'single' | 'multiple';
   // Quita el atributo nativo title del elemento: si no, el navegador lo muestra como tooltip en todo el componente.
   host: { '[attr.title]': 'null' },
   standalone: true,
-  imports: [FocoDirective, ButtonComponent, FormTableSearchComponent, IconComponent, NgClass, PaginationComponent, TableControlsComponent],
+  imports: [FocoDirective, ButtonComponent, FormTableSearchComponent, IconComponent, NgClass, PaginationComponent, TableControlsComponent, TooltipDirective],
   template: `
     @if (anim.visible()) {
       <section
@@ -198,7 +205,13 @@ export type SelectionMode = 'single' | 'multiple';
                         @if (tramo.group) {
                           <th class="siaf-table-th--grupo px-siaf-md py-siaf-sm" [class.rounded-r-siaf-sm]="last" [attr.colspan]="tramo.columns.length">{{ tramo.group }}</th>
                         } @else {
-                          <th class="px-siaf-md py-siaf-sm" rowspan="2" [class.rounded-r-siaf-sm]="last" [ngClass]="tramo.columns[0].widthClass || ''">{{ tramo.columns[0].label }}</th>
+                          <th class="px-siaf-md py-siaf-sm" rowspan="2" [class.rounded-r-siaf-sm]="last" [ngClass]="tramo.columns[0].widthClass || ''">
+                            @if (tramo.columns[0].headerTooltip) {
+                              <span [siafTooltip]="tramo.columns[0].headerTooltip">{{ tramo.columns[0].label }}</span>
+                            } @else {
+                              {{ tramo.columns[0].label }}
+                            }
+                          </th>
                         }
                       }
                     </tr>
@@ -212,7 +225,11 @@ export type SelectionMode = 'single' | 'multiple';
                               [class.siaf-table-th--grupo-fin]="ultima"
                               [ngClass]="col.widthClass || ''"
                             >
-                              {{ col.label }}
+                              @if (col.headerTooltip) {
+                                <span [siafTooltip]="col.headerTooltip">{{ col.label }}</span>
+                              } @else {
+                                {{ col.label }}
+                              }
                             </th>
                           }
                         }
@@ -227,7 +244,11 @@ export type SelectionMode = 'single' | 'multiple';
                           [class.rounded-r-siaf-sm]="last"
                           [ngClass]="col.widthClass || ''"
                         >
-                          {{ col.label }}
+                          @if (col.headerTooltip) {
+                            <span [siafTooltip]="col.headerTooltip">{{ col.label }}</span>
+                          } @else {
+                            {{ col.label }}
+                          }
                         </th>
                       }
                     </tr>
@@ -268,7 +289,11 @@ export type SelectionMode = 'single' | 'multiple';
                       </td>
                       @for (col of columns; track col.key) {
                         <td class="px-siaf-md py-siaf-sm" [ngClass]="col.cellClass || ''">
-                          {{ cellValue(row, col) }}
+                          @if (col.tooltip) {
+                            <span [siafTooltip]="col.tooltip(row)">{{ cellValue(row, col) }}</span>
+                          } @else {
+                            {{ cellValue(row, col) }}
+                          }
                         </td>
                       }
                     </tr>

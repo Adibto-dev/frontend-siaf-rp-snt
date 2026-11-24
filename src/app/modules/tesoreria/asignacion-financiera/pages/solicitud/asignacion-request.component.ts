@@ -58,7 +58,7 @@ import {
   validarAsignacion,
 } from '../../models/asignacion.model';
 import type { DestinoCargado } from '../../utils/asignacion-carga-masiva.util';
-import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, clasificacionDe, codigo, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
+import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, textoFuenteSubfuente, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
 import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 
 const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
@@ -275,23 +275,45 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   readonly asignaciones = signal<AsignacionTraslado[]>([]);
   readonly tarjetaAbierta = signal(true);
 
-  readonly columnasLibreta: SelectionColumn<LibretaSaldo>[] = [
+  /** Fuente de financiamiento (FF/SUB FF): fuente y subfuente concatenadas («5.18»); los nombres completos, en el tooltip. */
+  private readonly columnasFuente: SelectionColumn<LibretaSaldo>[] = [
+    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
+    {
+      key: 'fuenteFinanciamiento',
+      label: ABREVIATURAS.fuenteFinanciamiento.abreviatura,
+      headerTooltip: ABREVIATURAS.fuenteFinanciamiento.termino,
+      widthClass: 'w-[90px]',
+      group: 'Cuenta de registro',
+      render: (l) => codigoFuente(l.idCorrelativo),
+      tooltip: (l) => textoFuenteSubfuente(l.idCorrelativo),
+    },
+  ];
+
+  /** Cuenta de registro (ID, número y descripción) y, al final del grupo, su FF/SUB FF. */
+  private readonly columnasCuentaRegistro: SelectionColumn<LibretaSaldo>[] = [
     { key: 'idCorrelativo', label: ABREVIATURAS.idCorrelativo.abreviatura, widthClass: 'w-[100px]', group: 'Cuenta de registro' },
     { key: 'numero', label: 'Número', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
-    { key: 'descripcion', label: 'Descripción', group: 'Cuenta de registro' },
+    { key: 'descripcion', label: 'Descripción', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
+    ...this.columnasFuente,
     { key: 'saldoDisponible', label: ABREVIATURAS.importeCuenta.abreviatura, widthClass: 'w-[170px]', cellClass: 'text-right', group: 'Saldo', render: (l) => formatoImporte(l.saldoDisponible) },
   ];
 
-  /** Destino: primero el Clasificador Institucional del titular (grupo y subgrupo por código, y la entidad). */
+  /** Origen: la fuente de financiamiento (por la que se filtra) y la cuenta de registro. */
+  readonly columnasLibreta: SelectionColumn<LibretaSaldo>[] = this.columnasCuentaRegistro;
+
+  /** Destino: el Clasificador Institucional del titular, la fuente de financiamiento y la cuenta de registro. */
   readonly columnasLibretaDestino: SelectionColumn<LibretaSaldo>[] = [
     { key: 'grupo', label: 'Grupo', widthClass: 'w-[80px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).grupo) },
     { key: 'subgrupo', label: 'Sub grupo', widthClass: 'w-[100px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).subgrupo) },
     { key: 'entidad', label: 'Descripción', widthClass: 'w-[280px]', group: 'Clasificador institucional', render: (l) => clasificacionDe(l.idCorrelativo).entidad },
-    ...this.columnasLibreta,
+    ...this.columnasCuentaRegistro,
   ];
   /** Clasificador Institucional de una cuenta, para la tabla de destinos. */
   readonly clasificacion = clasificacionDe;
   readonly codigo = codigo;
+  readonly codigoFuente = codigoFuente;
+  readonly textoFuenteSubfuente = textoFuenteSubfuente;
+  readonly nombreConcepto = nombreConcepto;
 
   readonly panelLibretas = signal<'origen' | 'destino' | null>(null);
   readonly busquedaLibreta = signal('');
@@ -301,13 +323,18 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   readonly filtrosLibreta = signal<FiltrosCuenta>(FILTROS_VACIOS);
   readonly filtrosEnEdicion = signal<FiltrosCuenta>(FILTROS_VACIOS);
   /** Opciones de cada filtro según las cuentas del panel y lo ya elegido. */
+  /** Cuentas del panel: en destinos, solo las de la misma Fuente y Sub fuente que la cuenta de origen. */
+  private readonly libretasPanel = computed(() =>
+    this.panelLibretas() === 'destino' ? this.libretas().filter((l) => mismaFuente(this.origen(), l.idCorrelativo)) : this.libretas(),
+  );
   readonly opcionesFiltros = computed(() => {
-    const ids = this.libretas().map((l) => l.idCorrelativo);
+    const ids = this.libretasPanel().map((l) => l.idCorrelativo);
     const f = this.filtrosEnEdicion();
     return {
       fuente: opcionesFiltro(ids, f, 'fuente'),
       subfuente: opcionesFiltro(ids, f, 'subfuente'),
-      concepto: opcionesFiltro(ids, f, 'concepto'),
+      // Concepto: solo el nombre en la lista (el valor sigue siendo «1 - Impuesto Predial»), en el orden del código.
+      concepto: opcionesFiltro(ids, f, 'concepto').map((o) => ({ ...o, label: String(o.value).split(' - ').slice(1).join(' - ') })),
       grupo: opcionesFiltro(ids, f, 'grupo'),
       subgrupo: opcionesFiltro(ids, f, 'subgrupo'),
       departamento: opcionesFiltro(ids, f, 'departamento'),
@@ -317,7 +344,7 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   });
   readonly libretasFiltradas = computed(() => {
     const f = this.filtrosLibreta();
-    return filtrar(this.libretas(), this.busquedaLibreta()).filter((l) => cumpleFiltros(l.idCorrelativo, f));
+    return filtrar(this.libretasPanel(), this.busquedaLibreta()).filter((l) => cumpleFiltros(l.idCorrelativo, f));
   });
   readonly paginaLibretas = signal(1);
   readonly filasLibretas = signal(FILAS_POR_PAGINA);

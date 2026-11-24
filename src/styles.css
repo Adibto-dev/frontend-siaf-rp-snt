@@ -340,11 +340,28 @@ input[type="checkbox"]:disabled:checked {
     line-height: normal;
   }
 
+  /* Celda fija al borde derecho al desplazar la tabla (p. ej. Importe y Quitar). Toma el fondo de su fila (también el
+     hover); en la cabecera, el de la fila de cabecera. Para fijar dos, la de la izquierda lleva `right` igual al ancho
+     de la otra y `--borde` (la línea que separa lo fijo de lo que se desplaza). */
   .siaf-table-sticky-cell {
     position: sticky;
     right: 0;
-    border-left: var(--sys-border-linear-thin) solid var(--sys-color-divider-strong);
+    z-index: 1;
     background-color: inherit;
+  }
+
+  th.siaf-table-sticky-cell {
+    background-image: inherit;
+  }
+
+  .siaf-table-sticky-cell--borde {
+    box-shadow: inset 1px 0 0 var(--sys-color-divider-strong);
+  }
+
+  th.siaf-table-sticky-cell--borde {
+    box-shadow:
+      inset 0 -1px 0 var(--sys-color-divider-strong),
+      inset 1px 0 0 var(--sys-color-divider-strong);
   }
 }
 

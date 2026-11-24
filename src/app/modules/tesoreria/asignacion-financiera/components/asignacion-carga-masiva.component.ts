@@ -8,7 +8,7 @@ import { TooltipDirective } from '../../../../shared/ui/tooltip/tooltip.directiv
 import { UploaderComponent } from '../../../../shared/ui/uploader/uploader.component';
 import type { LibretaSaldo } from '../../traspasos-cuentas-registros/models/traslado.model';
 import { DestinoCargado, descargarPlantillaAsignacion, leerPlantillaAsignacion } from '../utils/asignacion-carga-masiva.util';
-import { FILTROS_VACIOS, cumpleFiltros, opcionesFiltro } from '../utils/clasificacion-cuentas.util';
+import { FILTROS_VACIOS, cumpleFiltros, mismaFuente, opcionesFiltro, textoFuenteSubfuente } from '../utils/clasificacion-cuentas.util';
 
 /**
  * «Carga masiva» de las cuentas de destino de la asignación financiera: descarga la plantilla precargada con las
@@ -34,6 +34,9 @@ import { FILTROS_VACIOS, cumpleFiltros, opcionesFiltro } from '../utils/clasific
         <div class="grid gap-siaf-lg">
           <section class="grid gap-siaf-sm">
             <h3 class="m-0 text-sm font-medium uppercase text-text">Descargar plantilla</h3>
+            @if (origen) {
+              <p class="siaf-text-caption-1 m-0 text-[var(--sys-color-text-neutral-low)]">Solo cuentas de {{ fuenteOrigen() }}, como la cuenta de origen.</p>
+            }
             <div class="grid gap-siaf-sm sm:grid-cols-2">
               <siaf-input label="Grupo" type="select" placeholder="Todos" [options]="opcionesGrupo()" [value]="grupo()" (valueChange)="elegirGrupo($event)" />
               <siaf-input label="Sub grupo" type="select" placeholder="Todos" [options]="opcionesSubgrupo()" [value]="subgrupo()" [disabled]="!grupo()" (valueChange)="elegirSubgrupo($event)" />
@@ -93,7 +96,12 @@ export class AsignacionCargaMasivaComponent {
   private readonly todas = signal<LibretaSaldo[]>([]);
   private readonly idOrigen = signal('');
   /** Cuentas de registros que pueden ser destino: «000033 - Descripción». */
-  private readonly destinosPosibles = computed(() => this.todas().filter((l) => l.idCorrelativo !== this.idOrigen()));
+  /** Fuente y Sub fuente de la cuenta de origen, para el aviso. */
+  readonly fuenteOrigen = computed(() => textoFuenteSubfuente(this.idOrigen()));
+  /** Solo las de la misma Fuente y Sub fuente que la cuenta de origen. */
+  private readonly destinosPosibles = computed(() =>
+    this.todas().filter((l) => l.idCorrelativo !== this.idOrigen() && mismaFuente(this.idOrigen(), l.idCorrelativo)),
+  );
   /** Grupo y Sub grupo del Clasificador Institucional (vacío = todos). */
   readonly grupo = signal('');
   readonly subgrupo = signal('');

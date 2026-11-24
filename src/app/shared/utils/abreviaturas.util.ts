@@ -27,6 +27,7 @@ export const ABREVIATURAS = {
   importeAcreditar: { abreviatura: 'Importe', termino: 'Importe' },
   /** Asignación financiera. */
   importeAsignar: { abreviatura: 'Imp. a asignar', termino: 'Importe a asignar' },
+  fuenteFinanciamiento: { abreviatura: 'FF/SUB FF', termino: 'Fuente de financiamiento / Sub fuente de financiamiento' },
 } as const satisfies Record<string, Abreviatura>;
 
 export type TerminoAbreviado = keyof typeof ABREVIATURAS;

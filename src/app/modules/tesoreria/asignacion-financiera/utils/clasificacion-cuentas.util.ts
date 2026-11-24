@@ -40,20 +40,12 @@ export const UBIGEO: Record<string, Record<string, string[]>> = {
 };
 
 /**
- * Grupo y subgrupo del Clasificador Institucional v1.4 (subsector 1 Gobierno General), según
- * `02-analisis/clasificador-institucional.md` del análisis funcional del 2.10.6.6.
+ * Grupo y subgrupo del Clasificador Institucional (`02-analisis/clasificador-institucional.md`). La demostración usa
+ * solo 1.1 Gobierno Nacional, 1.2 Fondo de Seguridad Social y 2.1 Gobierno Regional.
  */
 const GRUPOS: { grupo: string; subgrupos: string[] }[] = [
-  { grupo: '1 - Gobierno Central', subgrupos: ['1 - Gobierno Nacional', '2 - Fondo de Seguridad Social', '3 - Extrapresupuestario'] },
-  {
-    grupo: '2 - Instancias Descentralizadas',
-    subgrupos: [
-      '1 - Gobierno Regional',
-      '2 - Gobierno Local',
-      '3 - Organismos públicos de los gob. regionales y locales',
-      '4 - Empresas públicas de los gob. regionales y locales',
-    ],
-  },
+  { grupo: '1 - Gobierno Central', subgrupos: ['1 - Gobierno Nacional', '2 - Fondo de Seguridad Social'] },
+  { grupo: '2 - Instancias Descentralizadas', subgrupos: ['1 - Gobierno Regional'] },
 ];
 
 /**
@@ -117,19 +109,54 @@ function nombreEntidad(subgrupo: string, l: { departamento: string; provincia: s
   switch (codigo(subgrupo) + '|' + subgrupo) {
     case '1|1 - Gobierno Nacional': return MINISTERIOS[n % MINISTERIOS.length];
     case '2|2 - Fondo de Seguridad Social': return 'Seguro Social de Salud - EsSalud';
-    case '3|3 - Extrapresupuestario': return `Sociedad de Beneficencia de ${l.provincia}`;
-    case '1|1 - Gobierno Regional': return `Gobierno Regional de ${l.departamento}`;
-    case '2|2 - Gobierno Local':
-      return l.distrito === l.provincia ? `Municipalidad Provincial de ${l.provincia}` : `Municipalidad Distrital de ${l.distrito}`;
-    case '3|3 - Organismos públicos de los gob. regionales y locales': return `Instituto Vial Provincial de ${l.provincia}`;
-    default: return `Empresa Municipal de Agua Potable de ${l.provincia}`;
+    default: return `Gobierno Regional de ${l.departamento}`;
   }
+}
+
+/**
+ * Segmento FF/SFF del número de la cuenta de registro: fuente y subfuente separadas por punto («5.08»); sin subfuente,
+ * «.00» («1.00»). Número completo (Figma 2687:36998): Ámbito institucional · FF/SFF · Org. finan. · Convenio · Sec.
+ */
+export function segmentoFuente(idCorrelativo: string): string {
+  const c = clasificacionDe(idCorrelativo);
+  return `${codigo(c.fuente)}.${c.subfuente ? codigo(c.subfuente) : '00'}`;
 }
 
 /** Código de un valor «2 - Instancias Descentralizadas» → «2». */
 export function codigo(valor: string): string {
   return valor.split(' - ')[0];
 }
+
+/**
+ * Un destino de la asignación debe tener la misma Fuente y Sub fuente que la cuenta de origen (el concepto puede
+ * variar). Sin origen, toda cuenta es compatible.
+ */
+export function mismaFuente(origen: string, destino: string): boolean {
+  if (!origen) return true;
+  const o = clasificacionDe(origen);
+  const d = clasificacionDe(destino);
+  return o.fuente === d.fuente && o.subfuente === d.subfuente;
+}
+
+/** Código de fuente y subfuente separados por punto: «5.18»; las fuentes sin subfuente, solo «1». */
+export function codigoFuente(idCorrelativo: string): string {
+  const c = clasificacionDe(idCorrelativo);
+  return [c.fuente, c.subfuente].filter(Boolean).map(codigo).join('.');
+}
+
+/** Concepto de la cuenta, solo el nombre («Impuesto Predial»); «—» si no tiene. Es un dato de la cuenta, no un filtro. */
+export function nombreConcepto(idCorrelativo: string): string {
+  const concepto = clasificacionDe(idCorrelativo).concepto;
+  return concepto ? concepto.split(' - ').slice(1).join(' - ') : '—';
+}
+
+/** «5 - Recursos Determinados / 08 - Impuestos Municipales»: fuente y subfuente de una cuenta. */
+export function textoFuenteSubfuente(idCorrelativo: string): string {
+  const c = clasificacionDe(idCorrelativo);
+  return [c.fuente, c.subfuente].filter(Boolean).join(' / ');
+}
+
+
 
 /** Valores del panel «Filtros»: vacío = sin filtrar. */
 export interface FiltrosCuenta {

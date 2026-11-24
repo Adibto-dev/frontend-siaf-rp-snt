@@ -149,9 +149,9 @@
                             <th class="siaf-table-th">Descripción</th>
                             <th class="siaf-table-th w-[300px]">Número</th>
                             <th class="siaf-table-th w-[170px] text-right" [siafTooltip]="abrev.saldoCuenta.termino">{{ abrev.saldoCuenta.abreviatura }}</th>
-                            <th class="siaf-table-th w-[200px]" [siafTooltip]="textos().importeSecundariaTermino">{{ textos().importeSecundaria }}</th>
+                            <th class="siaf-table-th siaf-table-sticky-cell siaf-table-sticky-cell--borde w-[200px]" [style.right.px]="soloLectura() ? 0 : 64" [siafTooltip]="textos().importeSecundariaTermino">{{ textos().importeSecundaria }}</th>
                             @if (!soloLectura()) {
-                              <th class="siaf-table-th w-[56px]"><span class="sr-only">Quitar</span></th>
+                              <th class="siaf-table-th w-[64px] siaf-table-sticky-cell"><span class="sr-only">Quitar</span></th>
                             }
                           </tr>
                         </thead>
@@ -163,9 +163,9 @@
                               <td class="siaf-table-td">{{ f.libreta?.numero }}</td>
                               <td class="siaf-table-td text-right">{{ formatoImporte(f.libreta?.saldoDisponible ?? 0) }}</td>
                               @if (soloLectura()) {
-                                <td class="siaf-table-td text-right">{{ formatoImporte(f.importe) }}</td>
+                                <td class="siaf-table-td siaf-table-sticky-cell siaf-table-sticky-cell--borde text-right">{{ formatoImporte(f.importe) }}</td>
                               } @else {
-                                <td class="siaf-table-td py-siaf-xs">
+                                <td class="siaf-table-td siaf-table-sticky-cell siaf-table-sticky-cell--borde py-siaf-xs" [style.right.px]="64">
                                   <siaf-input
                                     [ariaLabel]="textos().importeSecundariaTermino + ' ' + f.id"
                                     type="decimal"
@@ -176,7 +176,7 @@
                                     (valueChange)="cambiarImporte(t.id, f.id, $event)"
                                   />
                                 </td>
-                                <td class="siaf-table-td">
+                                <td class="siaf-table-td siaf-table-sticky-cell">
                                   <siaf-button variant="text" size="sm" icon="delete" [iconOnly]="true" [ariaLabel]="'Quitar ' + f.id" (click)="quitarSecundaria(t.id, f.id)" />
                                 </td>
                               }
