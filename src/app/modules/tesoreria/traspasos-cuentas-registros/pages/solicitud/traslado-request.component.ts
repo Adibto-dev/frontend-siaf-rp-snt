@@ -39,10 +39,23 @@ import { TextFieldComponent } from '../../../../../shared/ui/text-field/text-fie
 import { TooltipDirective } from '../../../../../shared/ui/tooltip/tooltip.directive';
 import { ABREVIATURAS } from '../../../../../shared/utils/abreviaturas.util';
 import { buildProcessBreadcrumbs } from '../../../../../shared/utils/breadcrumbs.util';
+import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
+import {
+  DEPENDIENTES,
+  FILTROS_VACIOS,
+  FiltrosCuenta,
+  clasificacionDe,
+  codigo,
+  codigoFuente,
+  cumpleFiltros,
+  nombreConcepto,
+  opcionesFiltro,
+  textoFuenteSubfuente,
+} from '../../../asignacion-financiera/utils/clasificacion-cuentas.util';
 import { fechaElaboracion } from '../../../../../shared/utils/fecha.util';
 import { crearSnapshotFormulario, hayCambiosRespectoAlSnapshot } from '../../../../../shared/utils/form-snapshot.util';
 import { MIN_CARACTERES_TEXTO_LIBRE, cumpleMinimoTextoLibre } from '../../../../../shared/utils/texto-libre.util';
-import { CUENTAS_BANCARIAS, cuentaPorNumero, entidadPorCodigo, formatoImporte, redondear } from '../../../saldos-iniciales/models/saldo-inicial.model';
+import { CUENTAS_BANCARIAS, CUENTA_DEMOSTRACION, cuentaPorNumero, entidadPorCodigo, formatoImporte, redondear } from '../../../saldos-iniciales/models/saldo-inicial.model';
 import { TrasladosApiService } from '../../api/traslados-api.service';
 import { PROCESS_ID, PROCESS_ROUTE, REQUEST_SEGMENT } from '../../config/traslados.rutas';
 import {
@@ -258,7 +271,8 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
     { key: 'moneda', label: 'Moneda', widthClass: 'w-[100px]' },
     { key: 'entidad', label: 'Entidad financiera', widthClass: 'w-[35%]' },
   ];
-  private readonly filasCuenta: FilaCuentaBancaria[] = CUENTAS_BANCARIAS.map((c) => ({
+  /** La Cuenta Única del Tesoro primero: es la que tiene las cuentas de registros de demostración. */
+  private readonly filasCuenta: FilaCuentaBancaria[] = [...CUENTAS_BANCARIAS].sort((a, b) => Number(b.numero === CUENTA_DEMOSTRACION) - Number(a.numero === CUENTA_DEMOSTRACION)).map((c) => ({
     numero: c.numero,
     denominacion: c.denominacion,
     moneda: c.moneda,
@@ -293,18 +307,72 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
   /** Tarjetas abiertas (por id de la cuenta principal). */
   readonly abiertas = signal<Set<string>>(new Set());
 
-  readonly columnasLibreta: SelectionColumn<LibretaSaldo>[] = [
-    { key: 'idCorrelativo', label: ABREVIATURAS.idCorrelativo.abreviatura, widthClass: 'w-[100px]' },
-    { key: 'numero', label: 'Número', widthClass: 'w-[300px]' },
-    { key: 'descripcion', label: 'Descripción' },
-    { key: 'saldoDisponible', label: ABREVIATURAS.importeCuenta.abreviatura, widthClass: 'w-[170px]', cellClass: 'text-right', render: (l) => formatoImporte(l.saldoDisponible) },
+  /** Origen: la cuenta de registro con su Concepto y su FF/SUB FF (por los que se filtra), y su saldo. */
+  private readonly columnasOrigen: SelectionColumn<LibretaSaldo>[] = [
+    { key: 'idCorrelativo', label: ABREVIATURAS.idCorrelativo.abreviatura, widthClass: 'w-[100px]', group: 'Cuenta de registro' },
+    { key: 'numero', label: 'Número', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
+    { key: 'descripcion', label: 'Descripción', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
+    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
+    {
+      key: 'fuenteFinanciamiento',
+      label: ABREVIATURAS.fuenteFinanciamiento.abreviatura,
+      headerTooltip: ABREVIATURAS.fuenteFinanciamiento.termino,
+      widthClass: 'w-[110px]',
+      group: 'Cuenta de registro',
+      render: (l) => codigoFuente(l.idCorrelativo),
+      tooltip: (l) => textoFuenteSubfuente(l.idCorrelativo),
+    },
+    { key: 'saldoDisponible', label: ABREVIATURAS.importeCuenta.abreviatura, widthClass: 'w-[170px]', cellClass: 'text-right', group: 'Saldo', render: (l) => formatoImporte(l.saldoDisponible) },
+  ];
+  /** Destino: primero el Clasificador Institucional del titular (por el que se filtra), luego la cuenta. */
+  private readonly columnasDestino: SelectionColumn<LibretaSaldo>[] = [
+    { key: 'grupo', label: 'Grupo', widthClass: 'w-[80px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).grupo), tooltip: (l) => clasificacionDe(l.idCorrelativo).grupo },
+    { key: 'subgrupo', label: 'Sub grupo', widthClass: 'w-[100px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).subgrupo), tooltip: (l) => clasificacionDe(l.idCorrelativo).subgrupo },
+    { key: 'entidad', label: 'Descripción', widthClass: 'w-[280px]', group: 'Clasificador institucional', render: (l) => clasificacionDe(l.idCorrelativo).entidad },
+    ...this.columnasOrigen,
   ];
 
   /** Panel de cuentas de registro: para elegir las principales, o las asignadas a una principal. */
   readonly panelLibretas = signal<{ para: 'principal' } | { para: 'secundaria'; principal: string } | null>(null);
   readonly busquedaLibreta = signal('');
   readonly libretasTemporales = signal<string[]>([]);
-  readonly libretasFiltradas = computed(() => filtrar(this.libretas(), this.busquedaLibreta()));
+  /**
+   * El panel elige orígenes o destinos según la modalidad: con «origen» las principales son orígenes; con «destino»,
+   * las secundarias. Los orígenes se filtran por fuente de financiamiento; los destinos, por clasificador y ubicación.
+   */
+  readonly panelEsOrigen = computed(() => {
+    const panel = this.panelLibretas();
+    return !!panel && (panel.para === 'principal') === (this.forma() !== 'destino');
+  });
+  readonly columnasLibreta = computed(() => (this.panelEsOrigen() ? this.columnasOrigen : this.columnasDestino));
+  readonly filtrosLibreta = signal<FiltrosCuenta>(FILTROS_VACIOS);
+  readonly filtrosEnEdicion = signal<FiltrosCuenta>(FILTROS_VACIOS);
+  /** Opciones de cada filtro según las cuentas de la cuenta bancaria y lo ya elegido (concepto: solo el nombre). */
+  readonly opcionesFiltros = computed(() => {
+    const ids = this.libretas().map((l) => l.idCorrelativo);
+    const f = this.filtrosEnEdicion();
+    return {
+      fuente: opcionesFiltro(ids, f, 'fuente'),
+      subfuente: opcionesFiltro(ids, f, 'subfuente'),
+      concepto: opcionesFiltro(ids, f, 'concepto').map((o) => ({ ...o, label: String(o.value).split(' - ').slice(1).join(' - ') })),
+      grupo: opcionesFiltro(ids, f, 'grupo'),
+      subgrupo: opcionesFiltro(ids, f, 'subgrupo'),
+      departamento: opcionesFiltro(ids, f, 'departamento'),
+      provincia: opcionesFiltro(ids, f, 'provincia'),
+      distrito: opcionesFiltro(ids, f, 'distrito'),
+    };
+  });
+  readonly libretasFiltradas = computed(() => {
+    const f = this.filtrosLibreta();
+    return filtrar(this.libretas(), this.busquedaLibreta()).filter((l) => cumpleFiltros(l.idCorrelativo, f));
+  });
+  readonly paginaLibretas = signal(1);
+  readonly filasLibretas = signal(FILAS_POR_PAGINA);
+  readonly totalPaginasLibretas = computed(() => Math.max(1, Math.ceil(this.libretasFiltradas().length / this.filasLibretas())));
+  readonly libretasPagina = computed(() => {
+    const desde = (Math.min(this.paginaLibretas(), this.totalPaginasLibretas()) - 1) * this.filasLibretas();
+    return this.libretasFiltradas().slice(desde, desde + this.filasLibretas());
+  });
   readonly tituloPanelLibretas = computed(() => (this.panelLibretas()?.para === 'principal' ? this.textos().panelPrincipales : this.textos().panelSecundarias));
   /** Una cuenta es origen o destino, no las dos: en cada panel se bloquean las que ya cumplen el otro papel. */
   readonly libretasBloqueadas = computed(() => {
@@ -465,15 +533,47 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
   }
 
   // ── Cuentas de registro ───────────────────────────────────────────
-  abrirPanelPrincipales(): void {
+  private reiniciarPanelLibretas(): void {
     this.busquedaLibreta.set('');
+    this.filtrosLibreta.set(FILTROS_VACIOS);
+    this.filtrosEnEdicion.set(FILTROS_VACIOS);
+    this.paginaLibretas.set(1);
+  }
+
+  buscarLibreta(texto: string): void {
+    this.busquedaLibreta.set(texto);
+    this.paginaLibretas.set(1);
+  }
+
+  cambiarFilasLibretas(filas: number): void {
+    this.filasLibretas.set(filas);
+    this.paginaLibretas.set(1);
+  }
+
+  /** Un campo del panel «Filtros»: Fuente, Grupo, Departamento y Provincia limpian lo que depende de ellos. */
+  editarFiltro(campo: keyof FiltrosCuenta, evento: string | number | string[]): void {
+    const valor = String(Array.isArray(evento) ? evento[0] ?? '' : evento ?? '');
+    this.filtrosEnEdicion.update((f) => ({ ...f, [campo]: valor, ...Object.fromEntries((DEPENDIENTES[campo] ?? []).map((d) => [d, ''])) }));
+  }
+
+  aplicarFiltrosLibreta(): void {
+    this.filtrosLibreta.set(this.filtrosEnEdicion());
+    this.paginaLibretas.set(1);
+  }
+
+  limpiarFiltrosLibreta(): void {
+    this.filtrosEnEdicion.set(FILTROS_VACIOS);
+  }
+
+  abrirPanelPrincipales(): void {
+    this.reiniciarPanelLibretas();
     this.libretasTemporales.set([...this.principales()]);
     this.libretasTemporalesIniciales = [...this.principales()];
     this.panelLibretas.set({ para: 'principal' });
   }
 
   abrirPanelSecundarias(principal: string): void {
-    this.busquedaLibreta.set('');
+    this.reiniciarPanelLibretas();
     this.libretasTemporales.set(this.asignaciones().filter((a) => this.principalDe(a) === principal).map((a) => this.secundariaDe(a)));
     this.libretasTemporalesIniciales = [...this.libretasTemporales()];
     this.panelLibretas.set({ para: 'secundaria', principal });

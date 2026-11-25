@@ -55,7 +55,7 @@ import { NOMBRES_ANTERIORES, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo'
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 28;
+const VERSION = 30;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -386,10 +386,19 @@ const SEMILLAS_SALDOS: SemillaSaldos[] = [
  * Reparte el total entre las libretas de la cuenta (la última se lleva el resto). Las cuentas de demostración empiezan
  * sin saldo: así los saldos de ejemplo y los traslados semilla no cambian.
  */
-function saldoSemilla(datos: DatosTaller, cuenta: string, fecha: string, total: number): SaldoInicial {
-  const libretas = cuentasRegistroDe(cuenta).filter((l) => !esCuentaDeDemostracion(l.idCorrelativo));
+/**
+ * Saldo de una semilla: `total` se reparte entre las cuentas de registro de siempre. Las cuentas de demostración de la
+ * Cuenta Única (IDs desde 100) suman además un importe propio (de 50 000 a 470 000), para tener orígenes con saldo en
+ * Traslados y Asignación; el saldo inicial queda con el total de todas. Solo en el saldo inicial, no en los ajustes.
+ */
+function saldoSemilla(datos: DatosTaller, cuenta: string, fecha: string, total: number, conDemostracion = false): SaldoInicial {
+  const todas = cuentasRegistroDe(cuenta);
+  const libretas = todas.filter((l) => !esCuentaDeDemostracion(l.idCorrelativo));
   const parte = Math.floor(total / libretas.length);
-  const importes = Object.fromEntries(libretas.map((l, i) => [l.idCorrelativo, i === libretas.length - 1 ? total - parte * (libretas.length - 1) : parte]));
+  const importes: Record<string, number> = Object.fromEntries(
+    libretas.map((l, i) => [l.idCorrelativo, i === libretas.length - 1 ? total - parte * (libretas.length - 1) : parte]),
+  );
+  if (conDemostracion) todas.filter((l) => esCuentaDeDemostracion(l.idCorrelativo)).forEach((l, k) => (importes[l.idCorrelativo] = 50000 + ((k * 11) % 15) * 30000));
   return calcularSaldo(nuevoId(datos, 'sal'), fecha, cuenta, importes);
 }
 
@@ -423,7 +432,7 @@ function crearSaldosIniciales(datos: DatosTaller): void {
       detalleSaldosIniciales: {
         documentoId: id,
         entidadFinanciera: semilla.entidad,
-        saldos: semilla.saldos.map((s) => saldoSemilla(datos, s.cuenta, s.fecha, s.total)),
+        saldos: semilla.saldos.map((s) => saldoSemilla(datos, s.cuenta, s.fecha, s.total, true)),
       },
       sustentos: [],
       historialEstados: historial,

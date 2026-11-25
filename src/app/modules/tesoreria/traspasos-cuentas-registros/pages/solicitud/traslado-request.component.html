@@ -259,18 +259,49 @@
     [title]="tituloPanelLibretas()"
     mode="multiple"
     idKey="idCorrelativo"
-    [rows]="libretasFiltradas()"
-    [columns]="columnasLibreta"
+    [rows]="libretasPagina()"
+    [columns]="columnasLibreta()"
     [searchValue]="busquedaLibreta()"
     [selectedIds]="libretasTemporales()"
     [disabledIds]="libretasBloqueadas()"
     [requireSelection]="false"
     emptyMessage="La cuenta bancaria no tiene cuentas de registro."
-    (searchChange)="busquedaLibreta.set($event)"
+    [tableMinWidthClass]="panelEsOrigen() ? 'min-w-[1250px]' : 'min-w-[1750px]'"
+    [paginated]="true"
+    [page]="paginaLibretas()"
+    [totalPages]="totalPaginasLibretas()"
+    [pageSize]="filasLibretas()"
+    [rowsPerPage]="filasLibretas()"
+    [totalItems]="libretasFiltradas().length"
+    [showFilters]="true"
+    (searchChange)="buscarLibreta($event)"
     (selectionChange)="libretasTemporales.set($event)"
+    (previousPage)="paginaLibretas.set(paginaLibretas() - 1)"
+    (nextPage)="paginaLibretas.set(paginaLibretas() + 1)"
+    (rowsPerPageChange)="cambiarFilasLibretas($event)"
+    (filtersApplied)="aplicarFiltrosLibreta()"
+    (filtersCleared)="limpiarFiltrosLibreta()"
     (closed)="panelLibretas.set(null)"
     (accepted)="aceptarLibretas($event)"
-  />
+  >
+    <div filtros class="grid gap-siaf-md">
+      @if (panelEsOrigen()) {
+        <siaf-input label="Fuente" type="select" [options]="opcionesFiltros().fuente" [value]="filtrosEnEdicion().fuente" (valueChange)="editarFiltro('fuente', $event)" />
+        <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!opcionesFiltros().subfuente.length || !filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
+        @if (filtrosEnEdicion().subfuente && opcionesFiltros().concepto.length) {
+          <siaf-input label="Concepto" type="select" [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
+        }
+      } @else {
+        <siaf-input label="Grupo" type="select" [options]="opcionesFiltros().grupo" [value]="filtrosEnEdicion().grupo" (valueChange)="editarFiltro('grupo', $event)" />
+        <siaf-input label="Sub grupo" type="select" [options]="opcionesFiltros().subgrupo" [value]="filtrosEnEdicion().subgrupo" [disabled]="!filtrosEnEdicion().grupo" (valueChange)="editarFiltro('subgrupo', $event)" />
+        <hr class="m-0 border-0 border-t border-[var(--sys-color-divider-default)]" />
+        <h4 class="m-0 text-sm font-bold uppercase text-text">Ubicación geográfica</h4>
+        <siaf-input label="Departamento" type="select" [options]="opcionesFiltros().departamento" [value]="filtrosEnEdicion().departamento" (valueChange)="editarFiltro('departamento', $event)" />
+        <siaf-input label="Provincia" type="select" [options]="opcionesFiltros().provincia" [value]="filtrosEnEdicion().provincia" [disabled]="!filtrosEnEdicion().departamento" (valueChange)="editarFiltro('provincia', $event)" />
+        <siaf-input label="Distrito" type="select" [options]="opcionesFiltros().distrito" [value]="filtrosEnEdicion().distrito" [disabled]="!filtrosEnEdicion().provincia" (valueChange)="editarFiltro('distrito', $event)" />
+      }
+    </div>
+  </siaf-selection-side-nav>
 
   <siaf-request-approval-modals
     [saveOpen]="modalGrabar()"
