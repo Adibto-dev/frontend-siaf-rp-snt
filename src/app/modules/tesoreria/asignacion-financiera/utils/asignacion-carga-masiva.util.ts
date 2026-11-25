@@ -13,7 +13,7 @@ import { clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, tex
 
 /**
  * Cabecera en dos filas. Columnas: A Grupo · B Sub grupo · C Descripción (Clasificador institucional) · D ID
- * correlativo · E Número · F Descripción · G Concepto · H Fuente de financiamiento (fuente.subfuente, p. ej. 5.18)
+ * correlativo · E Número · F Descripción · G Fuente de financiamiento (fuente.subfuente, p. ej. 5.18) · H Concepto
  * (Cuenta de registro) · I Importe a asignar.
  */
 const COLUMNAS = { idCorrelativo: 4, importe: 9 } as const;
@@ -29,7 +29,7 @@ const INSTRUCCIONES = [
   '2. ID correlativo: el de la cuenta de registro (10 dígitos, ej. 0000000033). Debe pertenecer a la cuenta bancaria elegida.',
   '3. No incluya la cuenta de origen ni repita un ID correlativo. Cada cuenta debe tener la misma Fuente y Sub fuente que la cuenta de origen.',
   '4. Importe a asignar: número mayor o igual a 0 con hasta 2 decimales. Las filas con 0 o vacías se ignoran.',
-  '5. Son informativos y el sistema no los lee: Clasificador institucional (Grupo, Sub grupo y Descripción de la entidad) y, de la cuenta de registro, el Número, la Descripción, el Concepto y la Fuente de financiamiento (fuente.subfuente). El sistema toma el ID correlativo y el importe.',
+  '5. Son informativos y el sistema no los lee: Clasificador institucional (Grupo, Sub grupo y Descripción de la entidad) y, de la cuenta de registro, el Número, la Descripción, la Fuente de financiamiento (fuente.subfuente) y el Concepto. El sistema toma el ID correlativo y el importe.',
   `6. Máximo ${MAX_FILAS_ASIGNACION} filas. Guarde en formato XLSX y súbalo desde «Carga masiva».`,
   '7. Las cuentas cargadas reemplazan a los destinos que ya tenga el documento.',
   '8. La suma de importes no debe superar el saldo disponible de la cuenta de origen.',
@@ -53,16 +53,16 @@ export async function descargarPlantillaAsignacion(destinos: LibretaSaldo[]): Pr
   const hoja = libro.addWorksheet('Plantilla');
   const importeTitulo = ABREVIATURAS.importeAsignar.termino;
   hoja.addRow(['Clasificador institucional', '', '', 'Cuenta de registro', '', '', '', '', importeTitulo]);
-  hoja.addRow(['Grupo', 'Sub grupo', 'Descripción', ABREVIATURAS.idCorrelativo.termino, 'Número', 'Descripción', 'Concepto', ABREVIATURAS.fuenteFinanciamiento.termino, '']);
+  hoja.addRow(['Grupo', 'Sub grupo', 'Descripción', ABREVIATURAS.idCorrelativo.termino, 'Número', 'Descripción', ABREVIATURAS.fuenteFinanciamiento.termino, 'Concepto', '']);
   hoja.mergeCells('A1:C1');
   hoja.mergeCells('D1:H1');
   hoja.mergeCells('I1:I2');
   // Formato SIAF (excel-siaf.util): cabecera azul de un solo color y cuerpo con bordes grises.
   estilarCabecera(hoja, [1, 2], 7);
-  [10, 12, 40, 16, 32, 40, 36, 26, 22].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
+  [10, 12, 40, 16, 32, 40, 26, 36, 22].forEach((ancho, i) => (hoja.getColumn(i + 1).width = ancho));
   for (const l of destinos) {
     const c = clasificacionDe(l.idCorrelativo);
-    hoja.addRow([codigo(c.grupo), codigo(c.subgrupo), c.entidad, l.idCorrelativo, l.numero, l.descripcion, nombreConcepto(l.idCorrelativo), codigoFuente(l.idCorrelativo), 0]);
+    hoja.addRow([codigo(c.grupo), codigo(c.subgrupo), c.entidad, l.idCorrelativo, l.numero, l.descripcion, codigoFuente(l.idCorrelativo), nombreConcepto(l.idCorrelativo), 0]);
   }
   // El ID como texto: Excel no le quita los ceros a la izquierda.
   hoja.getColumn(COLUMNAS.idCorrelativo).numFmt = '@';

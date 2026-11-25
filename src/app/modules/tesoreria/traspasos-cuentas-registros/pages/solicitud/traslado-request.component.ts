@@ -127,7 +127,7 @@ const TEXTOS: Record<FormaSeleccion, TextosForma> = {
 };
 
 /**
- * Solicitud de Reporte de Traslado de Recursos entre Cuentas de Registro (RTCR), según el Figma del flujo:
+ * Solicitud de Traslado entre Cuentas de Registro (RTCR), según el Figma del flujo:
  *
  * 1. Cuenta bancaria: se elige en un panel (una sola).
  * 2. Modalidad: «Por cuenta de origen» (elige orígenes y a cada uno le asigna destinos) o «Por cuenta de destino» (al
@@ -312,7 +312,6 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
     { key: 'idCorrelativo', label: ABREVIATURAS.idCorrelativo.abreviatura, widthClass: 'w-[100px]', group: 'Cuenta de registro' },
     { key: 'numero', label: 'Número', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
     { key: 'descripcion', label: 'Descripción', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
-    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
     {
       key: 'fuenteFinanciamiento',
       label: ABREVIATURAS.fuenteFinanciamiento.abreviatura,
@@ -322,6 +321,7 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
       render: (l) => codigoFuente(l.idCorrelativo),
       tooltip: (l) => textoFuenteSubfuente(l.idCorrelativo),
     },
+    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
     { key: 'saldoDisponible', label: ABREVIATURAS.importeCuenta.abreviatura, widthClass: 'w-[170px]', cellClass: 'text-right', group: 'Saldo', render: (l) => formatoImporte(l.saldoDisponible) },
   ];
   /** Destino: primero el Clasificador Institucional del titular (por el que se filtra), luego la cuenta. */
@@ -329,7 +329,7 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
     { key: 'grupo', label: 'Grupo', widthClass: 'w-[80px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).grupo), tooltip: (l) => clasificacionDe(l.idCorrelativo).grupo },
     { key: 'subgrupo', label: 'Sub grupo', widthClass: 'w-[100px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).subgrupo), tooltip: (l) => clasificacionDe(l.idCorrelativo).subgrupo },
     { key: 'entidad', label: 'Descripción', widthClass: 'w-[280px]', group: 'Clasificador institucional', render: (l) => clasificacionDe(l.idCorrelativo).entidad },
-    ...this.columnasOrigen,
+    ...this.columnasOrigen.map((c) => (c.key === 'saldoDisponible' ? { ...c, stickyRight: true } : c)),
   ];
 
   /** Panel de cuentas de registro: para elegir las principales, o las asignadas a una principal. */
@@ -344,7 +344,8 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
     const panel = this.panelLibretas();
     return !!panel && (panel.para === 'principal') === (this.forma() !== 'destino');
   });
-  readonly columnasLibreta = computed(() => (this.panelEsOrigen() ? this.columnasOrigen : this.columnasDestino));
+  /** Origen y destino usan las mismas columnas: Clasificador Institucional, cuenta de registro e Imp. M. Cuenta fija. */
+  readonly columnasLibreta = this.columnasDestino;
   readonly filtrosLibreta = signal<FiltrosCuenta>(FILTROS_VACIOS);
   readonly filtrosEnEdicion = signal<FiltrosCuenta>(FILTROS_VACIOS);
   /** Opciones de cada filtro según las cuentas de la cuenta bancaria y lo ya elegido (concepto: solo el nombre). */

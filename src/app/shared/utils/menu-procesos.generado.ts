@@ -11,7 +11,7 @@ export const MENU_PROCESOS_FILAS: FilaMenuProcesos[] = [
   { id: 'doc-autorizacion', nombre: 'Documentos de autorización', padre: 'reg-saldos-iniciales-lib-bancos-libretas', orden: 60, estado: 'activo', tipo: 'mfd', ruta: '/procesos/autorizaciones' },
   { id: 'traspasos-cuentas-registros', nombre: 'Traspasos entre cuentas de registros', padre: 'conciliacion-bancaria', orden: 40, estado: 'activo', tipo: 'subproceso' },
   { id: 'traslado-recursos-cuentas-registros', nombre: 'Traslado de recursos entre cuentas de registros', padre: 'traspasos-cuentas-registros', orden: 50, estado: 'activo', tipo: 'subproceso' },
-  { id: 'doc-traslado-cta-registros', nombre: 'Documento de Traspasos entre cuentas de registros', padre: 'traslado-recursos-cuentas-registros', orden: 60, estado: 'activo', tipo: 'mfd', ruta: '/procesos/traspasos-cuentas-registros' },
+  { id: 'doc-traslado-cta-registros', nombre: 'Documentos de Traslados entre Cuentas de Registros', padre: 'traslado-recursos-cuentas-registros', orden: 60, estado: 'activo', tipo: 'mfd', ruta: '/procesos/traspasos-cuentas-registros' },
   { id: 'cons-traslado-cta-registros', nombre: 'Consultas y reportes de traslado entre cuentas de registros', padre: 'traslado-recursos-cuentas-registros', orden: 60, estado: 'oculto', tipo: 'mfd', ruta: '/procesos/traspasos-cuentas-registros/consultas' },
   { id: 'asigna-financiera', nombre: 'Asignación financiera', padre: 'traspasos-cuentas-registros', orden: 50, estado: 'activo', tipo: 'subproceso' },
   { id: 'doc-asigna-financiera', nombre: 'Documentos de asignación financiera', padre: 'asigna-financiera', orden: 60, estado: 'activo', tipo: 'mfd', ruta: '/procesos/asignacion-financiera' },

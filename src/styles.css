@@ -354,6 +354,12 @@ input[type="checkbox"]:disabled:checked {
     background-image: inherit;
   }
 
+  /* En el panel de selección las filas usan colores translúcidos: la celda fija va sobre fondo opaco con la capa de la fila. */
+  .siaf-sidepanel-table-scroll .siaf-table-sticky-cell {
+    background-color: var(--sys-color-bg-surfaces-surface);
+    background-image: linear-gradient(var(--siaf-fila-capa, transparent), var(--siaf-fila-capa, transparent));
+  }
+
   .siaf-table-sticky-cell--borde {
     box-shadow: inset 1px 0 0 var(--sys-color-divider-strong);
   }

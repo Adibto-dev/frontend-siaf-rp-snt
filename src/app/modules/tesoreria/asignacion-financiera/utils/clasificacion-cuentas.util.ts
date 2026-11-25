@@ -49,42 +49,29 @@ const GRUPOS: { grupo: string; subgrupos: string[] }[] = [
 ];
 
 /**
- * Fuente → subfuente → concepto, según `02-analisis/fuentes-financiamiento.md` (v1.6, `Fuentes_y_Subfuentes.xlsx`): las
- * fuentes 1 a 4 no tienen subfuente, y solo las subfuentes 08 y 18 tienen conceptos. El número de concepto se repite
- * entre subfuentes (1 es Impuesto Predial en la 08 y Canon Minero en la 18).
+ * Fuente → subfuente → concepto de la data de Cuentas de Registro v1.8 (`02-analisis/estructura-cuentas-de-registro.md`):
+ * fuentes 1, 2 y 5; las 1 y 2 sin subfuente (segmento «00» del número), y solo la subfuente 18 se desagrega por
+ * concepto (la 08 se registra a nivel agregado). Los códigos de concepto son los de la data (1, 3, 5, 6, 8, 9 y 10).
  */
 const RD = '5 - Recursos Determinados';
 const CANON = '18 - Canon y Sobrecanon, Regalías, Renta de Aduanas y Participaciones';
 const FUENTES: { fuente: string; subfuente: string; concepto: string }[] = [
   { fuente: '1 - Recursos Ordinarios', subfuente: '', concepto: '' },
   { fuente: '2 - Recursos Directamente Recaudados', subfuente: '', concepto: '' },
-  { fuente: '3 - Recursos por Operaciones Oficiales de Crédito', subfuente: '', concepto: '' },
-  { fuente: '4 - Donaciones y Transferencias', subfuente: '', concepto: '' },
-  { fuente: RD, subfuente: '04 - Contribuciones a Fondos', concepto: '' },
   { fuente: RD, subfuente: '07 - Fondo de Compensación Municipal', concepto: '' },
-  ...[
-    'Impuesto Predial',
-    'Impuesto de Alcabala',
-    'Impuesto al Patrimonio Vehicular',
-    'Impuesto a las Apuestas',
-    'Impuesto a los Juegos',
-    'Impuesto a los Espectáculos Públicos no Deportivos',
-    'Impuesto a los Juegos de Casino',
-    'Impuesto a los Juegos de Máquinas Tragamonedas',
-  ].map((nombre, i) => ({ fuente: RD, subfuente: '08 - Impuestos Municipales', concepto: `${i + 1} - ${nombre}` })),
+  { fuente: RD, subfuente: '08 - Impuestos Municipales', concepto: '' },
   { fuente: RD, subfuente: '15 - Fondo de Compensación Regional – FONCOR', concepto: '' },
-  ...[
-    'Canon Minero',
-    'Canon Hidroenergético',
-    'Canon Gasífero',
-    'Canon Pesquero',
-    'Canon Gasífero – Regalías',
-    'Canon y Sobrecanon Petrolero',
-    'Canon Pesquero – Derechos',
-    'Regalía Minera',
-    'Renta de Aduanas',
-    'Renta de Aduanas – Ley del Chimbote',
-  ].map((nombre, i) => ({ fuente: RD, subfuente: CANON, concepto: `${i + 1} - ${nombre}` })),
+  ...(
+    [
+      [1, 'Canon Minero'],
+      [3, 'Canon Gasífero'],
+      [5, 'Canon Gasífero – Regalías'],
+      [6, 'Canon y Sobrecanon Petrolero'],
+      [8, 'Regalía Minera'],
+      [9, 'Renta de Aduanas'],
+      [10, 'Renta de Aduanas – Ley del Chimbote'],
+    ] as const
+  ).map(([n, nombre]) => ({ fuente: RD, subfuente: CANON, concepto: `${n} - ${nombre}` })),
 ];
 
 /** Cada par grupo / subgrupo del clasificador, para repartirlos entre las cuentas. */
@@ -99,27 +86,54 @@ export function clasificacionDe(idCorrelativo: string): ClasificacionCuenta {
   const n = Number(idCorrelativo) || 0;
   const par = PARES[n % PARES.length];
   const lugar = UBICACIONES[(n * 7) % UBICACIONES.length];
-  return { ...FUENTES[(n * 7) % FUENTES.length], ...par, ...lugar, entidad: nombreEntidad(par.subgrupo, lugar, n) };
+  return { ...FUENTES[(n * 7) % FUENTES.length], ...par, ...lugar, entidad: entidadDe(par.subgrupo, lugar, n).nombre };
 }
 
-const MINISTERIOS = ['Ministerio de Economía y Finanzas', 'Ministerio de Educación', 'Ministerio de Salud', 'Ministerio de Transportes y Comunicaciones'];
+/** Ministerios de prueba con su pliego (4 dígitos del Clasificador Institucional). */
+const MINISTERIOS: [string, string][] = [
+  ['Ministerio de Economía y Finanzas', '0009'],
+  ['Ministerio de Educación', '0010'],
+  ['Ministerio de Salud', '0011'],
+  ['Ministerio de Transportes y Comunicaciones', '0036'],
+];
+/** Pliego de prueba del gobierno regional de cada departamento. */
+const PLIEGO_REGIONAL: Record<string, string> = { Lima: '0463', Cusco: '0447', Arequipa: '0443', Piura: '0457' };
 
-/** Nombre de prueba de la entidad, coherente con su subgrupo y su ubicación. */
-function nombreEntidad(subgrupo: string, l: { departamento: string; provincia: string; distrito: string }, n: number): string {
-  switch (codigo(subgrupo) + '|' + subgrupo) {
-    case '1|1 - Gobierno Nacional': return MINISTERIOS[n % MINISTERIOS.length];
-    case '2|2 - Fondo de Seguridad Social': return 'Seguro Social de Salud - EsSalud';
-    default: return `Gobierno Regional de ${l.departamento}`;
+/** Entidad (pliego) de prueba, coherente con su subgrupo y su ubicación. */
+function entidadDe(subgrupo: string, l: { departamento: string }, n: number): { nombre: string; pliego: string } {
+  switch (subgrupo) {
+    case '1 - Gobierno Nacional': {
+      const [nombre, pliego] = MINISTERIOS[n % MINISTERIOS.length];
+      return { nombre, pliego };
+    }
+    case '2 - Fondo de Seguridad Social': return { nombre: 'Seguro Social de Salud - EsSalud', pliego: '0001' };
+    default: return { nombre: `Gobierno Regional de ${l.departamento}`, pliego: PLIEGO_REGIONAL[l.departamento] ?? '0440' };
   }
 }
 
 /**
- * Segmento FF/SFF del número de la cuenta de registro: fuente y subfuente separadas por punto («5.08»); sin subfuente,
- * «.00» («1.00»). Número completo (Figma 2687:36998): Ámbito institucional · FF/SFF · Org. finan. · Convenio · Sec.
+ * Sector, Subsector, Grupo, Subgrupo y Área del Clasificador Institucional (5 dígitos): 11111 Poder Ejecutivo,
+ * 11121 Seguro Social y 11211 Gobiernos Regionales.
  */
-export function segmentoFuente(idCorrelativo: string): string {
+const AMBITO: Record<string, string> = {
+  '1 - Gobierno Nacional': '11111',
+  '2 - Fondo de Seguridad Social': '11121',
+  '1 - Gobierno Regional': '11211',
+};
+
+/**
+ * Número de la cuenta de registro con la estructura de la data v1.8 (`estructura-cuentas-de-registro.md`), 8 segmentos
+ * separados por punto: ámbito institucional (5) · pliego (4) · UE (3, «000» = pliego) · fuente (1) · subfuente (2, «00»
+ * sin subfuente) · acreedor (3) · convenio (6) · secuencial (2; en la subfuente 18, el código del concepto). Ej.:
+ * «11211.0440.000.5.15.000.000000.01».
+ */
+export function numeroCuentaRegistro(idCorrelativo: string, secuencia: number): string {
+  const n = Number(idCorrelativo) || 0;
   const c = clasificacionDe(idCorrelativo);
-  return `${codigo(c.fuente)}.${c.subfuente ? codigo(c.subfuente) : '00'}`;
+  const { pliego } = entidadDe(c.subgrupo, c, n);
+  const sec = c.concepto ? codigo(c.concepto) : String(secuencia);
+  const subfuente = c.subfuente ? codigo(c.subfuente) : '00';
+  return [AMBITO[c.subgrupo] ?? '11111', pliego, '000', codigo(c.fuente), subfuente, '000', '000000', sec.padStart(2, '0')].join('.');
 }
 
 /** Código de un valor «2 - Instancias Descentralizadas» → «2». */
@@ -144,13 +158,13 @@ export function codigoFuente(idCorrelativo: string): string {
   return [c.fuente, c.subfuente].filter(Boolean).map(codigo).join('.');
 }
 
-/** Concepto de la cuenta, solo el nombre («Impuesto Predial»); «—» si no tiene. Es un dato de la cuenta, no un filtro. */
+/** Concepto de la cuenta, solo el nombre («Canon Minero»); «—» si no tiene. Es un dato de la cuenta, no un filtro. */
 export function nombreConcepto(idCorrelativo: string): string {
   const concepto = clasificacionDe(idCorrelativo).concepto;
   return concepto ? concepto.split(' - ').slice(1).join(' - ') : '—';
 }
 
-/** «5 - Recursos Determinados / 08 - Impuestos Municipales»: fuente y subfuente de una cuenta. */
+/** «5 - Recursos Determinados / 15 - Fondo de Compensación Regional – FONCOR»: fuente y subfuente de una cuenta. */
 export function textoFuenteSubfuente(idCorrelativo: string): string {
   const c = clasificacionDe(idCorrelativo);
   return [c.fuente, c.subfuente].filter(Boolean).join(' / ');

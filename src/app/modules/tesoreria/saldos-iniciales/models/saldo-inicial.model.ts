@@ -1,4 +1,4 @@
-import { segmentoFuente } from '../../asignacion-financiera/utils/clasificacion-cuentas.util';
+import { numeroCuentaRegistro } from '../../asignacion-financiera/utils/clasificacion-cuentas.util';
 
 /**
  * Proceso «Registro de saldos iniciales en libro bancos y libretas de cuentas de registro» (Figma 2.10.6.1.3).
@@ -103,15 +103,6 @@ export const CUENTAS_BANCARIAS: CuentaBancaria[] = [
 
 const DESCRIPCION_MONEDA: Record<MonedaSaldo, string> = { PEN: 'Soles', USD: 'Dólares' };
 
-/**
- * Número de una cuenta de registro (Figma 2687:36998), en 5 segmentos separados por espacio: Ámbito institucional (12
- * dígitos, uno por cuenta bancaria) · FF/SFF (fuente.subfuente de la cuenta, «5.08») · Org. finan. (6) · Convenio (6) ·
- * Sec. (2, correlativo dentro de la cuenta bancaria). Ej.: «111110009003 5.08 000000 000000 01».
- */
-function numeroCuentaRegistro(indiceBanco: number, idCorrelativo: string, secuencia: number): string {
-  return `11111000${9000 + indiceBanco} ${segmentoFuente(idCorrelativo)} 000000 000000 ${String(secuencia).padStart(2, '0')}`;
-}
-
 /** Cuentas de registro (libretas) vinculadas: entre 2 y 6 por cuenta bancaria, derivadas de su número. */
 /** «MEF - Cuenta Única del Tesoro»: la cuenta bancaria con las cuentas de registros de demostración. */
 export const CUENTA_DEMOSTRACION = '00000281794000000005';
@@ -120,7 +111,7 @@ export const CUENTAS_REGISTRO: CuentaRegistro[] = CUENTAS_BANCARIAS.flatMap((cue
   const cantidad = 2 + ((i * 3) % 5);
   return Array.from({ length: cantidad }, (_, j) => ({
     idCorrelativo: String(i * 10 + j + 2).padStart(10, '0'),
-    numero: numeroCuentaRegistro(i, String(i * 10 + j + 2).padStart(10, '0'), j + 1),
+    numero: numeroCuentaRegistro(String(i * 10 + j + 2).padStart(10, '0'), j + 1),
     descripcion: `Cuenta Fondo Tesoro Público ${DESCRIPCION_MONEDA[cuenta.moneda]} ${j + 1}`,
     cuentaBancaria: cuenta.numero,
   }));
@@ -141,7 +132,7 @@ function cuentasDeDemostracion(): CuentaRegistro[] {
   const cuenta = CUENTAS_BANCARIAS[i];
   return Array.from({ length: 30 }, (_, k) => ({
     idCorrelativo: String(100 + k).padStart(10, '0'),
-    numero: numeroCuentaRegistro(i, String(100 + k).padStart(10, '0'), 2 + ((i * 3) % 5) + k + 1),
+    numero: numeroCuentaRegistro(String(100 + k).padStart(10, '0'), 2 + ((i * 3) % 5) + k + 1),
     descripcion: `Cuenta Fondo Tesoro Público ${DESCRIPCION_MONEDA[cuenta.moneda]} ${k + 7}`,
     cuentaBancaria: cuenta.numero,
   }));

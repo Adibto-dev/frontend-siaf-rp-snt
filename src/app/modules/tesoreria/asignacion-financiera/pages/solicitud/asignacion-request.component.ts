@@ -277,7 +277,6 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
 
   /** Fuente de financiamiento (FF/SUB FF): fuente y subfuente concatenadas («5.18»); los nombres completos, en el tooltip. */
   private readonly columnasFuente: SelectionColumn<LibretaSaldo>[] = [
-    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
     {
       key: 'fuenteFinanciamiento',
       label: ABREVIATURAS.fuenteFinanciamiento.abreviatura,
@@ -287,6 +286,7 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
       render: (l) => codigoFuente(l.idCorrelativo),
       tooltip: (l) => textoFuenteSubfuente(l.idCorrelativo),
     },
+    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
   ];
 
   /** Cuenta de registro (ID, número y descripción) y, al final del grupo, su FF/SUB FF. */
@@ -298,16 +298,16 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
     { key: 'saldoDisponible', label: ABREVIATURAS.importeCuenta.abreviatura, widthClass: 'w-[170px]', cellClass: 'text-right', group: 'Saldo', render: (l) => formatoImporte(l.saldoDisponible) },
   ];
 
-  /** Origen: la fuente de financiamiento (por la que se filtra) y la cuenta de registro. */
-  readonly columnasLibreta: SelectionColumn<LibretaSaldo>[] = this.columnasCuentaRegistro;
-
   /** Destino: el Clasificador Institucional del titular, la fuente de financiamiento y la cuenta de registro. */
   readonly columnasLibretaDestino: SelectionColumn<LibretaSaldo>[] = [
-    { key: 'grupo', label: 'Grupo', widthClass: 'w-[80px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).grupo) },
-    { key: 'subgrupo', label: 'Sub grupo', widthClass: 'w-[100px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).subgrupo) },
+    { key: 'grupo', label: 'Grupo', widthClass: 'w-[80px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).grupo), tooltip: (l) => clasificacionDe(l.idCorrelativo).grupo },
+    { key: 'subgrupo', label: 'Sub grupo', widthClass: 'w-[100px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).subgrupo), tooltip: (l) => clasificacionDe(l.idCorrelativo).subgrupo },
     { key: 'entidad', label: 'Descripción', widthClass: 'w-[280px]', group: 'Clasificador institucional', render: (l) => clasificacionDe(l.idCorrelativo).entidad },
-    ...this.columnasCuentaRegistro,
+    ...this.columnasCuentaRegistro.map((c) => (c.key === 'saldoDisponible' ? { ...c, stickyRight: true } : c)),
   ];
+
+  /** Origen: las mismas columnas que destinos (Imp. M. Cuenta fija a la derecha); se filtra por la FF/SUB FF. */
+  readonly columnasLibreta: SelectionColumn<LibretaSaldo>[] = this.columnasLibretaDestino;
   /** Clasificador Institucional de una cuenta, para la tabla de destinos. */
   readonly clasificacion = clasificacionDe;
   readonly codigo = codigo;
@@ -333,7 +333,7 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
     return {
       fuente: opcionesFiltro(ids, f, 'fuente'),
       subfuente: opcionesFiltro(ids, f, 'subfuente'),
-      // Concepto: solo el nombre en la lista (el valor sigue siendo «1 - Impuesto Predial»), en el orden del código.
+      // Concepto: solo el nombre en la lista (el valor sigue siendo «1 - Canon Minero»), en el orden del código.
       concepto: opcionesFiltro(ids, f, 'concepto').map((o) => ({ ...o, label: String(o.value).split(' - ').slice(1).join(' - ') })),
       grupo: opcionesFiltro(ids, f, 'grupo'),
       subgrupo: opcionesFiltro(ids, f, 'subgrupo'),

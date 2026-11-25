@@ -59,10 +59,10 @@ const DATOS_EXTRA_POR_ID: Record<string, Partial<ProcessMenuNode>> = {
   'gestion-recursos-publicos': { selected: true },
   'doc-traslado-cta-registros': {
     createRoute: '/procesos/traspasos-cuentas-registros/solicitud',
-    documentOptions: ['Solicitud de Reporte de Traslado de Recursos entre Cuentas de Registro'],
+    documentOptions: ['Solicitud de Traslado entre Cuentas de Registro'],
     documentCreateOptions: [
       {
-        label: 'Solicitud de Reporte de Traslado de Recursos entre Cuentas de Registro',
+        label: 'Solicitud de Traslado entre Cuentas de Registro',
         route: '/procesos/traspasos-cuentas-registros/solicitud',
         actionTypes: ['Creación'],
       },

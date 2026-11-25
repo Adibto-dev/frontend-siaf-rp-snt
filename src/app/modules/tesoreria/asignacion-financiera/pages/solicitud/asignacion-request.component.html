@@ -157,8 +157,8 @@
                           <th class="siaf-table-th siaf-table-th--grupo-fin w-[260px]">Descripción</th>
                           <th class="siaf-table-th siaf-table-th--grupo-inicio w-[320px]">Descripción</th>
                           <th class="siaf-table-th w-[300px]">Número</th>
-                          <th class="siaf-table-th w-[220px]">Concepto</th>
-                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[90px]"><span [siafTooltip]="abrev.fuenteFinanciamiento.termino">{{ abrev.fuenteFinanciamiento.abreviatura }}</span></th>
+                          <th class="siaf-table-th w-[90px]"><span [siafTooltip]="abrev.fuenteFinanciamiento.termino">{{ abrev.fuenteFinanciamiento.abreviatura }}</span></th>
+                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[220px]">Concepto</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -171,8 +171,8 @@
                             <td class="siaf-table-td">{{ c.entidad }}</td>
                             <td class="siaf-table-td">{{ f.id }} - {{ f.libreta?.descripcion }}</td>
                             <td class="siaf-table-td">{{ f.libreta?.numero }}</td>
-                            <td class="siaf-table-td">{{ nombreConcepto(f.id) }}</td>
                             <td class="siaf-table-td"><span [siafTooltip]="textoFuenteSubfuente(f.id)">{{ codigoFuente(f.id) }}</span></td>
+                            <td class="siaf-table-td">{{ nombreConcepto(f.id) }}</td>
                             @if (soloLectura()) {
                               <td class="siaf-table-td siaf-table-sticky-cell siaf-table-sticky-cell--borde text-right">{{ formatoImporte(f.importe) }}</td>
                             } @else {
@@ -273,7 +273,7 @@
     [disabledIds]="libretasBloqueadas()"
     [requireSelection]="false"
     [emptyMessage]="panelLibretas() === 'destino' ? 'No hay cuentas de registro con la misma fuente y sub fuente que la cuenta de origen.' : 'La cuenta bancaria no tiene cuentas de registro.'"
-    [tableMinWidthClass]="panelLibretas() === 'destino' ? 'min-w-[1750px]' : 'min-w-[1250px]'"
+    tableMinWidthClass="min-w-[1750px]"
     [paginated]="true"
     [page]="paginaLibretas()"
     [totalPages]="totalPaginasLibretas()"
@@ -296,7 +296,7 @@
         <!-- Origen: solo fuente de financiamiento -->
         <siaf-input label="Fuente" type="select" [options]="opcionesFiltros().fuente" [value]="filtrosEnEdicion().fuente" (valueChange)="editarFiltro('fuente', $event)" />
         <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!opcionesFiltros().subfuente.length || !filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
-        <!-- Concepto: solo cuando la Sub fuente elegida tiene conceptos (08 y 18). -->
+        <!-- Concepto: solo cuando la Sub fuente elegida tiene conceptos (en la data v1.8, solo la 18). -->
         @if (filtrosEnEdicion().subfuente && opcionesFiltros().concepto.length) {
           <siaf-input label="Concepto" type="select" [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
         }

@@ -13,7 +13,7 @@ import { cuentaPorNumero, cuentasRegistroDe, redondear, type MonedaSaldo } from 
 
 /** Código del documento en el catálogo de documentos. */
 export const CODIGO_DOCUMENTO = 'RTCR';
-export const NOMBRE_DOCUMENTO = 'Solicitud de Reporte de Traslado de Recursos entre Cuentas de Registro';
+export const NOMBRE_DOCUMENTO = 'Solicitud de Traslado entre Cuentas de Registro';
 /** Prefijo del número: TR-DTCR-<correlativo>-<año>-<entidad>-<unidad>. */
 export const PREFIJO_NUMERO = 'TR-DTCR';
 /** Límite de cuentas de registro por documento (el MFD da 3 800 como ejemplo; valor por definir). */

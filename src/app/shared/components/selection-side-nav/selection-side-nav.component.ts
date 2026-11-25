@@ -30,6 +30,11 @@ export interface SelectionColumn<T = Record<string, unknown>> {
    * Tipo y Número). Las columnas sin grupo ocupan las dos filas de la cabecera.
    */
   group?: string;
+  /**
+   * Columna fija a la derecha: no se mueve al desplazar la tabla en horizontal (p. ej. el saldo, Imp. M. Cuenta). Solo la
+   * última columna; si tiene `group`, la cabecera del grupo también queda fija.
+   */
+  stickyRight?: boolean;
 }
 
 /** Tramo de la primera fila de una cabecera agrupada: un grupo o una columna suelta. */
@@ -59,6 +64,8 @@ export type SelectionMode = 'single' | 'multiple';
  *   `(accepted)`).
  * - Una columna con `tooltip` muestra en la celda un tooltip por fila (p. ej. el nombre completo de un código), y con
  *   `headerTooltip`, uno en la cabecera (el término completo de una abreviatura).
+ * - Una columna con `stickyRight` (la última) queda fija a la derecha al desplazar la tabla en horizontal, como Imp. M.
+ *   Cuenta en los paneles de cuentas de destino.
  *
  * Ejemplo single:
  *
@@ -199,13 +206,13 @@ export type SelectionMode = 'single' | 'multiple';
               <table class="siaf-text-body-2 w-full border-collapse text-left" [ngClass]="tableMinWidthClass">
                 <thead>
                   @if (tieneGrupos()) {
-                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text">
+                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text" style="--siaf-fila-capa: var(--sys-color-bg-surfaces-surface-high)">
                       <th class="w-12 rounded-l-siaf-sm px-siaf-sm" rowspan="2"></th>
                       @for (tramo of tramosCabecera(); track $index; let last = $last) {
                         @if (tramo.group) {
-                          <th class="siaf-table-th--grupo px-siaf-md py-siaf-sm" [class.rounded-r-siaf-sm]="last" [attr.colspan]="tramo.columns.length">{{ tramo.group }}</th>
+                          <th class="siaf-table-th--grupo px-siaf-md py-siaf-sm" [class.rounded-r-siaf-sm]="last" [attr.colspan]="tramo.columns.length" [class.siaf-table-sticky-cell]="tramo.columns[0].stickyRight" [class.siaf-table-sticky-cell--borde]="tramo.columns[0].stickyRight" [style.right.px]="tramo.columns[0].stickyRight ? 0 : null">{{ tramo.group }}</th>
                         } @else {
-                          <th class="px-siaf-md py-siaf-sm" rowspan="2" [class.rounded-r-siaf-sm]="last" [ngClass]="tramo.columns[0].widthClass || ''">
+                          <th class="px-siaf-md py-siaf-sm" rowspan="2" [class.rounded-r-siaf-sm]="last" [ngClass]="tramo.columns[0].widthClass || ''" [class.siaf-table-sticky-cell]="tramo.columns[0].stickyRight" [class.siaf-table-sticky-cell--borde]="tramo.columns[0].stickyRight" [style.right.px]="tramo.columns[0].stickyRight ? 0 : null">
                             @if (tramo.columns[0].headerTooltip) {
                               <span [siafTooltip]="tramo.columns[0].headerTooltip">{{ tramo.columns[0].label }}</span>
                             } @else {
@@ -215,7 +222,7 @@ export type SelectionMode = 'single' | 'multiple';
                         }
                       }
                     </tr>
-                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text">
+                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text" style="--siaf-fila-capa: var(--sys-color-bg-surfaces-surface-high)">
                       @for (tramo of tramosCabecera(); track $index) {
                         @if (tramo.group) {
                           @for (col of tramo.columns; track col.key; let primera = $first, ultima = $last) {
@@ -223,6 +230,9 @@ export type SelectionMode = 'single' | 'multiple';
                               class="px-siaf-md py-siaf-sm"
                               [class.siaf-table-th--grupo-inicio]="primera"
                               [class.siaf-table-th--grupo-fin]="ultima"
+                              [class.siaf-table-sticky-cell]="col.stickyRight"
+                              [class.siaf-table-sticky-cell--borde]="col.stickyRight"
+                              [style.right.px]="col.stickyRight ? 0 : null"
                               [ngClass]="col.widthClass || ''"
                             >
                               @if (col.headerTooltip) {
@@ -236,13 +246,16 @@ export type SelectionMode = 'single' | 'multiple';
                       }
                     </tr>
                   } @else {
-                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text">
+                    <tr class="siaf-text-caption-1-bold-caps h-10 bg-[var(--sys-color-bg-surfaces-surface-high)] text-text" style="--siaf-fila-capa: var(--sys-color-bg-surfaces-surface-high)">
                       <th class="w-12 rounded-l-siaf-sm px-siaf-sm"></th>
                       @for (col of columns; track col.key; let last = $last) {
                         <th
                           class="px-siaf-md py-siaf-sm"
                           [class.rounded-r-siaf-sm]="last"
                           [ngClass]="col.widthClass || ''"
+                          [class.siaf-table-sticky-cell]="col.stickyRight"
+                          [class.siaf-table-sticky-cell--borde]="col.stickyRight"
+                          [style.right.px]="col.stickyRight ? 0 : null"
                         >
                           @if (col.headerTooltip) {
                             <span [siafTooltip]="col.headerTooltip">{{ col.label }}</span>
@@ -263,6 +276,7 @@ export type SelectionMode = 'single' | 'multiple';
                       [class.cursor-not-allowed]="isDisabled(rowId(row))"
                       [class.opacity-50]="isDisabled(rowId(row))"
                       [class.bg-[var(--sys-color-bg-states-light-selected)]]="isSelected(rowId(row))"
+                      [style.--siaf-fila-capa]="isSelected(rowId(row)) ? 'var(--sys-color-bg-states-light-selected)' : null"
                       (click)="onRowClick(rowId(row))"
                     >
                       <td class="px-siaf-sm" (click)="$event.stopPropagation()">
@@ -288,7 +302,7 @@ export type SelectionMode = 'single' | 'multiple';
                         }
                       </td>
                       @for (col of columns; track col.key) {
-                        <td class="px-siaf-md py-siaf-sm" [ngClass]="col.cellClass || ''">
+                        <td class="px-siaf-md py-siaf-sm" [ngClass]="col.cellClass || ''" [class.siaf-table-sticky-cell]="col.stickyRight" [class.siaf-table-sticky-cell--borde]="col.stickyRight" [style.right.px]="col.stickyRight ? 0 : null">
                           @if (col.tooltip) {
                             <span [siafTooltip]="col.tooltip(row)">{{ cellValue(row, col) }}</span>
                           } @else {
