@@ -8,7 +8,7 @@ import { TooltipDirective } from '../../../../shared/ui/tooltip/tooltip.directiv
 import { UploaderComponent } from '../../../../shared/ui/uploader/uploader.component';
 import type { LibretaSaldo } from '../../traspasos-cuentas-registros/models/traslado.model';
 import { DestinoCargado, descargarPlantillaAsignacion, leerPlantillaAsignacion } from '../utils/asignacion-carga-masiva.util';
-import { FILTROS_VACIOS, cumpleFiltros, mismaFuente, opcionesFiltro, textoFuenteSubfuente } from '../utils/clasificacion-cuentas.util';
+import { FILTROS_VACIOS, cumpleFiltros, mismaFuente, opcionesFiltro, partesRecurso } from '../utils/clasificacion-cuentas.util';
 
 /**
  * «Carga masiva» de las cuentas de destino de la asignación financiera: descarga la plantilla precargada con las
@@ -35,7 +35,12 @@ import { FILTROS_VACIOS, cumpleFiltros, mismaFuente, opcionesFiltro, textoFuente
           <section class="grid gap-siaf-sm">
             <h3 class="m-0 text-sm font-medium uppercase text-text">Descargar plantilla</h3>
             @if (origen) {
-              <p class="siaf-text-caption-1 m-0 text-[var(--sys-color-text-neutral-low)]">Solo cuentas de {{ fuenteOrigen() }}, como la cuenta de origen.</p>
+              <p class="siaf-text-caption-1 m-0 text-[var(--sys-color-text-neutral-low)]">
+                Solo puede asignar a cuentas con el mismo recurso que la cuenta de origen:
+                @for (p of recursoOrigen(); track p.rotulo) {
+                  @if (!$first) { · }{{ p.rotulo }} <strong>{{ p.codigo }}</strong>@if (p.rotulo === 'Concepto') { {{ p.nombre }}}
+                }.
+              </p>
             }
             <div class="grid gap-siaf-sm sm:grid-cols-2">
               <siaf-input label="Grupo" type="select" placeholder="Todos" [options]="opcionesGrupo()" [value]="grupo()" (valueChange)="elegirGrupo($event)" />
@@ -97,7 +102,7 @@ export class AsignacionCargaMasivaComponent {
   private readonly idOrigen = signal('');
   /** Cuentas de registros que pueden ser destino: «000033 - Descripción». */
   /** Fuente y Sub fuente de la cuenta de origen, para el aviso. */
-  readonly fuenteOrigen = computed(() => textoFuenteSubfuente(this.idOrigen()));
+  readonly recursoOrigen = computed(() => partesRecurso(this.idOrigen()));
   /** Solo las de la misma Fuente y Sub fuente que la cuenta de origen. */
   private readonly destinosPosibles = computed(() =>
     this.todas().filter((l) => l.idCorrelativo !== this.idOrigen() && mismaFuente(this.idOrigen(), l.idCorrelativo)),

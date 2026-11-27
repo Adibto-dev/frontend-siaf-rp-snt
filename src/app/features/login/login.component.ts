@@ -268,7 +268,8 @@ function leerAvisoInactividad(): boolean {
       <siaf-modal
         [open]="sesionVencida()"
         variant="custom"
-        icon="schedule"
+        [showIllustration]="true"
+        illustrationSrc="assets/figma/modals/inactivity.svg"
         title="Sesión cerrada por inactividad"
         [description]="'Su sesión se cerró porque no hubo actividad durante ' + minutosInactividad + ' minutos. Para continuar, inicie sesión nuevamente.'"
         [hasProjectedActions]="true"

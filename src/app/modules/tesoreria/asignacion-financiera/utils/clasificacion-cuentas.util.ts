@@ -58,7 +58,7 @@ const GRUPOS: { grupo: string; subgrupos: string[] }[] = [
  * Fuente → subfuente → concepto de la data de Cuentas de Registro v1.8 (`02-analisis/estructura-cuentas-de-registro.md`):
  * fuentes 1, 2 y 5; las 1 y 2 sin subfuente (segmento «00» del número), y solo la subfuente 18 se desagrega por
  * concepto (la 08 se registra a nivel agregado). Los códigos de concepto son los de la data (1, 3, 5, 6, 8, 9 y 10).
- * El concepto es un **dato propuesto**: hoy la cuenta de registro no lo tiene (ver `CONCEPTO_PROPUESTO`).
+ * El concepto es un dato de la cuenta de registro aprobado por el equipo (2026-11-27).
  */
 const RD = '5 - Recursos Determinados';
 const CANON = '18 - Canon y Sobrecanon, Regalías, Renta de Aduanas y Participaciones';
@@ -342,26 +342,21 @@ export function numerarCuentasRegistro<T extends { idCorrelativo: string }>(cuen
   return cuentas.map((c) => ({ ...c, numero: numeros.get(c.idCorrelativo)! }));
 }
 
-/**
- * Aviso del Concepto en la demo: la cuenta de registro hoy no tiene ese dato. Se propone agregarlo para separar los
- * recursos de la sub fuente 18 (canon, regalía, renta de aduanas), que un filtro por texto no puede distinguir.
- */
-export const CONCEPTO_PROPUESTO = 'Dato propuesto: hoy la cuenta de registro no tiene concepto. Se muestra para evaluar el filtrado por recurso.';
-
 /** Código de un valor «2 - Instancias Descentralizadas» → «2». */
 export function codigo(valor: string): string {
   return valor.split(' - ')[0];
 }
 
 /**
- * Un destino de la asignación debe tener la misma Fuente y Sub fuente que la cuenta de origen (el concepto puede
- * variar). Sin origen, toda cuenta es compatible.
+ * Un destino de la asignación debe tener la misma Fuente y Sub fuente que la cuenta de origen y, si el origen tiene
+ * Concepto, el mismo Concepto (propuesta, duda 66 para la DGTP). Un origen sin concepto no restringe por concepto.
+ * Sin origen, toda cuenta es compatible.
  */
 export function mismaFuente(origen: string, destino: string): boolean {
   if (!origen) return true;
   const o = clasificacionDe(origen);
   const d = clasificacionDe(destino);
-  return o.fuente === d.fuente && o.subfuente === d.subfuente;
+  return o.fuente === d.fuente && o.subfuente === d.subfuente && (!o.concepto || o.concepto === d.concepto);
 }
 
 /** Código de fuente y subfuente separados por punto: «5.18»; las fuentes sin subfuente, solo «1». */
@@ -380,6 +375,27 @@ export function nombreConcepto(idCorrelativo: string): string {
 export function textoFuenteSubfuente(idCorrelativo: string): string {
   const c = clasificacionDe(idCorrelativo);
   return [c.fuente, c.subfuente].filter(Boolean).join(' / ');
+}
+
+/** Una parte del recurso como etiqueta codificada: «Concepto» · «1» · «Canon Minero». */
+export interface ParteRecurso {
+  rotulo: 'Fuente' | 'Sub fuente' | 'Concepto';
+  codigo: string;
+  nombre: string;
+}
+
+/** Fuente, sub fuente y concepto de la cuenta (los que tenga), para explicar por qué un destino es compatible. */
+export function partesRecurso(idCorrelativo: string): ParteRecurso[] {
+  const c = clasificacionDe(idCorrelativo);
+  const parte = (rotulo: ParteRecurso['rotulo'], valor: string): ParteRecurso[] =>
+    valor ? [{ rotulo, codigo: codigo(valor), nombre: valor.split(' - ').slice(1).join(' - ') }] : [];
+  return [...parte('Fuente', c.fuente), ...parte('Sub fuente', c.subfuente), ...parte('Concepto', c.concepto)];
+}
+
+/** Recurso completo de la cuenta, con el concepto si lo tiene: «5 - … / 18 - … / 1 - Canon Minero». */
+export function textoRecurso(idCorrelativo: string): string {
+  const c = clasificacionDe(idCorrelativo);
+  return [c.fuente, c.subfuente, c.concepto].filter(Boolean).join(' / ');
 }
 
 

@@ -100,4 +100,46 @@ describe('FormTableSearchComponent', () => {
     expect(columnas).toBeTrue();
     expect(mas).toBeFalse();
   });
+
+  describe('en vivo (live)', () => {
+    let emitidos: string[];
+    beforeEach(() => {
+      emitidos = [];
+      component.valueChange.subscribe((v: string) => emitidos.push(v));
+      fixture.componentRef.setInput('live', true);
+      fixture.detectChanges();
+    });
+
+    const escribir = (texto: string) => {
+      const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+      input.value = texto;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+
+    it('filtra mientras se escribe desde 3 letras y avisa si faltan', () => {
+      escribir('ca');
+      expect(emitidos).toEqual([]);
+      expect(fixture.nativeElement.textContent).toContain('Escribe al menos 3 letras para buscar');
+      escribir('can');
+      expect(emitidos).toEqual(['can']);
+      expect(fixture.nativeElement.textContent).not.toContain('Escribe al menos');
+    });
+
+    it('muestra la lupa al inicio y, con texto, «Limpiar búsqueda» que borra todo', () => {
+      expect(fixture.nativeElement.querySelector('button[aria-label="Limpiar búsqueda"]')).toBeNull();
+      escribir('canon');
+      const limpiar = fixture.nativeElement.querySelector('button[aria-label="Limpiar búsqueda"]') as HTMLButtonElement;
+      limpiar.click();
+      fixture.detectChanges();
+      expect(emitidos).toEqual(['canon', '']);
+      expect((fixture.nativeElement.querySelector('input') as HTMLInputElement).value).toBe('');
+    });
+
+    it('al bajar del mínimo quita el filtro', () => {
+      escribir('canon');
+      escribir('ca');
+      expect(emitidos).toEqual(['canon', '']);
+    });
+  });
 });

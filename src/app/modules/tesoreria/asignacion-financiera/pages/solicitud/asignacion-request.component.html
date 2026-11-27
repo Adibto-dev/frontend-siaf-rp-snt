@@ -158,7 +158,7 @@
                           <th class="siaf-table-th siaf-table-th--grupo-inicio w-[320px]">Descripción</th>
                           <th class="siaf-table-th w-[300px]">Número</th>
                           <th class="siaf-table-th w-[90px]"><span [siafTooltip]="abrev.fuenteFinanciamiento.termino">{{ abrev.fuenteFinanciamiento.abreviatura }}</span></th>
-                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[220px]"><span [siafTooltip]="conceptoPropuesto">Concepto</span></th>
+                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[220px]">Concepto</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -272,7 +272,7 @@
     [selectedIds]="libretasTemporales()"
     [disabledIds]="libretasBloqueadas()"
     [requireSelection]="false"
-    [emptyMessage]="panelLibretas() === 'destino' ? 'No hay cuentas de registro con la misma fuente y sub fuente que la cuenta de origen.' : 'La cuenta bancaria no tiene cuentas de registro.'"
+    [emptyMessage]="panelLibretas() === 'destino' ? 'No hay cuentas de registro con el mismo recurso que la cuenta de origen.' : 'La cuenta bancaria no tiene cuentas de registro.'"
     tableMinWidthClass="min-w-[1750px]"
     [paginated]="true"
     [page]="paginaLibretas()"
@@ -291,6 +291,21 @@
     (closed)="panelLibretas.set(null)"
     (accepted)="aceptarLibretas($event)"
   >
+    @if (panelLibretas() === 'destino' && libretaOrigen(); as o) {
+      <div aviso class="mt-siaf-md">
+        <siaf-alert tone="info" title="Cuentas vinculadas a la cuenta de origen">
+          <span class="siaf-text-caption-1">
+            Se muestran solo las cuentas de registro con {{ recursoOrigen().length > 2 ? 'el mismo recurso' : 'la misma fuente y sub fuente' }} que la
+            cuenta de origen <strong>{{ o.idCorrelativo }} – {{ o.descripcion }}</strong>:
+          </span>
+          <span class="siaf-text-caption-1">
+            @for (p of recursoOrigen(); track p.rotulo) {
+              @if (!$first) { · }{{ p.rotulo }} <strong>{{ p.codigo }}</strong> {{ p.nombre }}
+            }
+          </span>
+        </siaf-alert>
+      </div>
+    }
     <div filtros class="grid gap-siaf-md">
       @if (panelLibretas() === 'origen') {
         <!-- Origen: solo fuente de financiamiento -->
@@ -298,9 +313,8 @@
         <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!opcionesFiltros().subfuente.length || !filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
         <!-- Concepto: solo cuando la Sub fuente elegida tiene conceptos (en la data v1.8, solo la 18). -->
         @if (filtrosEnEdicion().subfuente && opcionesFiltros().concepto.length) {
-          <siaf-input label="Concepto" type="select" hint="Dato propuesto: hoy la cuenta de registro no lo tiene." [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
+          <siaf-input label="Concepto" type="select" [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
         }
-        <siaf-input label="Descripción" ejemplo="Ej.: canon, regalía, FONCOR" hint="Busca en el nombre de la cuenta de registro." [clearable]="true" [value]="filtrosEnEdicion().descripcionFuente" (valueChange)="editarFiltro('descripcionFuente', $event)" />
       } @else {
         <siaf-input label="Grupo" type="select" [options]="opcionesFiltros().grupo" [value]="filtrosEnEdicion().grupo" (valueChange)="editarFiltro('grupo', $event)" />
         <siaf-input label="Sub grupo" type="select" [options]="opcionesFiltros().subgrupo" [value]="filtrosEnEdicion().subgrupo" [disabled]="!filtrosEnEdicion().grupo" (valueChange)="editarFiltro('subgrupo', $event)" />

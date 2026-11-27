@@ -93,7 +93,7 @@ const contiene = (texto: string, busqueda: string): boolean => texto.toLowerCase
             </div>
           </siaf-expansion-panel>
 
-          <siaf-form-table-search placeholder="Buscar" [value]="busqueda()" (valueChange)="busqueda.set($event); pagina.set(1)" />
+          <siaf-form-table-search placeholder="Buscar" [live]="true" [value]="busqueda()" (valueChange)="busqueda.set($event); pagina.set(1)" />
           <div class="siaf-table-shell">
             <table class="siaf-table min-w-[960px]">
               <caption class="sr-only">Cuentas de registro de la cuenta {{ s.cuentaBancaria }}</caption>

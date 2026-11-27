@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, signal } from '@angular/core';
 
 import { IconComponent } from '../../ui/icon/icon.component';
 import { TextFieldComponent } from '../../ui/text-field/text-field.component';
@@ -27,6 +27,8 @@ import { TextFieldComponent } from '../../ui/text-field/text-field.component';
  * - En el detalle de Contabilización y en los listados de Admin (usuarios, entidades, unidades y correlativos).
  * - En Apertura contable: cuentas contables del detalle anual, aperturas mensuales de la configuración e historial de
  *   la configuración.
+ * - Con `live` en los paneles laterales (`siaf-selection-side-nav`, libretas de Saldos iniciales): filtra mientras se
+ *   escribe, desde 3 letras, y la X «Limpiar búsqueda» la borra de un clic.
  * - Cuando la búsqueda debe confirmarse con Enter o la lupa y no a cada tecla (búsqueda en servidor o muchas filas).
  * @evitar
  * - En las pestañas Documentos / Registros y en la Bandeja de Documentos, con menús a la derecha:
@@ -61,6 +63,28 @@ import { TextFieldComponent } from '../../ui/text-field/text-field.component';
     <div class="flex w-full items-start gap-siaf-md">
       <!-- Campo del design system: etiqueta flotante y borde de éxito, igual
            que el resto de inputs. Enter o la lupa (trailingAction) confirman. -->
+      @if (live) {
+        <!-- Búsqueda en vivo, como el buscador del menú de procesos: lupa al inicio y «Limpiar búsqueda» con texto. -->
+        <div class="flex min-w-0 flex-1 flex-col">
+          <siaf-input
+            class="block w-full"
+            [label]="placeholder"
+            [value]="texto()"
+            [disabled]="disabled"
+            leadingIcon="search"
+            [trailingIcon]="texto() ? 'highlight_off' : ''"
+            trailingButtonLabel="Limpiar búsqueda"
+            (valueChange)="onTypedLive($event)"
+            (keydown.enter)="$event.preventDefault()"
+            (trailingAction)="limpiar()"
+          />
+          <div role="status" aria-live="polite">
+            @if (faltanLetras()) {
+              <p class="siaf-text-caption-1 m-0 px-siaf-md pt-siaf-xxs text-[var(--sys-color-text-neutral-medium)]">Escribe al menos {{ minLetras }} letras para buscar</p>
+            }
+          </div>
+        </div>
+      } @else {
       <siaf-input
         class="min-w-0 flex-1"
         [label]="placeholder"
@@ -72,6 +96,7 @@ import { TextFieldComponent } from '../../ui/text-field/text-field.component';
         (keydown.enter)="onSubmit($event)"
         (trailingAction)="onLupa()"
       />
+      }
 
       <div class="flex shrink-0 items-start gap-siaf-xs">
         @if (showFilter) {
@@ -113,6 +138,8 @@ export class FormTableSearchComponent implements OnChanges {
     // resucitar el texto viejo.
     if (changes['value']) {
       this.lastTyped = null;
+      // En vivo, lo tecleado con menos letras que el mínimo no llega al padre: no se pisa con su `value`.
+      if (!this.live || this.value || this.texto().trim().length >= this.minLetras) this.texto.set(this.value ?? '');
     }
   }
 
@@ -132,6 +159,19 @@ export class FormTableSearchComponent implements OnChanges {
   @Input() filterActive = false;
   /** Muestra el segundo botón (Más opciones o Columnas). */
   @Input() showMore = true;
+  /**
+   * Búsqueda en vivo (paneles laterales): lupa al inicio, «Limpiar búsqueda» al final con texto, y `valueChange` a cada
+   * tecla desde `minLetras` letras (o vacío). Enter y la lupa no hacen falta.
+   */
+  @Input() live = false;
+  /** Letras mínimas para buscar en vivo, como el buscador del menú de procesos. */
+  @Input() minLetras = 3;
+
+  readonly texto = signal('');
+  readonly faltanLetras = computed(() => {
+    const largo = this.texto().trim().length;
+    return largo > 0 && largo < this.minLetras;
+  });
 
   @Output() valueChange = new EventEmitter<string>();
   @Output() filter = new EventEmitter<void>();
@@ -153,6 +193,21 @@ export class FormTableSearchComponent implements OnChanges {
     // consumidores (paneles de selección, tablas de solicitudes, listados
     // admin) pasan a ese comportamiento sin cambiar una línea.
     this.valueChange.emit(this.lastTyped ?? this.value);
+  }
+
+  onTypedLive(value: string | number | string[]): void {
+    const texto = String(value ?? '');
+    const antes = this.texto().trim();
+    this.texto.set(texto);
+    const largo = texto.trim().length;
+    if (largo >= this.minLetras) this.valueChange.emit(texto.trim());
+    // Al bajar del mínimo se quita el filtro, para no dejar resultados de una búsqueda que ya no se ve.
+    else if (antes.length >= this.minLetras || largo === 0) this.valueChange.emit('');
+  }
+
+  limpiar(): void {
+    this.texto.set('');
+    this.valueChange.emit('');
   }
 
   onLupa(): void {

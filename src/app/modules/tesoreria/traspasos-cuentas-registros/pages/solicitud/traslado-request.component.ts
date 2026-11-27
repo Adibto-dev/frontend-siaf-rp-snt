@@ -49,7 +49,7 @@ import {
   codigoFuente,
   cumpleFiltros,
   nombreConcepto,
-  CONCEPTO_PROPUESTO, SUBGRUPO_GOBIERNOS_LOCALES,
+  SUBGRUPO_GOBIERNOS_LOCALES,
   opcionesFiltro,
   textoFuenteSubfuente,
 } from '../../../asignacion-financiera/utils/clasificacion-cuentas.util';
@@ -308,13 +308,17 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
   /** Tarjetas abiertas (por id de la cuenta principal). */
   readonly abiertas = signal<Set<string>>(new Set());
 
-  /** Origen: la cuenta de registro con su Concepto y su FF/SUB FF (por los que se filtra), y su saldo. */
-  /** Aviso del Concepto: dato propuesto, hoy la cuenta de registro no lo tiene. */
   /** La ubicación geográfica solo se filtra en gobiernos locales. */
   readonly subgrupoGobiernosLocales = SUBGRUPO_GOBIERNOS_LOCALES;
-  readonly conceptoPropuesto = CONCEPTO_PROPUESTO;
 
-  private readonly columnasOrigen: SelectionColumn<LibretaSaldo>[] = [
+  /**
+   * Fuente de financiamiento en el traslado (filtros del panel de origen y columnas FF/SUB FF y Concepto): apagada de
+   * momento por pedido del usuario (2026-11-27). Con `true` vuelve todo como estaba.
+   */
+  readonly mostrarFuenteFinanciamiento = false;
+
+  /** Origen: la cuenta de registro con su Concepto y su FF/SUB FF (por los que se filtra), y su saldo. */
+  private readonly columnasOrigen: SelectionColumn<LibretaSaldo>[] = (<SelectionColumn<LibretaSaldo>[]>[
     { key: 'idCorrelativo', label: ABREVIATURAS.idCorrelativo.abreviatura, widthClass: 'w-[100px]', group: 'Cuenta de registro' },
     { key: 'numero', label: 'Número', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
     { key: 'descripcion', label: 'Descripción', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
@@ -327,9 +331,9 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
       render: (l) => codigoFuente(l.idCorrelativo),
       tooltip: (l) => textoFuenteSubfuente(l.idCorrelativo),
     },
-    { key: 'concepto', label: 'Concepto', headerTooltip: CONCEPTO_PROPUESTO, widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
+    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
     { key: 'saldoDisponible', label: ABREVIATURAS.importeCuenta.abreviatura, widthClass: 'w-[170px]', cellClass: 'text-right', group: 'Saldo', render: (l) => formatoImporte(l.saldoDisponible) },
-  ];
+  ]).filter((c) => this.mostrarFuenteFinanciamiento || (c.key !== 'fuenteFinanciamiento' && c.key !== 'concepto'));
   /** Destino: primero el Clasificador Institucional del titular (por el que se filtra), luego la cuenta. */
   private readonly columnasDestino: SelectionColumn<LibretaSaldo>[] = [
     { key: 'grupo', label: 'Grupo', widthClass: 'w-[80px]', group: 'Clasificador institucional', render: (l) => codigo(clasificacionDe(l.idCorrelativo).grupo), tooltip: (l) => clasificacionDe(l.idCorrelativo).grupo },

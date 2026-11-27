@@ -3,7 +3,7 @@ import { redondear } from '../../saldos-iniciales/models/saldo-inicial.model';
 import { libroExcel } from '../../saldos-iniciales/utils/saldos-carga-masiva.util';
 import { estilarCabecera, estilarCuerpo } from '../../../../shared/utils/excel-siaf.util';
 import type { LibretaSaldo } from '../../traspasos-cuentas-registros/models/traslado.model';
-import { clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, textoFuenteSubfuente } from './clasificacion-cuentas.util';
+import { clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, textoRecurso } from './clasificacion-cuentas.util';
 
 /**
  * Carga masiva de la asignación financiera: un Excel con una fila por cuenta de destino (ID correlativo e importe a
@@ -133,7 +133,7 @@ export async function leerPlantillaAsignacion(archivo: File, libretas: LibretaSa
       if (!id && !valor) continue;
       if (!ids.has(id)) errores.push(`Fila ${n}: la cuenta de registro «${id || '--'}» no pertenece a la cuenta bancaria.`);
       else if (id === origen) errores.push(`Fila ${n}: la cuenta ${id} es la de origen.`);
-      else if (!mismaFuente(origen, id)) errores.push(`Fila ${n}: la cuenta ${id} no es de ${textoFuenteSubfuente(origen)}, como la cuenta de origen.`);
+      else if (!mismaFuente(origen, id)) errores.push(`Fila ${n}: la cuenta ${id} no es de ${textoRecurso(origen)}, como la cuenta de origen.`);
       else if (vistos.has(id)) errores.push(`Fila ${n}: la cuenta ${id} está repetida.`);
       else if (valor === null || valor < 0) errores.push(`Fila ${n}: el importe a asignar no es válido.`);
       else if (valor > 0) destinos.push({ destino: id, importe: redondear(valor) });

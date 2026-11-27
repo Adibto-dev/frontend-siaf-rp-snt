@@ -58,7 +58,7 @@ import {
   validarAsignacion,
 } from '../../models/asignacion.model';
 import type { DestinoCargado } from '../../utils/asignacion-carga-masiva.util';
-import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, CONCEPTO_PROPUESTO, SUBGRUPO_GOBIERNOS_LOCALES, textoFuenteSubfuente, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
+import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, partesRecurso, SUBGRUPO_GOBIERNOS_LOCALES, textoFuenteSubfuente, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
 import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 
 const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
@@ -286,7 +286,7 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
       render: (l) => codigoFuente(l.idCorrelativo),
       tooltip: (l) => textoFuenteSubfuente(l.idCorrelativo),
     },
-    { key: 'concepto', label: 'Concepto', headerTooltip: CONCEPTO_PROPUESTO, widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
+    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
   ];
 
   /** Cuenta de registro (ID, número y descripción) y, al final del grupo, su FF/SUB FF. */
@@ -316,7 +316,6 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   readonly nombreConcepto = nombreConcepto;
   /** La ubicación geográfica solo se filtra en gobiernos locales. */
   readonly subgrupoGobiernosLocales = SUBGRUPO_GOBIERNOS_LOCALES;
-  readonly conceptoPropuesto = CONCEPTO_PROPUESTO;
 
   readonly panelLibretas = signal<'origen' | 'destino' | null>(null);
   readonly busquedaLibreta = signal('');
@@ -370,6 +369,8 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   readonly totalAsignar = computed(() => redondear(this.asignaciones().reduce((t, a) => t + a.importe, 0)));
 
   readonly libretaOrigen = computed(() => this.libretaPorId().get(this.origen()));
+  /** Fuente, sub fuente y concepto del origen: explican en el panel por qué solo se ven esos destinos. */
+  readonly recursoOrigen = computed(() => partesRecurso(this.origen()));
   readonly filasDestino = computed(() => {
     const libretas = this.libretaPorId();
     return this.asignaciones().map((a) => ({ id: a.destino, libreta: libretas.get(a.destino), importe: a.importe }));

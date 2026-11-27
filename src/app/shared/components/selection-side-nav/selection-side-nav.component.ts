@@ -100,6 +100,9 @@ export type SelectionMode = 'single' | 'multiple';
  *   derecha el panel «Filtros» con los campos proyectados (`<div filtros>…</div>`) y Limpiar / Aplicar
  *   (`filtersCleared` vacía los campos sin cerrar el panel / `filtersApplied`); mientras está abierto, Cancelar y Aceptar del panel quedan deshabilitados. Cuentas de registros de la asignación financiera (grupo, subgrupo y
  *   ubicación geográfica).
+ * - Con un aviso arriba de la tabla (`<div aviso>…</div>`, p. ej. un `siaf-alert` informativo) cuando la lista viene
+ *   acotada por una regla que el usuario debe entender: destinos de la asignación financiera vinculados a la cuenta de
+ *   origen.
  * @evitar
  * - Para elegir entre pocas opciones fijas: usar `siaf-input` tipo select, `siaf-select-options` o `siaf-radio-group`.
  * - Para adjuntar archivos: usar `siaf-upload-side-nav`; para mostrar u ocultar columnas, `siaf-column-visibility-panel`.
@@ -113,7 +116,8 @@ export type SelectionMode = 'single' | 'multiple';
  * - **Espacio**: en `multiple` marca o desmarca la casilla enfocada; en `single` elige el radio.
  * - **Flechas**: en `single` pasan al radio anterior o siguiente y lo eligen (grupo nativo por `name`); saltan los
  *   deshabilitados.
- * - **Enter** en el buscador: aplica la búsqueda (sigue `siaf-form-table-search`).
+ * - Escribir en el buscador filtra en vivo desde 3 letras; la X «Limpiar búsqueda» lo borra (`siaf-form-table-search`
+ *   con `live`).
  * - **Enter / Espacio**: activan la X y Cancelar (emiten `closed`) y Aceptar (emite `accepted` con los ids).
  * @accesibilidad
  * - **4.1.2 Nombre, función y valor (A)**: `role="dialog"` con `aria-modal="true"` y `aria-label` igual al `title`; la
@@ -178,6 +182,7 @@ export type SelectionMode = 'single' | 'multiple';
               [showFilter]="showFilters"
               [filterActive]="filtrosVisibles()"
               [showMore]="false"
+              [live]="true"
               (valueChange)="searchChange.emit($event)"
               (filter)="filtrosAbiertos.set(!filtrosAbiertos())"
             />
@@ -196,6 +201,8 @@ export type SelectionMode = 'single' | 'multiple';
                 />
               </div>
             }
+
+            <ng-content select="[aviso]" />
 
             @if (customTable) {
               <div class="mt-siaf-md">

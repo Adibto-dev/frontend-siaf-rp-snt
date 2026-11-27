@@ -266,14 +266,14 @@
     [disabledIds]="libretasBloqueadas()"
     [requireSelection]="false"
     emptyMessage="La cuenta bancaria no tiene cuentas de registro."
-    tableMinWidthClass="min-w-[1750px]"
+    [tableMinWidthClass]="mostrarFuenteFinanciamiento ? 'min-w-[1750px]' : 'min-w-[1400px]'"
     [paginated]="true"
     [page]="paginaLibretas()"
     [totalPages]="totalPaginasLibretas()"
     [pageSize]="filasLibretas()"
     [rowsPerPage]="filasLibretas()"
     [totalItems]="libretasFiltradas().length"
-    [showFilters]="true"
+    [showFilters]="!panelEsOrigen() || mostrarFuenteFinanciamiento"
     (searchChange)="buscarLibreta($event)"
     (selectionChange)="libretasTemporales.set($event)"
     (previousPage)="paginaLibretas.set(paginaLibretas() - 1)"
@@ -289,9 +289,8 @@
         <siaf-input label="Fuente" type="select" [options]="opcionesFiltros().fuente" [value]="filtrosEnEdicion().fuente" (valueChange)="editarFiltro('fuente', $event)" />
         <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!opcionesFiltros().subfuente.length || !filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
         @if (filtrosEnEdicion().subfuente && opcionesFiltros().concepto.length) {
-          <siaf-input label="Concepto" type="select" hint="Dato propuesto: hoy la cuenta de registro no lo tiene." [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
+          <siaf-input label="Concepto" type="select" [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
         }
-        <siaf-input label="Descripción" ejemplo="Ej.: canon, regalía, FONCOR" hint="Busca en el nombre de la cuenta de registro." [clearable]="true" [value]="filtrosEnEdicion().descripcionFuente" (valueChange)="editarFiltro('descripcionFuente', $event)" />
       } @else {
         <siaf-input label="Grupo" type="select" [options]="opcionesFiltros().grupo" [value]="filtrosEnEdicion().grupo" (valueChange)="editarFiltro('grupo', $event)" />
         <siaf-input label="Sub grupo" type="select" [options]="opcionesFiltros().subgrupo" [value]="filtrosEnEdicion().subgrupo" [disabled]="!filtrosEnEdicion().grupo" (valueChange)="editarFiltro('subgrupo', $event)" />
