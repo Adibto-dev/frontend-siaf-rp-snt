@@ -116,7 +116,7 @@ import { SnackbarComponent, SnackbarVariant } from '../../ui/snackbar/snackbar.c
       confirmVariant="primary"
       [reason]="reason"
       reasonLabel="Descripción de la observación"
-      [reasonMaxLength]="500"
+      [reasonMaxLength]="200"
       [confirmDisabled]="saving || reason.trim().length === 0"
       (reasonChange)="reasonChange.emit($event)"
       (canceled)="approvalClosed.emit()"

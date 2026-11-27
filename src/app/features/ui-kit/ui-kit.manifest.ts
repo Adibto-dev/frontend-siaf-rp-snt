@@ -4294,7 +4294,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
       }
     ],
     "eventos": [],
-    "usar": "- En la solicitud abierta, para el comentario vigente (observación o motivo de rechazo) y la tabla de iteraciones:\n  plan de cuentas (individual y carga masiva), clase y tipo de asiento de ajuste, asiento de ajuste y solicitud de\n  apertura contable.\n- Encima de `siaf-action-tracker`, que completa la trazabilidad con los responsables.\n- Con `buildHistoryEntries` y `buildCurrentComment` de `detail-history-tabs.utils.ts` para armar los datos desde el\n  historial de la solicitud.",
+    "usar": "- En la solicitud abierta, para el comentario vigente (observación o motivo de rechazo) y la tabla de iteraciones:\n  plan de cuentas (individual y carga masiva), clase y tipo de asiento de ajuste, asiento de ajuste y solicitud de\n  apertura contable.\n- Encima de `siaf-action-tracker`, que completa la trazabilidad con los responsables.\n- Con `buildHistoryEntries` y `buildCurrentComment` de `detail-history-tabs.utils.ts` para armar los datos desde el\n  historial de la solicitud.\n- Con un `id` en la etiqueta, como destino del ícono ⓘ de `siaf-document-summary-card` (`detailAnchorId`): al\n  recibir el evento `siaf-ver-detalle` abre Detalle y toma el foco.",
     "evitar": "- Para ver el historial desde la bandeja sin abrir la solicitud: usar `siaf-document-history-panel`.\n- Para quién elaboró, verificó y aprobó: usar `siaf-action-tracker`.\n- Para otras pestañas: usar `siaf-tabs` directamente; este componente fija Detalle / Historial y sus columnas.\n- Rehacer a mano la tabla de iteraciones en otra solicitud: reusar este componente.",
     "teclado": "- **Tab**: entra a la fila de pestañas en la activa y sale al contenido.\n- **Flecha izquierda / derecha**: pasan de Detalle a Historial y viceversa, como en `siaf-tabs`.\n- **Inicio / Fin**: van a Detalle o a Historial.",
     "accesibilidad": "- **Pendiente · 4.1.2 Nombre, función y valor (A)**: las pestañas son `siaf-tabs` (`role=\"tab\"` con\n  `aria-selected`), pero la fila no recibe `ariaLabel` y el contenido no es `role=\"tabpanel\"` con `aria-labelledby`.\n- **1.3.1 Información y relaciones (A)**: el historial es una `table` con `thead` y `th` bajo un `h3`; el comentario\n  va como rótulo y párrafo.\n- **1.4.1 Uso del color (A)**: la pestaña activa va en negrita con subrayado; proceso, comentario y fecha de cada\n  iteración están en texto.\n- **1.4.3 Contraste mínimo (AA)**: pestañas inactivas `text-neutral-low` 4.64:1 (oscuro 8.32:1) sobre\n  `surface-low`; rótulo `text-neutral-low` 5.01:1 (8.86:1), celdas `text-neutral-medium` 14.53:1 (12.87:1) y título\n  `text-neutral-high` 16.29:1 (16.53:1) sobre la superficie.\n- **2.1.1 Teclado (A)**: se cambia de pestaña con flechas, Inicio y Fin; solo la activa entra en el orden de\n  tabulación.\n- **2.4.7 Foco visible (AA)**: sigue `siaf-tabs`: borde interior de 2 px `border-states-focus` y capa de foco.",
@@ -4832,6 +4832,13 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
         "descripcion": null
       },
       {
+        "nombre": "detailAnchorId",
+        "tipo": "string | null",
+        "porDefecto": "null",
+        "requerida": false,
+        "descripcion": "`id` de la sección del detalle e historial (`siaf-detail-history-tabs`). En Observado o Rechazado muestra el ícono ⓘ que lleva a ella; `null` (sin sección) lo oculta."
+      },
+      {
         "nombre": "documentNumber",
         "tipo": "string",
         "porDefecto": "''",
@@ -4862,8 +4869,8 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     ],
     "eventos": [],
     "usar": "- En la cabecera de las pantallas de solicitud, junto a `siaf-solicitude-info-card`, para el N° y el estado del\n  documento abierto: plan de cuentas, catálogo de ajustes, catálogo de eventos, eventos contables y apertura contable.\n- Con `contableNumber` cuando el documento ya tiene N° de documento contable: asiento de ajuste y asiento anual de\n  apertura contable.\n- En el detalle de los documentos y pedidos de Contabilización.",
-    "evitar": "- Para el ítem elegido desde un panel lateral: usar `siaf-summary-card`.\n- Para datos generales como fecha, ente rector o entidad: usar `siaf-solicitude-info-card`.\n- Para el estado de un registro (Activo, Anulado): usar `siaf-record-status-tag`; esta card muestra el estado del\n  flujo del documento.\n- Etiquetas largas: en escritorio la columna mide 140 px y la etiqueta se trunca.",
-    "teclado": "- No recibe foco: no es interactivo.",
+    "evitar": "- Para el ítem elegido desde un panel lateral: usar `siaf-summary-card`.\n- Para datos generales como fecha, ente rector o entidad: usar `siaf-solicitude-info-card`.\n- Para el estado de un registro (Activo, Anulado): usar `siaf-record-status-tag`; esta card muestra el estado del\n  flujo del documento.\n- Etiquetas largas: en escritorio la columna mide 140 px y la etiqueta se trunca.\n- Con `detailAnchorId`: en Observado o Rechazado, junto al estado, un ícono ⓘ que lleva a la sección del detalle e\n  historial (`siaf-detail-history-tabs` con ese `id`), la deja en la pestaña Detalle y le pasa el foco.",
+    "teclado": "- Solo el ícono ⓘ recibe foco; **Enter** o **Espacio** van al detalle.",
     "accesibilidad": "- **1.3.1 Información y relaciones (A)**: cada etiqueta precede a su valor en el orden de lectura; las versiones\n  móvil y escritorio se ocultan con `display: none`, así que el lector de pantalla lee una sola.\n- **1.4.1 Uso del color (A)**: el estado va escrito en `siaf-flow-status-tag`, no solo en el color.\n- **Pendiente · 1.4.3 Contraste mínimo (AA)**: etiquetas `text-neutral-low` 5.01:1 (oscuro 8.86:1) y N° de\n  documento `text-neutral-high` 16.29:1 (16.53:1) cumplen, pero el N° contable usa la clase `text-brand-primary`\n  (color de fondo de marca), 2.66:1 en oscuro, y el estado Observado / Pendiente / Fallido da 3.39:1 en claro.\n- **1.4.13 Contenido en hover o foco (AA)**: en escritorio el N° truncado se completa con `siafTooltip`, que se\n  cierra con Escape y se puede recorrer con el puntero.\n- **Pendiente · 2.1.1 Teclado (A)**: ese texto no recibe foco, así que con teclado el globo no aparece (el lector de\n  pantalla sí lee el valor entero).",
     "figma": [],
     "aria": {
@@ -4928,6 +4935,7 @@ export const MANIFIESTO_UI_KIT: readonly FichaComponente[] = [
     ],
     "usa": [
       "[siafTooltip]",
+      "siaf-button",
       "siaf-flow-status-tag"
     ],
     "sinUso": false

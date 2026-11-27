@@ -58,7 +58,7 @@ import {
   validarAsignacion,
 } from '../../models/asignacion.model';
 import type { DestinoCargado } from '../../utils/asignacion-carga-masiva.util';
-import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, textoFuenteSubfuente, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
+import { DEPENDIENTES, FILTROS_VACIOS, FiltrosCuenta, clasificacionDe, codigo, codigoFuente, mismaFuente, nombreConcepto, CONCEPTO_PROPUESTO, SUBGRUPO_GOBIERNOS_LOCALES, textoFuenteSubfuente, cumpleFiltros, opcionesFiltro } from '../../utils/clasificacion-cuentas.util';
 import { FILAS_POR_PAGINA } from '../../../../../shared/components/pagination/pagination.component';
 
 const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
@@ -286,7 +286,7 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
       render: (l) => codigoFuente(l.idCorrelativo),
       tooltip: (l) => textoFuenteSubfuente(l.idCorrelativo),
     },
-    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
+    { key: 'concepto', label: 'Concepto', headerTooltip: CONCEPTO_PROPUESTO, widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
   ];
 
   /** Cuenta de registro (ID, número y descripción) y, al final del grupo, su FF/SUB FF. */
@@ -314,6 +314,9 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   readonly codigoFuente = codigoFuente;
   readonly textoFuenteSubfuente = textoFuenteSubfuente;
   readonly nombreConcepto = nombreConcepto;
+  /** La ubicación geográfica solo se filtra en gobiernos locales. */
+  readonly subgrupoGobiernosLocales = SUBGRUPO_GOBIERNOS_LOCALES;
+  readonly conceptoPropuesto = CONCEPTO_PROPUESTO;
 
   readonly panelLibretas = signal<'origen' | 'destino' | null>(null);
   readonly busquedaLibreta = signal('');
@@ -344,7 +347,7 @@ export class AsignacionRequestComponent implements OnInit, ConSalidaProtegida {
   });
   readonly libretasFiltradas = computed(() => {
     const f = this.filtrosLibreta();
-    return filtrar(this.libretasPanel(), this.busquedaLibreta()).filter((l) => cumpleFiltros(l.idCorrelativo, f));
+    return filtrar(this.libretasPanel(), this.busquedaLibreta()).filter((l) => cumpleFiltros(l.idCorrelativo, f, l.descripcion));
   });
   readonly paginaLibretas = signal(1);
   readonly filasLibretas = signal(FILAS_POR_PAGINA);

@@ -49,6 +49,7 @@ import {
   codigoFuente,
   cumpleFiltros,
   nombreConcepto,
+  CONCEPTO_PROPUESTO, SUBGRUPO_GOBIERNOS_LOCALES,
   opcionesFiltro,
   textoFuenteSubfuente,
 } from '../../../asignacion-financiera/utils/clasificacion-cuentas.util';
@@ -308,6 +309,11 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
   readonly abiertas = signal<Set<string>>(new Set());
 
   /** Origen: la cuenta de registro con su Concepto y su FF/SUB FF (por los que se filtra), y su saldo. */
+  /** Aviso del Concepto: dato propuesto, hoy la cuenta de registro no lo tiene. */
+  /** La ubicación geográfica solo se filtra en gobiernos locales. */
+  readonly subgrupoGobiernosLocales = SUBGRUPO_GOBIERNOS_LOCALES;
+  readonly conceptoPropuesto = CONCEPTO_PROPUESTO;
+
   private readonly columnasOrigen: SelectionColumn<LibretaSaldo>[] = [
     { key: 'idCorrelativo', label: ABREVIATURAS.idCorrelativo.abreviatura, widthClass: 'w-[100px]', group: 'Cuenta de registro' },
     { key: 'numero', label: 'Número', widthClass: 'w-[300px]', group: 'Cuenta de registro' },
@@ -321,7 +327,7 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
       render: (l) => codigoFuente(l.idCorrelativo),
       tooltip: (l) => textoFuenteSubfuente(l.idCorrelativo),
     },
-    { key: 'concepto', label: 'Concepto', widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
+    { key: 'concepto', label: 'Concepto', headerTooltip: CONCEPTO_PROPUESTO, widthClass: 'w-[220px]', group: 'Cuenta de registro', render: (l) => nombreConcepto(l.idCorrelativo) },
     { key: 'saldoDisponible', label: ABREVIATURAS.importeCuenta.abreviatura, widthClass: 'w-[170px]', cellClass: 'text-right', group: 'Saldo', render: (l) => formatoImporte(l.saldoDisponible) },
   ];
   /** Destino: primero el Clasificador Institucional del titular (por el que se filtra), luego la cuenta. */
@@ -365,7 +371,7 @@ export class TrasladoRequestComponent implements OnInit, ConSalidaProtegida {
   });
   readonly libretasFiltradas = computed(() => {
     const f = this.filtrosLibreta();
-    return filtrar(this.libretas(), this.busquedaLibreta()).filter((l) => cumpleFiltros(l.idCorrelativo, f));
+    return filtrar(this.libretas(), this.busquedaLibreta()).filter((l) => cumpleFiltros(l.idCorrelativo, f, l.descripcion));
   });
   readonly paginaLibretas = signal(1);
   readonly filasLibretas = signal(FILAS_POR_PAGINA);

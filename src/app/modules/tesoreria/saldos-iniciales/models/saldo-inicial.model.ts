@@ -1,4 +1,4 @@
-import { numeroCuentaRegistro } from '../../asignacion-financiera/utils/clasificacion-cuentas.util';
+import { nombreCuentaRegistro, numerarCuentasRegistro } from '../../asignacion-financiera/utils/clasificacion-cuentas.util';
 
 /**
  * Proceso «Registro de saldos iniciales en libro bancos y libretas de cuentas de registro» (Figma 2.10.6.1.3).
@@ -101,21 +101,26 @@ export const CUENTAS_BANCARIAS: CuentaBancaria[] = [
   { numero: '21500789014000000001', denominacion: 'MEF - Encargos regionales', moneda: 'PEN', entidadCodigo: '0101' },
 ];
 
-const DESCRIPCION_MONEDA: Record<MonedaSaldo, string> = { PEN: 'Soles', USD: 'Dólares' };
-
 /** Cuentas de registro (libretas) vinculadas: entre 2 y 6 por cuenta bancaria, derivadas de su número. */
 /** «MEF - Cuenta Única del Tesoro»: la cuenta bancaria con las cuentas de registros de demostración. */
 export const CUENTA_DEMOSTRACION = '00000281794000000005';
 
-export const CUENTAS_REGISTRO: CuentaRegistro[] = CUENTAS_BANCARIAS.flatMap((cuenta, i) => {
-  const cantidad = 2 + ((i * 3) % 5);
-  return Array.from({ length: cantidad }, (_, j) => ({
-    idCorrelativo: String(i * 10 + j + 2).padStart(10, '0'),
-    numero: numeroCuentaRegistro(String(i * 10 + j + 2).padStart(10, '0'), j + 1),
-    descripcion: `Cuenta Fondo Tesoro Público ${DESCRIPCION_MONEDA[cuenta.moneda]} ${j + 1}`,
-    cuentaBancaria: cuenta.numero,
-  }));
-}).concat(cuentasDeDemostracion());
+/**
+ * Cuentas de registro con su número (`numerarCuentasRegistro`), ordenadas por número dentro de cada cuenta bancaria:
+ * así se listan agrupadas por ámbito institucional, fuente y subfuente, acreedor, convenio y secuencial.
+ */
+export const CUENTAS_REGISTRO: CuentaRegistro[] = numerarCuentasRegistro(
+  CUENTAS_BANCARIAS.flatMap((cuenta, i) => {
+    const cantidad = 2 + ((i * 3) % 5);
+    return Array.from({ length: cantidad }, (_, j) => ({
+      idCorrelativo: String(i * 10 + j + 2).padStart(10, '0'),
+      descripcion: nombreCuentaRegistro(String(i * 10 + j + 2).padStart(10, '0')),
+      cuentaBancaria: cuenta.numero,
+    }));
+  }).concat(cuentasDeDemostracion()),
+).sort((a, b) =>
+  CUENTAS_BANCARIAS.findIndex((c) => c.numero === a.cuentaBancaria) - CUENTAS_BANCARIAS.findIndex((c) => c.numero === b.cuentaBancaria)
+  || a.numero.localeCompare(b.numero));
 
 /**
  * La «MEF - Cuenta Única del Tesoro» lleva 30 cuentas de registros más (IDs desde 000100, aparte de los del resto) para
@@ -127,13 +132,12 @@ export function esCuentaDeDemostracion(idCorrelativo: string): boolean {
   return Number(idCorrelativo) >= 100;
 }
 
-function cuentasDeDemostracion(): CuentaRegistro[] {
+function cuentasDeDemostracion(): Omit<CuentaRegistro, 'numero'>[] {
   const i = CUENTAS_BANCARIAS.findIndex((c) => c.numero === CUENTA_DEMOSTRACION);
   const cuenta = CUENTAS_BANCARIAS[i];
   return Array.from({ length: 30 }, (_, k) => ({
     idCorrelativo: String(100 + k).padStart(10, '0'),
-    numero: numeroCuentaRegistro(String(100 + k).padStart(10, '0'), 2 + ((i * 3) % 5) + k + 1),
-    descripcion: `Cuenta Fondo Tesoro Público ${DESCRIPCION_MONEDA[cuenta.moneda]} ${k + 7}`,
+    descripcion: nombreCuentaRegistro(String(100 + k).padStart(10, '0')),
     cuentaBancaria: cuenta.numero,
   }));
 }

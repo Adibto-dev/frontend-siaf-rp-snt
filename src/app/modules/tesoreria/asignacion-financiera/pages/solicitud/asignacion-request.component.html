@@ -33,7 +33,7 @@
       @if (elaborado()) {
         <section class="grid gap-siaf-md lg:grid-cols-[1fr_360px]">
           <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
-          <siaf-document-summary-card [documentNumber]="numeroDocumento()" [status]="estadoDocumento()" />
+          <siaf-document-summary-card [documentNumber]="numeroDocumento()" [status]="estadoDocumento()" [detailAnchorId]="historial().length > 0 || comentarioActual() ? 'detalle-historial' : null" />
         </section>
       } @else {
         <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
@@ -158,7 +158,7 @@
                           <th class="siaf-table-th siaf-table-th--grupo-inicio w-[320px]">Descripción</th>
                           <th class="siaf-table-th w-[300px]">Número</th>
                           <th class="siaf-table-th w-[90px]"><span [siafTooltip]="abrev.fuenteFinanciamiento.termino">{{ abrev.fuenteFinanciamiento.abreviatura }}</span></th>
-                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[220px]">Concepto</th>
+                          <th class="siaf-table-th siaf-table-th--grupo-fin w-[220px]"><span [siafTooltip]="conceptoPropuesto">Concepto</span></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -215,7 +215,7 @@
       </siaf-solicitude-form-card>
 
       @if (historial().length > 0 || comentarioActual()) {
-        <siaf-detail-history-tabs [comentario]="comentarioActual()" [entries]="historial()" />
+        <siaf-detail-history-tabs id="detalle-historial" [comentario]="comentarioActual()" [entries]="historial()" />
       }
 
       @if (numeroDocumento()) {
@@ -298,16 +298,19 @@
         <siaf-input label="Sub fuente" type="select" [options]="opcionesFiltros().subfuente" [value]="filtrosEnEdicion().subfuente" [disabled]="!opcionesFiltros().subfuente.length || !filtrosEnEdicion().fuente" (valueChange)="editarFiltro('subfuente', $event)" />
         <!-- Concepto: solo cuando la Sub fuente elegida tiene conceptos (en la data v1.8, solo la 18). -->
         @if (filtrosEnEdicion().subfuente && opcionesFiltros().concepto.length) {
-          <siaf-input label="Concepto" type="select" [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
+          <siaf-input label="Concepto" type="select" hint="Dato propuesto: hoy la cuenta de registro no lo tiene." [options]="opcionesFiltros().concepto" [value]="filtrosEnEdicion().concepto" (valueChange)="editarFiltro('concepto', $event)" />
         }
+        <siaf-input label="Descripción" ejemplo="Ej.: canon, regalía, FONCOR" hint="Busca en el nombre de la cuenta de registro." [clearable]="true" [value]="filtrosEnEdicion().descripcionFuente" (valueChange)="editarFiltro('descripcionFuente', $event)" />
       } @else {
         <siaf-input label="Grupo" type="select" [options]="opcionesFiltros().grupo" [value]="filtrosEnEdicion().grupo" (valueChange)="editarFiltro('grupo', $event)" />
         <siaf-input label="Sub grupo" type="select" [options]="opcionesFiltros().subgrupo" [value]="filtrosEnEdicion().subgrupo" [disabled]="!filtrosEnEdicion().grupo" (valueChange)="editarFiltro('subgrupo', $event)" />
-        <hr class="m-0 border-0 border-t border-[var(--sys-color-divider-default)]" />
-        <h4 class="m-0 text-sm font-bold uppercase text-text">Ubicación geográfica</h4>
-        <siaf-input label="Departamento" type="select" [options]="opcionesFiltros().departamento" [value]="filtrosEnEdicion().departamento" (valueChange)="editarFiltro('departamento', $event)" />
-        <siaf-input label="Provincia" type="select" [options]="opcionesFiltros().provincia" [value]="filtrosEnEdicion().provincia" [disabled]="!filtrosEnEdicion().departamento" (valueChange)="editarFiltro('provincia', $event)" />
-        <siaf-input label="Distrito" type="select" [options]="opcionesFiltros().distrito" [value]="filtrosEnEdicion().distrito" [disabled]="!filtrosEnEdicion().provincia" (valueChange)="editarFiltro('distrito', $event)" />
+        @if (filtrosEnEdicion().subgrupo === subgrupoGobiernosLocales) {
+          <hr class="m-0 border-0 border-t border-[var(--sys-color-divider-default)]" />
+          <h4 class="m-0 text-sm font-bold uppercase text-text">Ubicación geográfica</h4>
+          <siaf-input label="Departamento" type="select" [options]="opcionesFiltros().departamento" [value]="filtrosEnEdicion().departamento" (valueChange)="editarFiltro('departamento', $event)" />
+          <siaf-input label="Provincia" type="select" [options]="opcionesFiltros().provincia" [value]="filtrosEnEdicion().provincia" [disabled]="!filtrosEnEdicion().departamento" (valueChange)="editarFiltro('provincia', $event)" />
+          <siaf-input label="Distrito" type="select" [options]="opcionesFiltros().distrito" [value]="filtrosEnEdicion().distrito" [disabled]="!filtrosEnEdicion().provincia" (valueChange)="editarFiltro('distrito', $event)" />
+        }
       }
     </div>
   </siaf-selection-side-nav>

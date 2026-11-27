@@ -48,7 +48,7 @@
       @if (elaborado()) {
         <section class="grid gap-siaf-md lg:grid-cols-[1fr_360px]">
           <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
-          <siaf-document-summary-card [documentNumber]="numeroDocumento()" [status]="estadoDocumento()" />
+          <siaf-document-summary-card [documentNumber]="numeroDocumento()" [status]="estadoDocumento()" [detailAnchorId]="historial().length > 0 || comentarioActual() ? 'detalle-historial' : null" />
         </section>
       } @else {
         <siaf-solicitude-info-card [fields]="camposEntidad()" [captureOpenDate]="true" />
@@ -580,7 +580,7 @@
       }
 
       @if (historial().length > 0 || comentarioActual()) {
-        <siaf-detail-history-tabs [comentario]="comentarioActual()" [entries]="historial()" />
+        <siaf-detail-history-tabs id="detalle-historial" [comentario]="comentarioActual()" [entries]="historial()" />
       }
 
       @if (numeroDocumento()) {

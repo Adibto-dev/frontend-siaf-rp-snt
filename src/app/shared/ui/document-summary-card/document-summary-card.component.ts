@@ -1,4 +1,6 @@
-﻿import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+
+import { ButtonComponent } from '../button/button.component';
 
 import { FlowStatus, FlowStatusTagComponent } from '../flow-status-tag/flow-status-tag.component';
 import { TooltipDirective } from '../tooltip/tooltip.directive';
@@ -23,8 +25,10 @@ import { ESTADO } from '../../../core/models/documento.model';
  * - Para el estado de un registro (Activo, Anulado): usar `siaf-record-status-tag`; esta card muestra el estado del
  *   flujo del documento.
  * - Etiquetas largas: en escritorio la columna mide 140 px y la etiqueta se trunca.
+ * - Con `detailAnchorId`: en Observado o Rechazado, junto al estado, un ícono ⓘ que lleva a la sección del detalle e
+ *   historial (`siaf-detail-history-tabs` con ese `id`), la deja en la pestaña Detalle y le pasa el foco.
  * @teclado
- * - No recibe foco: no es interactivo.
+ * - Solo el ícono ⓘ recibe foco; **Enter** o **Espacio** van al detalle.
  * @accesibilidad
  * - **1.3.1 Información y relaciones (A)**: cada etiqueta precede a su valor en el orden de lectura; las versiones
  *   móvil y escritorio se ocultan con `display: none`, así que el lector de pantalla lee una sola.
@@ -40,7 +44,7 @@ import { ESTADO } from '../../../core/models/documento.model';
 @Component({
   selector: 'siaf-document-summary-card',
   standalone: true,
-  imports: [FlowStatusTagComponent, TooltipDirective],
+  imports: [ButtonComponent, FlowStatusTagComponent, TooltipDirective],
   template: `
     <article class="h-full rounded-siaf-md bg-surface px-siaf-lg py-siaf-md">
       <!-- Mobile -->
@@ -53,7 +57,12 @@ import { ESTADO } from '../../../core/models/documento.model';
           </div>
           <div class="flex min-w-0 flex-1 flex-col gap-siaf-xxs">
             <span class="siaf-text-overline-medium truncate leading-4 text-text-muted" siafTooltip>{{ statusLabel }}</span>
-            <siaf-flow-status-tag [status]="status" size="small" />
+            <div class="flex items-center gap-siaf-xxs">
+              <siaf-flow-status-tag [status]="status" size="small" />
+              @if (verDetalleVisible) {
+                <siaf-button variant="text" size="sm" icon="info" [iconOnly]="true" ariaLabel="Ver detalle e historial" siafTooltip="Ver detalle e historial" (click)="irAlDetalle()" />
+              }
+            </div>
           </div>
         </div>
         @if (contableNumber) {
@@ -78,7 +87,12 @@ import { ESTADO } from '../../../core/models/documento.model';
         }
         <div class="grid min-h-6 items-center gap-siaf-xs lg:grid-cols-[140px_1fr]">
           <span class="siaf-text-overline-medium truncate leading-4 text-text-muted" siafTooltip>{{ statusLabel }}</span>
-          <siaf-flow-status-tag [status]="status" size="small" />
+          <div class="flex items-center gap-siaf-xxs">
+              <siaf-flow-status-tag [status]="status" size="small" />
+              @if (verDetalleVisible) {
+                <siaf-button variant="text" size="sm" icon="info" [iconOnly]="true" ariaLabel="Ver detalle e historial" siafTooltip="Ver detalle e historial" (click)="irAlDetalle()" />
+              }
+            </div>
         </div>
       </div>
     </article>
@@ -93,4 +107,21 @@ export class DocumentSummaryCardComponent {
   /** Número de documento contable (ej: AA-1-2026-01) — opcional, se muestra como tercera fila */
   @Input() contableNumber: string | null = null;
   @Input() contableNumberLabel = 'N° Doc. Contable';
+  /**
+   * `id` de la sección del detalle e historial (`siaf-detail-history-tabs`). En Observado o Rechazado muestra el ícono
+   * ⓘ que lleva a ella; `null` (sin sección) lo oculta.
+   */
+  @Input() detailAnchorId: string | null = null;
+
+  get verDetalleVisible(): boolean {
+    return !!this.detailAnchorId && (this.status === ESTADO.OBSERVADO || this.status === ESTADO.RECHAZADO);
+  }
+
+  /** Baja hasta la sección y le avisa (evento `siaf-ver-detalle`) para que abra Detalle y tome el foco. */
+  irAlDetalle(): void {
+    const destino = this.detailAnchorId ? document.getElementById(this.detailAnchorId) : null;
+    if (!destino) return;
+    destino.dispatchEvent(new CustomEvent('siaf-ver-detalle'));
+    destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }

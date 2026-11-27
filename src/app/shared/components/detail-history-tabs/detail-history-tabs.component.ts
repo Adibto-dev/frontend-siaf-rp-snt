@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, Input, inject, signal } from '@angular/core';
 
 import { TabItem, TabsComponent } from '../../ui/tabs/tabs.component';
 
@@ -43,6 +43,8 @@ export interface DetailHistoryEntry {
  * - Encima de `siaf-action-tracker`, que completa la trazabilidad con los responsables.
  * - Con `buildHistoryEntries` y `buildCurrentComment` de `detail-history-tabs.utils.ts` para armar los datos desde el
  *   historial de la solicitud.
+ * - Con un `id` en la etiqueta, como destino del ícono ⓘ de `siaf-document-summary-card` (`detailAnchorId`): al
+ *   recibir el evento `siaf-ver-detalle` abre Detalle y toma el foco.
  * @evitar
  * - Para ver el historial desde la bandeja sin abrir la solicitud: usar `siaf-document-history-panel`.
  * - Para quién elaboró, verificó y aprobó: usar `siaf-action-tracker`.
@@ -267,6 +269,17 @@ export class DetailHistoryTabsComponent {
   @Input() emptyText = '—';
 
   readonly activeTab = signal<'detalle' | 'historial'>('detalle');
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  /** Lo envía el ícono ⓘ de `siaf-document-summary-card`: abre Detalle y deja el foco en la sección. */
+  @HostListener('siaf-ver-detalle')
+  verDetalle(): void {
+    this.activeTab.set('detalle');
+    const el = this.host.nativeElement;
+    if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+    el.focus({ preventScroll: true });
+  }
 
   /** Pestañas en el formato de `siaf-tabs`. */
   get pestanas(): TabItem[] {
